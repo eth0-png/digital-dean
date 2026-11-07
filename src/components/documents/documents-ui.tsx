@@ -5,7 +5,7 @@ import { ChevronRight, Clock, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { stagger } from "@/components/kit";
-import { DOC_TYPES, EVENT_TITLE, STATUS, STEPS, type Application, type DocType } from "@/lib/documents";
+import { DOC_TYPES, EVENT_TITLE, STATUS, STEPS, plural, type Application, type DocType } from "@/lib/documents";
 import { ShareButton } from "./documents-client";
 
 // Серверные части раздела «Документы». Данные приходят пропсами: в день 3 из базы, в превью из примеров.
@@ -183,9 +183,6 @@ export function StatusCard({ app, action }: { app: Application; action?: ReactNo
   );
 }
 
-const plural = (n: number, one: string, few: string, many: string) =>
-  n % 10 === 1 && n % 100 !== 11 ? one : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? few : many;
-
 /**
  * История заявки линией (вариант 1). Вопросы и ответы схлопнуты в один пункт «Уточнение от деканата»,
  * сама переписка в шторке (`conversation` открывает её). Будущий этап виден пунктиром.
@@ -250,7 +247,9 @@ export function DocumentCard({ app, openHref, shareUrl }: { app: Application; op
         </span>
         <span className="min-w-0">
           <span className="block font-bold">{DOC_TYPES[app.type].title}</span>
-          <span className="block text-[13px] text-muted-foreground">№ {app.number}, электронная с QR-кодом</span>
+          <span className="block text-[13px] text-muted-foreground">
+            № {app.number}, {app.format === "paper" ? "бумажная в каб. 2105 и копия с QR" : "электронная с QR-кодом"}
+          </span>
           <span className="mt-1.5 inline-block rounded-md bg-destructive-soft px-2 py-0.5 text-[12px] font-bold text-destructive">Демо, юридической силы не имеет</span>
         </span>
       </div>
@@ -268,13 +267,13 @@ export function DocumentCard({ app, openHref, shareUrl }: { app: Application; op
 }
 
 /** Полный лист справки с настоящим QR-кодом и пометкой «Демо» (вариант 3). Для страницы самой справки, день 5. */
-export async function DocumentPaper({ app, fio, course, verifyUrl }: { app: Application; fio: string; course: number; verifyUrl: string }) {
+export async function DocumentPaper({ app, fio, course, faculty, verifyUrl }: { app: Application; fio: string; course: number; faculty: string; verifyUrl: string }) {
   const svg = await QRCode.toString(verifyUrl, { type: "svg", margin: 0, errorCorrectionLevel: "M", color: { dark: "#0e1a33", light: "#ffffff" } });
   return (
     <section className="enter" style={stagger(1)}>
       <div className="relative overflow-hidden rounded-lg border bg-card p-4 shadow-[0_14px_30px_-18px_rgba(14,26,51,.45)]">
-        <p className="text-[11.5px] font-bold tracking-wide text-muted-foreground">ДЕКАНАТ МЕЖДУНАРОДНО-ПРАВОВОГО ФАКУЛЬТЕТА</p>
-        <p className="mt-2 font-display text-[15px] font-semibold">СПРАВКА № {app.number}</p>
+        <p className="text-[11.5px] font-bold tracking-wide text-muted-foreground">{faculty.toUpperCase()}</p>
+        <p className="mt-2 font-display text-[15px] font-semibold">{DOC_TYPES[app.type].title.toUpperCase()} № {app.number}</p>
         <dl className="mt-1 grid grid-cols-[auto_1fr] gap-x-2 text-[13px]">
           <dt className="text-muted-foreground">Выдана:</dt>
           <dd className="font-semibold">{fio}</dd>
@@ -295,6 +294,12 @@ export async function DocumentPaper({ app, fio, course, verifyUrl }: { app: Appl
           ДЕМО
         </span>
       </div>
+      <p className="mt-3 text-center text-[13px] text-muted-foreground">
+        Проверить подлинность:{" "}
+        <a href={verifyUrl} className="font-bold break-all text-primary" data-verify-link>
+          {verifyUrl.replace(/^https?:\/\//, "")}
+        </a>
+      </p>
     </section>
   );
 }

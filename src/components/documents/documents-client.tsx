@@ -1,85 +1,87 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useActionState, useEffect, useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
-import { ChevronDown, MessageCircle, Minus, Phone, Plus, Send, Share2 } from "lucide-react";
+import { ChevronDown, LoaderCircle, MessageCircle, Minus, Phone, Plus, Send, Share2, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
-import { DEAN_OFFICE, DOC_TYPES, PURPOSES, type DocType } from "@/lib/documents";
+import { DEAN_OFFICE, DOC_TYPES, PURPOSES, type ChatMessage, type DocType, type Format } from "@/lib/documents";
+import { answerQuestion, createApplication, type OrderState } from "@/app/(student)/documents/actions";
 
-// Клиентские части раздела «Документы». В превью действия только показывают уведомление, в день 3 подключим серверные действия.
+// Клиентские части раздела «Документы»: форма заказа, «Поделиться», переписка с деканатом.
 
-const FORMATS = [
-  { value: "electronic", title: "Электронная с QR", text: "Готова в кабинете, можно показать с телефона или отправить ссылкой" },
-  { value: "paper", title: "Бумажная", text: `Забрать в деканате, ${DEAN_OFFICE.room.toLowerCase()}` },
-];
+const FORMATS: Record<Format, { title: string; text: string }> = {
+  electronic: { title: "Электронная с QR", text: "Готова в кабинете, можно показать с телефона или отправить ссылкой" },
+  paper: { title: "Бумажная", text: `Забрать в деканате, ${DEAN_OFFICE.room.toLowerCase()}` },
+};
+
+const step = (i: number) => ({ "--i": i }) as React.CSSProperties;
 
 /** Оформление: отдельная страница (вариант 1), формат карточками (вариант 2), проверка данных (вариант 3). */
-export function OrderForm({ type, student, fixHref }: { type: DocType; student: { fio: string; course: number; group: string }; fixHref: string }) {
+export function OrderForm({ type, student }: { type: DocType; student: { fio: string; course: number; group: string } }) {
+  const cfg = DOC_TYPES[type];
+  const [state, action, pending] = useActionState<OrderState, FormData>(createApplication, {});
   const [purpose, setPurpose] = useState(PURPOSES[0]);
-  const [format, setFormat] = useState("electronic");
+  const [format, setFormat] = useState<Format>(cfg.formats[0] ?? "electronic");
   const [copies, setCopies] = useState(1);
-  const days = DOC_TYPES[type].days;
-
-  function submit(e: FormEvent) {
-    e.preventDefault();
-    toast.success("Заявка отправлена", { description: `Обычно готовят за ${days} рабочий день. Мы напишем, когда будет готово.` });
-  }
 
   return (
-    <form onSubmit={submit} className="space-y-6 pb-24">
-      <fieldset className="enter space-y-2.5" style={{ "--i": 1 } as React.CSSProperties}>
-        <legend className="mb-2.5 text-sm font-bold">Куда нужна справка</legend>
-        <ToggleGroup
-          type="single"
-          value={purpose}
-          onValueChange={(v) => v && setPurpose(v)}
-          spacing={2}
-          className="w-full flex-wrap"
-          aria-label="Куда нужна справка"
-        >
-          {PURPOSES.map((p) => (
-            <ToggleGroupItem
-              key={p}
-              value={p}
-              className="press h-11 rounded-full border-2 border-border px-4 text-sm font-bold data-[state=on]:border-primary data-[state=on]:bg-accent data-[state=on]:text-accent-foreground"
-            >
-              {p}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
-      </fieldset>
+    <form action={action} className="space-y-6 pb-28" noValidate>
+      <input type="hidden" name="type" value={type} />
+      <input type="hidden" name="purpose" value={purpose} />
+      <input type="hidden" name="format" value={format} />
+      <input type="hidden" name="copies" value={copies} />
 
-      <fieldset className="enter" style={{ "--i": 2 } as React.CSSProperties}>
-        <legend className="mb-2.5 text-sm font-bold">Формат</legend>
-        <RadioGroup value={format} onValueChange={setFormat} className="gap-2">
-          {FORMATS.map((f) => (
-            <Label
-              key={f.value}
-              htmlFor={`format-${f.value}`}
-              className="press flex cursor-pointer items-start gap-3 rounded-xl border-2 border-border p-3.5 font-normal transition-colors has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-accent"
-            >
-              <RadioGroupItem id={`format-${f.value}`} value={f.value} className="mt-0.5 size-5" />
-              <span>
-                <span className="block font-bold">{f.title}</span>
-                <span className="block text-[13px] leading-snug text-muted-foreground">{f.text}</span>
-              </span>
-            </Label>
-          ))}
-        </RadioGroup>
-      </fieldset>
+      {cfg.purpose && (
+        <fieldset className="enter" style={step(1)}>
+          <legend className="mb-2.5 text-sm font-bold">Куда нужна справка</legend>
+          <ToggleGroup type="single" value={purpose} onValueChange={(v) => v && setPurpose(v)} spacing={2} className="w-full flex-wrap" aria-label="Куда нужна справка">
+            {PURPOSES.map((p) => (
+              <ToggleGroupItem
+                key={p}
+                value={p}
+                className="press h-11 rounded-full border-2 border-border px-4 text-sm font-bold data-[state=on]:border-primary data-[state=on]:bg-accent data-[state=on]:text-accent-foreground"
+              >
+                {p}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        </fieldset>
+      )}
 
-      {format === "paper" && (
-        <div className="enter flex items-center justify-between">
+      {cfg.formats.length > 1 && (
+        <fieldset className="enter" style={step(2)}>
+          <legend className="mb-2.5 text-sm font-bold">Формат</legend>
+          <RadioGroup value={format} onValueChange={(v) => setFormat(v as Format)} className="gap-2">
+            {cfg.formats.map((f) => (
+              <Label
+                key={f}
+                htmlFor={`format-${f}`}
+                className="press flex cursor-pointer items-start gap-3 rounded-xl border-2 border-border p-3.5 font-normal transition-colors has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-accent"
+              >
+                <RadioGroupItem id={`format-${f}`} value={f} className="mt-0.5 size-5" />
+                <span>
+                  <span className="block font-bold">{FORMATS[f].title}</span>
+                  <span className="block text-[13px] leading-snug text-muted-foreground">{FORMATS[f].text}</span>
+                </span>
+              </Label>
+            ))}
+          </RadioGroup>
+        </fieldset>
+      )}
+
+      {format === "paper" && cfg.formats.includes("paper") && (
+        <div className="enter flex items-center justify-between" style={step(2)}>
           <span className="text-sm font-bold" id="copies">
             Сколько экземпляров
           </span>
-          <span className="flex items-center gap-3" aria-labelledby="copies">
+          <span className="flex items-center gap-3" role="group" aria-labelledby="copies">
             <Button type="button" variant="secondary" size="icon" className="rounded-xl" onClick={() => setCopies((c) => Math.max(1, c - 1))} aria-label="Меньше">
               <Minus aria-hidden="true" />
             </Button>
@@ -93,25 +95,56 @@ export function OrderForm({ type, student, fixHref }: { type: DocType; student: 
         </div>
       )}
 
-      <div className="enter rounded-xl border p-3.5" style={{ "--i": 3 } as React.CSSProperties}>
-        <p className="text-[13px] font-bold text-muted-foreground">Проверьте данные</p>
-        <p className="mt-1">{student.fio}</p>
-        <p className="text-muted-foreground">
-          {student.course} курс, {student.group}
-        </p>
-        <Link href={fixHref} transitionTypes={["nav-forward"]} className="mt-2 inline-block min-h-11 py-2.5 text-sm font-extrabold text-primary">
-          Нашли ошибку в данных?
-        </Link>
-      </div>
+      {cfg.details && (
+        <div className="enter space-y-2" style={step(1)}>
+          <Label htmlFor="details" className="text-sm font-bold">
+            {cfg.details.label}
+          </Label>
+          <Textarea id="details" name="details" rows={3} maxLength={1000} placeholder={cfg.details.placeholder} className="min-h-24 rounded-xl border-0 bg-muted px-4 py-3 text-base" />
+        </div>
+      )}
+
+      {type !== "data_fix" && (
+        <div className="enter rounded-xl border p-3.5" style={step(3)}>
+          <p className="text-[13px] font-bold text-muted-foreground">Проверьте данные</p>
+          <p className="mt-1">{student.fio}</p>
+          <p className="text-muted-foreground">
+            {student.course} курс, {student.group}
+          </p>
+          <Link href="/documents/new?type=data_fix" transitionTypes={["nav-forward"]} className="mt-2 inline-block min-h-11 py-2.5 text-sm font-extrabold text-primary">
+            Нашли ошибку в данных?
+          </Link>
+        </div>
+      )}
 
       <div className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md border-t bg-background px-4 pt-3 pb-[max(16px,env(safe-area-inset-bottom))]">
-        <Button type="submit" size="lg">
-          Отправить заявку
+        {state.error && (
+          <p role="alert" className="enter mb-2.5 flex items-start gap-2 rounded-xl bg-destructive-soft px-3.5 py-2.5 text-sm font-semibold text-destructive">
+            <TriangleAlert size={18} className="mt-px shrink-0" aria-hidden="true" />
+            {state.error}
+          </p>
+        )}
+        <Button type="submit" size="lg" disabled={pending}>
+          {pending && <LoaderCircle className="animate-spin" aria-hidden="true" />}
+          {pending ? "Отправляем" : "Отправить заявку"}
         </Button>
-        <p className="mt-2 text-center text-[13px] text-muted-foreground">Обычно готовят за {days} рабочий день</p>
+        <p className="mt-2 text-center text-[13px] text-muted-foreground">
+          Обычно {cfg.days === 1 ? "1 рабочий день" : `${cfg.days} рабочих дня`}
+        </p>
       </div>
     </form>
   );
+}
+
+/** Уведомление «Заявка отправлена» после перехода с формы. Убирает ?sent=1 из адреса. */
+export function SentToast() {
+  const router = useRouter();
+  const path = usePathname();
+  useEffect(() => {
+    toast.success("Заявка отправлена", { description: "Мы напишем, когда документ будет готов." });
+    router.replace(path, { scroll: false });
+  }, [router, path]);
+  return null;
 }
 
 /** «Поделиться»: системное меню телефона, а где его нет, ссылка копируется. */
@@ -131,43 +164,53 @@ export function ShareButton({ title, url }: { title: string; url: string }) {
   );
 }
 
-export type ChatMessage = { id: string; from: "dean" | "me" | "system"; text: string; at: string; read?: string };
-
 /**
  * Переписка с деканатом по заявке, в шторке (вариант Б).
  * В основном экране пузырей нет: шторка открывается кнопкой «Ответить» или пунктом истории.
- * Телефон деканата в шапке шторки. После готовности заявки переписка только для чтения.
  * Шторка сразу на 92% высоты, без промежуточного положения: при раскрытии по нажатию на поле
  * на iPhone одновременно выезжает клавиатура, и получаются два движения подряд.
  */
-export function Conversation({
+function Conversation({
   number,
   messages,
   trigger,
-  defaultOpen,
-  canReply = true,
+  onSend,
 }: {
   number: number;
   messages: ChatMessage[];
   trigger: React.ReactNode;
-  defaultOpen?: boolean;
-  canReply?: boolean;
+  onSend?: (text: string) => Promise<string | undefined>;
 }) {
-  const [open, setOpen] = useState(defaultOpen ?? false);
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
   const [list, setList] = useState(messages);
   const [text, setText] = useState("");
+  const [sending, setSending] = useState(false);
   const end = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (open) end.current?.scrollIntoView({ block: "end" });
   }, [open, list.length]);
 
-  function send(e: FormEvent) {
+  async function send(e: FormEvent) {
     e.preventDefault();
     const t = text.trim();
-    if (!t) return;
-    setList((l) => [...l, { id: String(l.length + 1), from: "me", text: t, at: "сейчас", read: "отправлено" }]);
+    if (!t || !onSend || sending) return;
+    setSending(true);
+    const error = await onSend(t);
+    setSending(false);
+    if (error) {
+      toast.error("Не отправилось", { description: error });
+      return;
+    }
+    setList((l) => [...l, { id: `new-${l.length}`, from: "me", text: t, at: "сейчас", read: "доставлено" }]);
     setText("");
+    toast.success("Ответ отправлен", { description: "Заявка вернулась в работу." });
+    // Даём увидеть свой пузырь, потом закрываем и обновляем страницу: статус уже «В работе»
+    setTimeout(() => {
+      setOpen(false);
+      router.refresh();
+    }, 700);
   }
 
   return (
@@ -183,10 +226,10 @@ export function Conversation({
           <span className="grid size-10 shrink-0 place-items-center rounded-full bg-accent text-[13px] font-extrabold text-accent-foreground">{DEAN_OFFICE.initials}</span>
           <span className="min-w-0 flex-1 pl-1">
             <DrawerTitle className="text-base font-bold">{DEAN_OFFICE.person}</DrawerTitle>
-            <DrawerDescription className="text-[13px]">Деканат МП, заявка № {number}</DrawerDescription>
+            <DrawerDescription className="text-[13px]">Деканат, заявка № {number}</DrawerDescription>
           </span>
           <Button asChild variant="ghost" size="icon" className="text-primary">
-            <a href={`tel:${DEAN_OFFICE.phone.replace(/[^+d]/g, "")}`} aria-label={`Позвонить в деканат, ${DEAN_OFFICE.phone}`}>
+            <a href={`tel:${DEAN_OFFICE.phone.replace(/[^+\d]/g, "")}`} aria-label={`Позвонить в деканат, ${DEAN_OFFICE.phone}`}>
               <Phone aria-hidden="true" />
             </a>
           </Button>
@@ -217,26 +260,27 @@ export function Conversation({
           <div ref={end} />
         </div>
 
-        {canReply ? (
+        {onSend ? (
           <form onSubmit={send} className="flex items-end gap-2 border-t px-3 pt-2.5 pb-[max(12px,env(safe-area-inset-bottom))]">
             <Label htmlFor="chat-message" className="sr-only">
-              Сообщение деканату
+              Ответ деканату
             </Label>
             <Textarea
               id="chat-message"
               value={text}
               onChange={(e) => setText(e.target.value)}
               rows={1}
-              placeholder="Сообщение"
+              maxLength={1000}
+              placeholder="Ваш ответ"
               className="max-h-32 min-h-11 flex-1 resize-none rounded-2xl border-0 bg-muted px-4 py-2.5 text-base"
             />
-            <Button type="submit" size="icon" className="shrink-0" disabled={!text.trim()} aria-label="Отправить">
-              <Send aria-hidden="true" />
+            <Button type="submit" size="icon" className="shrink-0" disabled={!text.trim() || sending} aria-label="Отправить">
+              {sending ? <LoaderCircle className="animate-spin" aria-hidden="true" /> : <Send aria-hidden="true" />}
             </Button>
           </form>
         ) : (
           <p className="border-t px-4 pt-3 pb-[max(14px,env(safe-area-inset-bottom))] text-center text-[13px] text-muted-foreground">
-            Заявка выполнена, переписка закрыта. Остались вопросы, позвоните в деканат.
+            Сейчас деканат ничего не спрашивает. Если остались вопросы, позвоните.
           </p>
         )}
       </DrawerContent>
@@ -244,13 +288,13 @@ export function Conversation({
   );
 }
 
-/** «Ответить» внутри карточки статуса, когда деканат задал вопрос. */
-export function AnswerButton({ number, messages, defaultOpen }: { number: number; messages: ChatMessage[]; defaultOpen?: boolean }) {
+/** «Ответить» внутри карточки статуса, когда деканат задал вопрос. Ответ сохраняется в базе. */
+export function AnswerButton({ appId, number, messages }: { appId: string; number: number; messages: ChatMessage[] }) {
   return (
     <Conversation
       number={number}
       messages={messages}
-      defaultOpen={defaultOpen}
+      onSend={async (t) => (await answerQuestion(appId, t)).error}
       trigger={
         <Button className="mt-3 w-full bg-background text-primary shadow-none hover:bg-background/90">
           <MessageCircle aria-hidden="true" />
@@ -262,13 +306,11 @@ export function AnswerButton({ number, messages, defaultOpen }: { number: number
 }
 
 /** Пункт истории «Уточнение от деканата»: открывает переписку для чтения. */
-export function ConversationLink({ number, messages, defaultOpen }: { number: number; messages: ChatMessage[]; defaultOpen?: boolean }) {
+export function ConversationLink({ number, messages }: { number: number; messages: ChatMessage[] }) {
   return (
     <Conversation
       number={number}
       messages={messages}
-      defaultOpen={defaultOpen}
-      canReply={false}
       trigger={
         <button type="button" className="press mt-1 inline-flex min-h-11 items-center gap-1.5 text-sm font-bold text-primary">
           <MessageCircle size={18} aria-hidden="true" />

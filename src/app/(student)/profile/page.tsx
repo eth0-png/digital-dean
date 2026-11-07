@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { LogOut } from "lucide-react";
+import Link from "next/link";
+import { LogOut, PencilLine } from "lucide-react";
 import { requireStudent } from "@/lib/auth";
 import { logout } from "@/app/login/actions";
 import { Button } from "@/components/ui/button";
@@ -50,6 +51,14 @@ async function Profile() {
           </div>
         ))}
       </dl>
+
+      {/* Ошибки в данных: 2 из 2 таких обращений в опросе не решились без визита */}
+      <Button asChild variant="outline" size="lg" className="border-2">
+        <Link href="/documents/new?type=data_fix" transitionTypes={["nav-forward"]}>
+          <PencilLine aria-hidden="true" />
+          Нашли ошибку в данных
+        </Link>
+      </Button>
 
       <form action={logout}>
         <Button type="submit" variant="secondary" size="lg">

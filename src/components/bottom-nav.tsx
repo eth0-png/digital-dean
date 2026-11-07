@@ -13,8 +13,7 @@ const TABS = [
 ];
 
 export function BottomNav() {
-  // /design/... это превью макетов, ведёт себя как настоящий путь без приставки
-  const path = usePathname().replace(/^\/design(?=\/)/, "");
+  const path = usePathname();
   const active = TABS.findIndex(({ href }) => (href === "/" ? path === "/" : path.startsWith(href)));
   // Внутри задачи (оформление, заявка) меню прячется: внизу своя главная кнопка
   if (/^\/documents\/.+/.test(path)) return null;

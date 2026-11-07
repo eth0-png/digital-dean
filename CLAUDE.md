@@ -22,7 +22,9 @@
 - `src/components/ui/` компоненты shadcn/ui (Radix). Это наш код, правим под себя: кнопки от 44 px, поля 52 px. Новые ставим так: `npx shadcn@latest add <имя>`.
 - `src/components/kit.tsx` наши общие части: `Reveal` (загрузка с плавной сменой), `PageTransition` (переход страницы), `EmptyState`, `SectionTitle`, `stagger`. `bottom-nav.tsx`, `logo.tsx`.
 - `src/components/documents/` экраны «Документов»: `documents-ui.tsx` серверные части, `documents-client.tsx` форма, шторка «Связаться с деканатом», окно QR. `src/lib/documents.ts` статусы, типы, тексты.
-- `src/app/(student)/design/documents/` превью экранов на примерах, открывается только при `DESIGN_PREVIEW=1`.
+- `src/lib/applications.ts` данные заявок: `listMyApplications()`, `getMyApplication(id)` (всегда с `user_id` текущего студента), `findByVerifyCode()` для открытой проверки.
+- `src/app/(student)/documents/actions.ts` действия: `createApplication`, `answerQuestion`.
+- `src/app/verify/[code]/` открытая страница проверки справки по QR (без входа, только инициалы).
 - Токены цвета в `src/app/globals.css` с именами shadcn (`primary`, `muted-foreground`, `border`...) плюс наши `success`, `warning`, `alert`, `nav`.
 - `scripts/shot.mjs` скриншоты на 360 px, `scripts/check-access.mjs` проверка разделения доступа.
 - `scripts/measure-nav.mjs` плавность переключения вкладок на замедленном в 4 раза процессоре. После правок анимаций: длинных кадров должно быть 0.

@@ -82,6 +82,24 @@ const foreignDoc = await open(s2, `${ids1[0]}/document`);
 check(foreignDoc.text.includes("Страница не найдена"), "student2 не открывает справку student1 по прямой ссылке");
 check((await open(s1, "/documents/not-a-uuid")).text.includes("Страница не найдена"), "кривой адрес заявки даёт «не найдено», а не ошибку");
 
+// 6б. Кабинет сотрудника: студент не открывает карточку заявки, даже своей, сотрудник видит заявки обоих
+const own = await open(s1, ids1[0].replace("/documents/", "/staff/"));
+check(own.text.includes("Страница не найдена") && !own.text.includes("Взять в работу"), "student1 не открывает /staff/<id> даже своей заявки");
+await open(staff, "/staff");
+// Вкладки показывают по одному списку, поэтому проходим все
+const queue = [];
+for (const tab of await staff.$$("button[role=tab]")) {
+  await tab.click();
+  await new Promise((r) => setTimeout(r, 300));
+  queue.push(...(await staff.evaluate(() => [...document.querySelectorAll('[role=tabpanel] a[href^="/staff/"]')].map((a) => a.getAttribute("href")))));
+}
+const asStaff = (ids) => ids.map((h) => h.replace("/documents/", "/staff/"));
+check([...asStaff(ids1), ...asStaff(ids2)].every((h) => queue.includes(h)), "сотрудник видит в очереди заявки обоих студентов");
+const staffCard = await open(staff, asStaff(ids2)[0]);
+check(staffCard.text.includes("Петров"), "сотрудник открывает карточку заявки студента");
+check((await open(staff, ids1[0])).path === "/staff", "сотрудник со студенческой страницы заявки попадает в свой кабинет");
+check((await open(staff, "/staff/not-a-uuid")).text.includes("Страница не найдена"), "кривой адрес в кабинете сотрудника даёт «не найдено»");
+
 // 7. Проверка подлинности по QR: открыта без входа, но показывает только инициалы
 let verify = null;
 for (const id of ids1) {

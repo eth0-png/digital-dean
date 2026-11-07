@@ -30,7 +30,7 @@ export function dueDate(days: number) {
   return isoFmt.format(d);
 }
 
-type AppRow = {
+export type AppRow = {
   id: string;
   number: number;
   type: DocType;
@@ -41,9 +41,9 @@ type AppRow = {
   due_date: Date;
   verify_code: string | null;
 };
-type EventRow = { application_id: string; kind: AppEvent["kind"]; text: string | null; read_at: Date | null; created_at: Date };
+export type EventRow = { application_id: string; kind: AppEvent["kind"]; text: string | null; read_at: Date | null; created_at: Date };
 
-function toApplication(r: AppRow, all: EventRow[]): Application {
+export function toApplication(r: AppRow, all: EventRow[]): Application {
   const events = all.filter((e) => e.application_id === r.id);
   const ready = events.findLast((e) => e.kind === "ready");
   const due = new Date(r.due_date); // драйвер может вернуть дату и строкой, и объектом
@@ -69,7 +69,7 @@ function toApplication(r: AppRow, all: EventRow[]): Application {
   };
 }
 
-async function eventsFor(ids: string[]) {
+export async function eventsFor(ids: string[]) {
   if (ids.length === 0) return [];
   return sql<EventRow[]>`
     select application_id, kind, text, read_at, created_at from application_events

@@ -79,6 +79,7 @@ export function labelFor(url: string) {
     "/documents/all": "Мои заявки",
     "/profile": "Профиль",
     "/notifications": "Уведомления",
+    "/staff": "Очередь",
   };
   if (labels[path]) return labels[path];
   if (/^\/documents\/[0-9a-f-]{36}$/.test(path)) return "Заявка";

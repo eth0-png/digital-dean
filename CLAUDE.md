@@ -26,9 +26,13 @@
 - `src/lib/applications.ts` данные заявок: `listMyApplications()`, `getMyApplication(id)` (всегда с `user_id` текущего студента), `findByVerifyCode()` для открытой проверки.
 - `src/app/(student)/documents/actions.ts` действия: `createApplication`, `answerQuestion`.
 - `src/app/verify/[code]/` открытая страница проверки справки по QR (без входа, только инициалы).
+- `src/lib/staff.ts` данные кабинета сотрудника: `listQueue()`, `getForStaff(id)`, обе начинаются с `requireStaff()`.
+- `src/app/staff/actions.ts` действия сотрудника: `takeInWork`, `askQuestion`, `issue`, `reject`, `markRead`. Смена статуса одним запросом с условием на текущий статус.
+- `src/components/staff/` очередь и карточка: `staff-ui.tsx` (история, сведения), `staff-client.tsx` (панель действий с окнами, `MarkRead`).
 - Токены цвета в `src/app/globals.css` с именами shadcn (`primary`, `muted-foreground`, `border`...) плюс наши `success`, `warning`, `alert`, `nav`.
 - `scripts/shot.mjs` скриншоты на 360 px, `scripts/check-access.mjs` проверка разделения доступа.
 - `scripts/check-nav.mjs` 35 сценариев навигации: «назад», закрытие профиля и уведомлений, нигде «Страница не найдена». `ALLOW_WRITE=1` добавляет сценарий с отправкой заявки (только локально).
+- `scripts/check-flow.mjs` сквозной сценарий студент ↔ сотрудник через интерфейс. Создаёт заявку, поэтому только локально.
 - `scripts/measure-nav.mjs` плавность переключения вкладок на замедленном в 4 раза процессоре. После правок анимаций: длинных кадров должно быть 0.
 - `Dockerfile`, `docker-compose.yml`, `Caddyfile` выкладка на виртуальную машину Cloud.ru. Порядок выкладки в `README.md`.
 - `research/survey.csv` не публикуется (в `.gitignore`), в репозитории только сводка.

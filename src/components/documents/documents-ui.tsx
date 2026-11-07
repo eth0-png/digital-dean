@@ -147,7 +147,7 @@ export function StatusCard({ app, action }: { app: Application; action?: ReactNo
         <span className={chip}>{DOC_TYPES[app.type].title}</span>
         <span className={chip}>№ {app.number}</span>
       </div>
-      <p className="mt-3 font-display text-[21px] font-semibold">{ready ? "Справка готова" : s.title}</p>
+      <p className="mt-3 font-display text-[21px] font-semibold">{ready ? (app.verifyCode ? "Справка готова" : "Готово") : s.title}</p>
       {need && app.question ? (
         <div className="mt-3 rounded-xl bg-black/20 px-3.5 py-3">
           <p className="text-[13px] font-bold">Деканат спрашивает</p>

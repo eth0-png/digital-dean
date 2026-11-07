@@ -186,6 +186,7 @@ function Conversation({
   const [list, setList] = useState(messages);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+  const [answered, setAnswered] = useState(false);
   const end = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -203,18 +204,23 @@ function Conversation({
       toast.error("Не отправилось", { description: error });
       return;
     }
-    setList((l) => [...l, { id: `new-${l.length}`, from: "me", text: t, at: "сейчас", read: "доставлено" }]);
+    setList((l) => [
+      ...l,
+      { id: `new-${l.length}`, from: "me", text: t, at: "сейчас", read: "доставлено" },
+      { id: `sys-${l.length}`, from: "system", text: "Ответ отправлен, заявка вернулась в работу", at: "сейчас" },
+    ]);
     setText("");
-    toast.success("Ответ отправлен", { description: "Заявка вернулась в работу." });
-    // Даём увидеть свой пузырь, потом закрываем и обновляем страницу: статус уже «В работе»
-    setTimeout(() => {
-      setOpen(false);
-      router.refresh();
-    }, 700);
+    setAnswered(true);
+  }
+
+  // Шторку закрывает сам студент. Страница с новым статусом обновляется после закрытия.
+  function change(next: boolean) {
+    setOpen(next);
+    if (!next && answered) router.refresh();
   }
 
   return (
-    <Drawer open={open} onOpenChange={setOpen} repositionInputs>
+    <Drawer open={open} onOpenChange={change} repositionInputs>
       <DrawerTrigger asChild>{trigger}</DrawerTrigger>
       <DrawerContent className="mx-auto h-[92dvh] max-w-md rounded-t-[28px] data-[vaul-drawer-direction=bottom]:mt-0 data-[vaul-drawer-direction=bottom]:max-h-[92dvh]">
         <DrawerHeader className="flex-row items-center gap-2 border-b px-2 pt-2 pb-2.5 text-left">
@@ -260,7 +266,7 @@ function Conversation({
           <div ref={end} />
         </div>
 
-        {onSend ? (
+        {onSend && !answered ? (
           <form onSubmit={send} className="flex items-end gap-2 border-t px-3 pt-2.5 pb-[max(12px,env(safe-area-inset-bottom))]">
             <Label htmlFor="chat-message" className="sr-only">
               Ответ деканату
@@ -280,7 +286,9 @@ function Conversation({
           </form>
         ) : (
           <p className="border-t px-4 pt-3 pb-[max(14px,env(safe-area-inset-bottom))] text-center text-[13px] text-muted-foreground">
-            Сейчас деканат ничего не спрашивает. Если остались вопросы, позвоните.
+            {answered
+              ? "Когда деканат ответит, придёт уведомление. Свернуть переписку можно стрелкой вверху."
+              : "Сейчас деканат ничего не спрашивает. Если остались вопросы, позвоните."}
           </p>
         )}
       </DrawerContent>
@@ -296,7 +304,7 @@ export function AnswerButton({ appId, number, messages }: { appId: string; numbe
       messages={messages}
       onSend={async (t) => (await answerQuestion(appId, t)).error}
       trigger={
-        <Button className="mt-3 w-full bg-background text-primary shadow-none hover:bg-background/90">
+        <Button className="mt-3 w-full bg-background text-primary hover:bg-background/90">
           <MessageCircle aria-hidden="true" />
           Ответить
         </Button>

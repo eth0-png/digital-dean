@@ -41,7 +41,7 @@ export function ApplicationTracker({ app, href }: { app: Application; href: stri
     <Link
       href={href}
       transitionTypes={["nav-forward"]}
-      className="press enter block rounded-2xl bg-primary p-4 text-primary-foreground shadow-[0_16px_32px_-16px_rgba(37,99,235,.7)]"
+      className="enter flex h-full flex-col rounded-2xl bg-primary p-4 text-primary-foreground"
     >
       <div className="flex items-center justify-between gap-2">
         <span className={chip}>{DOC_TYPES[app.type].title}</span>
@@ -49,13 +49,16 @@ export function ApplicationTracker({ app, href }: { app: Application; href: stri
       </div>
       <p className="mt-3 font-display text-xl font-semibold">{s.title}</p>
       <p className="mt-0.5 text-sm">{app.status === "need_info" ? s.sub : `Будет готово до ${app.due}`}</p>
-      <StepBar app={app} onPrimary />
-      <div className="mt-1.5 grid grid-cols-3 text-xs font-bold">
-        {STEPS.map((label, i) => (
-          <span key={label} className={i === 1 ? "text-center" : i === 2 ? "text-right" : ""}>
-            {label}
-          </span>
-        ))}
+      {/* Этапы прижаты к низу: в карусели карточки одной высоты, полосы на одной линии */}
+      <div className="mt-auto">
+        <StepBar app={app} onPrimary />
+        <div className="mt-1.5 grid grid-cols-3 text-xs font-bold">
+          {STEPS.map((label, i) => (
+            <span key={label} className={i === 1 ? "text-center" : i === 2 ? "text-right" : ""}>
+              {label}
+            </span>
+          ))}
+        </div>
       </div>
     </Link>
   );
@@ -139,7 +142,7 @@ export function StatusCard({ app, action }: { app: Application; action?: ReactNo
   const ready = app.status === "ready";
   const need = app.status === "need_info";
   return (
-    <section className="enter rounded-2xl bg-primary p-4 text-primary-foreground shadow-[0_16px_32px_-16px_rgba(37,99,235,.7)]">
+    <section className="enter rounded-2xl bg-primary p-4 text-primary-foreground">
       <div className="flex items-center justify-between gap-2">
         <span className={chip}>{DOC_TYPES[app.type].title}</span>
         <span className={chip}>№ {app.number}</span>
@@ -239,7 +242,7 @@ export function DocumentCard({ app, openHref, shareUrl }: { app: Application; op
     <section className="enter rounded-xl border bg-card p-3.5" style={stagger(1)}>
       <div className="flex gap-3.5">
         {/* Мини-лист: строки текста и уголок QR */}
-        <span aria-hidden="true" className="flex h-[72px] w-14 shrink-0 flex-col gap-1 rounded-md border bg-background p-1.5 shadow-[0_6px_14px_-8px_rgba(14,26,51,.35)]">
+        <span aria-hidden="true" className="flex h-[72px] w-14 shrink-0 flex-col gap-1 rounded-md border bg-background p-1.5">
           <span className="h-1 w-3/4 rounded-full bg-primary/60" />
           <span className="h-1 rounded-full bg-muted-foreground/25" />
           <span className="h-1 w-5/6 rounded-full bg-muted-foreground/25" />
@@ -271,7 +274,7 @@ export async function DocumentPaper({ app, fio, course, faculty, verifyUrl }: { 
   const svg = await QRCode.toString(verifyUrl, { type: "svg", margin: 0, errorCorrectionLevel: "M", color: { dark: "#0e1a33", light: "#ffffff" } });
   return (
     <section className="enter" style={stagger(1)}>
-      <div className="relative overflow-hidden rounded-lg border bg-card p-4 shadow-[0_14px_30px_-18px_rgba(14,26,51,.45)]">
+      <div className="relative overflow-hidden rounded-lg border bg-card p-4">
         <p className="text-[11.5px] font-bold tracking-wide text-muted-foreground">{faculty.toUpperCase()}</p>
         <p className="mt-2 font-display text-[15px] font-semibold">{DOC_TYPES[app.type].title.toUpperCase()} № {app.number}</p>
         <dl className="mt-1 grid grid-cols-[auto_1fr] gap-x-2 text-[13px]">
@@ -294,10 +297,9 @@ export async function DocumentPaper({ app, fio, course, faculty, verifyUrl }: { 
           ДЕМО
         </span>
       </div>
-      <p className="mt-3 text-center text-[13px] text-muted-foreground">
-        Проверить подлинность:{" "}
-        <a href={verifyUrl} className="font-bold break-all text-primary" data-verify-link>
-          {verifyUrl.replace(/^https?:\/\//, "")}
+      <p className="mt-2 text-center">
+        <a href={verifyUrl} className="inline-flex min-h-11 items-center text-[15px] font-bold text-primary underline-offset-4 hover:underline" data-verify-link>
+          Проверить подлинность
         </a>
       </p>
     </section>

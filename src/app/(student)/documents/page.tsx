@@ -4,6 +4,7 @@ import { listMyApplications } from "@/lib/applications";
 import { DEAN_OFFICE } from "@/lib/documents";
 import { EmptyState, PageTransition, Reveal, SectionTitle } from "@/components/kit";
 import { ApplicationList, ApplicationTracker, OrderTiles } from "@/components/documents/documents-ui";
+import { SwipeCarousel } from "@/components/swipe-carousel";
 
 export const metadata: Metadata = { title: "Документы" };
 
@@ -19,24 +20,30 @@ export default function DocumentsPage() {
 
 async function Documents() {
   const apps = await listMyApplications();
-  // Наверху самая важная заявка: где ждут ответа, иначе последняя в работе
-  const active = apps.find((a) => a.status === "need_info") ?? apps.find((a) => a.status === "submitted" || a.status === "in_progress");
-  const rest = apps.filter((a) => a !== active);
+  // Наверху заявки в процессе каруселью: первыми те, где деканат ждёт ответа, дальше новые сверху
+  const active = [...apps.filter((a) => a.status === "need_info"), ...apps.filter((a) => a.status === "submitted" || a.status === "in_progress")];
+  const rest = apps.filter((a) => !active.includes(a));
 
   return (
     <div className="space-y-5">
       <h1 className="enter font-display text-[22px] font-semibold">Документы</h1>
-      {active && <ApplicationTracker app={active} href={`/documents/${active.id}`} />}
+      {active.length > 0 && (
+        <SwipeCarousel label="Заявки в процессе">
+          {active.map((a) => (
+            <ApplicationTracker key={a.id} app={a} href={`/documents/${a.id}`} />
+          ))}
+        </SwipeCarousel>
+      )}
       <section>
         <SectionTitle>Заказать</SectionTitle>
         <OrderTiles hrefFor={(t) => `/documents/new?type=${t}`} />
       </section>
       <section>
-        <SectionTitle>Мои заявки</SectionTitle>
+        <SectionTitle>{active.length > 0 ? "Завершённые" : "Мои заявки"}</SectionTitle>
         {rest.length > 0 ? (
           <ApplicationList apps={rest} hrefFor={(a) => `/documents/${a.id}`} />
-        ) : active ? (
-          <p className="text-sm text-muted-foreground">Других заявок нет.</p>
+        ) : active.length > 0 ? (
+          <p className="text-sm text-muted-foreground">Пока ни одна заявка не завершена.</p>
         ) : (
           <EmptyState
             icon={<FileText size={24} aria-hidden="true" />}

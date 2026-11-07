@@ -22,7 +22,7 @@ export function BottomNav() {
     <nav
       aria-label="Разделы"
       style={{ viewTransitionName: "app-nav" }}
-      className="fixed inset-x-3 bottom-[max(12px,env(safe-area-inset-bottom))] z-20 mx-auto max-w-[420px] rounded-3xl bg-nav p-2 shadow-[0_12px_30px_-10px_rgba(14,26,51,.5)]"
+      className="fixed inset-x-3 bottom-[max(12px,env(safe-area-inset-bottom))] z-20 mx-auto max-w-[420px] rounded-3xl bg-nav p-2"
     >
       <div className="relative grid grid-cols-4">
         {/* Подсветка скользит к выбранной вкладке */}

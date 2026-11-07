@@ -31,7 +31,7 @@ async function Today() {
 
       {/* Ближайшая пара: первым её хотят видеть 13 из 23 студентов */}
       <section
-        className="enter rounded-2xl bg-primary p-[18px] text-primary-foreground shadow-[0_16px_32px_-16px_rgba(37,99,235,.7)]"
+        className="enter rounded-2xl bg-primary p-[18px] text-primary-foreground"
         style={stagger(1)}
       >
         <span className="rounded-full bg-black/20 px-3 py-1 text-[13px] font-bold">Ближайшая пара</span>

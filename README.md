@@ -33,4 +33,4 @@ cp .env.example .env   # заполнить DOMAIN
 docker compose up -d --build
 ```
 
-Обновление: `git pull && docker compose up -d --build`.
+Обновление: `git pull && docker compose up -d --build`. После правки `Caddyfile` ещё `docker compose up -d --force-recreate caddy`.

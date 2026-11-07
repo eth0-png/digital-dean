@@ -121,7 +121,7 @@ export function ApplicationList({ apps, hrefFor }: { apps: Application[]; hrefFo
               <span>
                 <span className="block font-bold">{DOC_TYPES[a.type].title}</span>
                 <span className="block text-[13px] text-muted-foreground">
-                  № {a.number}, {need ? "деканат задал вопрос" : a.status === "ready" ? `готово ${a.readyAt}` : `до ${a.due}`}
+                  № {a.number}, {need ? "деканат задал вопрос" : a.status === "ready" ? `готово ${a.readyAt?.split(" в ")[0]}` : `до ${a.due}`}
                 </span>
               </span>
               <Badge variant={s.badge}>{need ? "Нужен ответ" : s.title}</Badge>

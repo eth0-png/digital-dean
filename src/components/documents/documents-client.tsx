@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
 import { DEAN_OFFICE, DOC_TYPES, PURPOSES, type ChatMessage, type DocType, type Format } from "@/lib/documents";
 import { answerQuestion, createApplication, type OrderState } from "@/app/(student)/documents/actions";
@@ -326,5 +327,30 @@ export function ConversationLink({ number, messages }: { number: number; message
         </button>
       }
     />
+  );
+}
+
+/** Вкладки раздела «Мои заявки». Списки отрисованы на сервере, переключение мгновенное, без запросов. */
+export function ApplicationTabs({ tabs }: { tabs: { value: string; label: string; count: number; content: React.ReactNode }[] }) {
+  return (
+    <Tabs defaultValue={tabs[0].value} className="gap-4">
+      <TabsList className="grid w-full grid-cols-3 rounded-xl bg-secondary p-1 group-data-horizontal/tabs:h-13">
+        {tabs.map((t) => (
+          <TabsTrigger
+            key={t.value}
+            value={t.value}
+            className="h-full rounded-lg text-[14px] font-bold text-muted-foreground data-[state=active]:bg-background data-[state=active]:text-foreground"
+          >
+            {t.label}
+            <span className="ml-1 text-[12.5px] font-semibold text-muted-foreground">{t.count}</span>
+          </TabsTrigger>
+        ))}
+      </TabsList>
+      {tabs.map((t) => (
+        <TabsContent key={t.value} value={t.value}>
+          {t.content}
+        </TabsContent>
+      ))}
+    </Tabs>
   );
 }

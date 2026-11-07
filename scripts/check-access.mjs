@@ -65,8 +65,9 @@ const staff = await session("dekanat", process.env.SEED_PASSWORD_STAFF);
 check((await open(staff, "/")).path === "/staff", "сотрудник с / попадает на /staff");
 
 // 6. Заявки: каждый видит только свои, чужие не открываются даже по прямой ссылке
+// Все заявки студента в разделе «Мои заявки» (на главной «Документов» только заявки в процессе)
 const appIds = async (page) => {
-  await open(page, "/documents");
+  await open(page, "/documents/all");
   return page.evaluate(() =>
     [...new Set([...document.querySelectorAll('a[href^="/documents/"]')].map((a) => a.getAttribute("href")))].filter((h) => /^\/documents\/[0-9a-f-]{36}$/.test(h)),
   );

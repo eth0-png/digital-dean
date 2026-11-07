@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Вариант А: спокойный</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F3F5F9; --card: #FFFFFF; --text: #101828; --muted: #667085; --line: #E4E7EC;
+    --accent: #2346A8; --accent-soft: #E8EEFC;
+    --warn: #B54708; --warn-soft: #FEF0C7; --ok: #067647; --ok-soft: #DCFAE6;
+    --r: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: Manrope, system-ui, sans-serif; background: var(--bg); color: var(--text); width: 360px; min-height: 800px; font-size: 15px; line-height: 1.4; }
+  .top { display: flex; align-items: center; gap: 10px; padding: 14px 16px 6px; }
+  .logo { width: 32px; height: 32px; }
+  .brand { font-weight: 800; font-size: 17px; letter-spacing: -0.01em; flex: 1; }
+  .icon-btn { position: relative; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: var(--card); border: 1px solid var(--line); }
+  .badge { position: absolute; top: 6px; right: 7px; width: 9px; height: 9px; border-radius: 50%; background: #D92D20; border: 2px solid var(--card); }
+  .avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--accent); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 14px; }
+  .concept { margin: 4px 16px 0; font-size: 11.5px; color: var(--muted); }
+  main { padding: 12px 16px 96px; display: grid; gap: 14px; }
+  h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; }
+  .date { color: var(--muted); font-size: 14px; margin-top: 2px; }
+  .card { background: var(--card); border-radius: var(--r); padding: 16px; border: 1px solid var(--line); }
+  .label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .next .time { display: flex; justify-content: space-between; align-items: baseline; margin-top: 8px; }
+  .next .clock { font-size: 22px; font-weight: 800; }
+  .next .in { font-size: 13px; font-weight: 700; color: var(--accent); background: var(--accent-soft); padding: 4px 10px; border-radius: 99px; }
+  .next .subj { font-size: 18px; font-weight: 700; margin-top: 6px; }
+  .meta { display: flex; gap: 14px; color: var(--muted); font-size: 14px; margin-top: 8px; flex-wrap: wrap; }
+  .meta b { color: var(--text); font-weight: 700; }
+  .change { margin-top: 12px; background: var(--warn-soft); color: var(--warn); border-radius: 12px; padding: 10px 12px; font-size: 13.5px; font-weight: 600; display: flex; gap: 8px; align-items: center; }
+  .att { display: grid; gap: 8px; }
+  .row { display: flex; gap: 12px; align-items: center; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; }
+  .dot { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; flex: none; }
+  .row .t { font-weight: 700; font-size: 14.5px; }
+  .row .s { color: var(--muted); font-size: 13px; }
+  .chev { margin-left: auto; color: #98A2B3; }
+  .list .item { display: flex; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+  .list .item:first-of-type { border-top: 0; padding-top: 10px; }
+  .list .hh { width: 48px; font-weight: 700; font-size: 14px; flex: none; }
+  .moved { color: var(--warn); font-size: 12.5px; font-weight: 700; }
+  nav { position: fixed; bottom: 0; left: 0; width: 360px; background: var(--card); border-top: 1px solid var(--line); display: grid; grid-template-columns: repeat(4, 1fr); padding: 8px 4px 14px; }
+  nav a { display: grid; justify-items: center; gap: 3px; font-size: 11.5px; font-weight: 600; color: var(--muted); text-decoration: none; padding: 4px 0; }
+  nav a.on { color: var(--accent); }
+  nav a.on svg { background: var(--accent-soft); border-radius: 99px; padding: 3px 14px; width: 52px; }
+  svg { width: 22px; height: 22px; }
+</style>
+</head>
+<body>
+  <header class="top">
+    <svg class="logo" viewBox="0 0 32 32"><rect width="32" height="32" rx="9" fill="#2346A8"/><path d="M10 22v-3h1.6l3.4-9h2l3.4 9H22v3h-2v-1.6h-8V22z" fill="#fff"/><circle cx="24" cy="9" r="3" fill="#7CA3FF"/></svg>
+    <div class="brand">Деканат</div>
+    <div class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="#344054" stroke-width="2" stroke-linecap="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg><span class="badge"></span></div>
+    <div class="avatar">АС</div>
+  </header>
+  <p class="concept">Концепт для конкурса. Не официальный сервис МГИМО. Данные вымышлены.</p>
+  <main>
+    <div><h1>Доброе утро, Анна</h1><div class="date">Понедельник, 10 ноября. Сегодня 3 пары</div></div>
+
+    <section class="card next">
+      <div class="label">Ближайшая пара</div>
+      <div class="time"><span class="clock">10:40–12:10</span><span class="in">через 25 мин</span></div>
+      <div class="subj">Международное публичное право</div>
+      <div class="meta"><span>Ауд. <b>1012</b></span><span>Семинар</span><span>Белов К. С.</span></div>
+      <div class="change"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0"/></svg>Аудитория изменена: была 3048</div>
+    </section>
+
+    <section class="att">
+      <div class="label">Требует внимания</div>
+      <div class="row"><div class="dot" style="background:var(--ok-soft)"><svg viewBox="0 0 24 24" fill="none" stroke="#067647" stroke-width="2.2" stroke-linecap="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2"/><path d="m9 15 2 2 4-4"/></svg></div><div><div class="t">Справка об обучении готова</div><div class="s">Электронная, с QR-кодом</div></div><span class="chev">›</span></div>
+      <div class="row"><div class="dot" style="background:var(--accent-soft)"><svg viewBox="0 0 24 24" fill="none" stroke="#2346A8" stroke-width="2.2" stroke-linecap="round"><path d="M12 2 15 8.5l7 1-5 4.9 1.2 7L12 18l-6.2 3.4L7 14.4 2 9.5l7-1z"/></svg></div><div><div class="t">Новая оценка: отлично</div><div class="s">Макроэкономика, контрольная</div></div><span class="chev">›</span></div>
+    </section>
+
+    <section class="card list">
+      <div class="label">Ещё сегодня</div>
+      <div class="item"><div class="hh">12:40</div><div><div class="t" style="font-weight:700">Английский язык</div><div class="s" style="color:var(--muted);font-size:13px">Ауд. 2045, Орлова Е. В.</div></div></div>
+      <div class="item"><div class="hh">16:10</div><div><div class="t" style="font-weight:700">Теория международных отношений</div><div class="moved">Перенесена с 14:30</div></div></div>
+    </section>
+  </main>
+  <nav>
+    <a class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Сегодня</a>
+    <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Расписание</a>
+    <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 10 12 5 2 10l10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>Учёба</a>
+    <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2"/></svg>Документы</a>
+  </nav>
+</body>
+</html>

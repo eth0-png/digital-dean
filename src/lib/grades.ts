@@ -165,7 +165,7 @@ export type StudyNotice = { key: string; kind: "grade" | "debt" | "deadline" | "
 
 /**
  * Для ленты уведомлений и «Сегодня»: оценки текущей аттестации за неделю, незачёт с пересдачей,
- * срок (курсовая, эссе) и объявление деканата о сессии. Вызывать после requireStudent: группа из сессии.
+ * срок (курсовая, эссе), новости и объявления деканата. Вызывать после requireStudent: группа из сессии.
  */
 export function studyNotices(group: string): StudyNotice[] {
   const c = computed(group);
@@ -181,15 +181,34 @@ export function studyNotices(group: string): StudyNotice[] {
     );
   const d = c.deadline;
   const deadline: StudyNotice[] = d ? [{ key: d.key, kind: "deadline", title: d.title, text: `${d.text} до ${dayLabel(d.due)}`, href: "/study", at: at(addDays(c.today, -3), "10:00") }] : [];
-  const announce: StudyNotice = {
-    key: "announce:session-2026",
-    kind: "announce",
-    title: "Объявление деканата",
-    text: "Зачётная неделя с 21 декабря, экзаменационная сессия с 11 января. Даты по дисциплинам в разделе «Учёба»",
-    href: "/study",
-    at: at(addDays(c.today, -5), "12:00"),
-  };
-  return [...grades, ...deadline, announce];
+  // Новости и объявления деканата для всех групп. Даты от текущей, чтобы лента была свежей в любой день
+  const announce: StudyNotice[] = [
+    {
+      key: "announce:session-2026",
+      kind: "announce",
+      title: "Зачётная неделя и сессия",
+      text: "Зачётная неделя с 21 декабря, экзаменационная сессия с 11 января. Даты по дисциплинам в разделе «Учёба»",
+      href: "/study",
+      at: at(addDays(c.today, -5), "12:00"),
+    },
+    {
+      key: "announce:career-week",
+      kind: "announce",
+      title: "Неделя карьеры",
+      text: `С ${dayLabel(weekdayFrom(addDays(c.today, 7)))} встречи с выпускниками и работодателями в главном корпусе. Вход по студенческому`,
+      href: "",
+      at: at(addDays(c.today, -1), "15:00"),
+    },
+    {
+      key: "announce:library",
+      kind: "announce",
+      title: "Библиотека в сессию",
+      text: "С 14 декабря читальный зал работает до 21:00, по субботам с 10:00 до 18:00",
+      href: "",
+      at: at(addDays(c.today, -9), "11:00"),
+    },
+  ];
+  return [...grades, ...deadline, ...announce];
 }
 
 /** Что из учёбы поднять в «Требует внимания»: незачёт, оценка за последние два дня, срок в ближайшие две недели. */

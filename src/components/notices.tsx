@@ -32,7 +32,7 @@ export function NoticeList({ notices }: { notices: Notice[] }) {
   const [fresh] = useState(() => new Set(notices.filter((n) => n.unread).map((n) => n.id)));
 
   useEffect(() => {
-    if (fresh.size > 0) markAllNoticesRead();
+    if (fresh.size > 0) markAllNoticesRead().catch(() => {});
   }, [fresh]);
 
   const news = notices.filter((n) => fresh.has(n.id));
@@ -65,34 +65,41 @@ export function NoticeList({ notices }: { notices: Notice[] }) {
 
 function Item({ notice: n, fresh, i }: { notice: Notice; fresh: boolean; i: number }) {
   const { icon: Icon, tone } = ICON[n.kind] ?? ICON.reply!;
+  const box = `flex gap-3 rounded-xl border px-3.5 py-3 ${fresh ? "border-primary/25 bg-accent/60" : "bg-card"}`;
+  const body = (
+    <>
+      <span className={`grid size-10 shrink-0 place-items-center rounded-full ${tone}`}>
+        <Icon size={20} aria-hidden="true" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="flex items-start justify-between gap-2">
+          <span className="font-bold">{n.title}</span>
+          {fresh && (
+            <>
+              <span className="mt-1.5 size-2.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />
+              <span className="sr-only">, новое</span>
+            </>
+          )}
+        </span>
+        <span className="block text-[13px] text-muted-foreground">{n.about}</span>
+        {n.text && <span className="mt-1 line-clamp-3 block text-[14px] leading-snug">{n.text}</span>}
+        <span className="mt-1.5 flex items-center justify-between gap-2">
+          <span className="text-[12.5px] text-muted-foreground">{n.at}</span>
+          {n.needAnswer && <Badge variant="warning">Нужен ответ</Badge>}
+        </span>
+      </span>
+    </>
+  );
   return (
     <li className="enter" style={stagger(i + 1)}>
-      <Link
-        href={n.href}
-        transitionTypes={["nav-forward"]}
-        className={`press flex gap-3 rounded-xl border px-3.5 py-3 ${fresh ? "border-primary/25 bg-accent/60" : "bg-card"}`}
-      >
-        <span className={`grid size-10 shrink-0 place-items-center rounded-full ${tone}`}>
-          <Icon size={20} aria-hidden="true" />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="flex items-start justify-between gap-2">
-            <span className="font-bold">{n.title}</span>
-            {fresh && (
-              <>
-                <span className="mt-1.5 size-2.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />
-                <span className="sr-only">, новое</span>
-              </>
-            )}
-          </span>
-          <span className="block text-[13px] text-muted-foreground">{n.about}</span>
-          {n.text && <span className="mt-1 line-clamp-2 block text-[14px] leading-snug">{n.text}</span>}
-          <span className="mt-1.5 flex items-center justify-between gap-2">
-            <span className="text-[12.5px] text-muted-foreground">{n.at}</span>
-            {n.needAnswer && <Badge variant="warning">Нужен ответ</Badge>}
-          </span>
-        </span>
-      </Link>
+      {/* Объявление без своей страницы просто карточка, а не ссылка в никуда */}
+      {n.href ? (
+        <Link href={n.href} transitionTypes={["nav-forward"]} className={`press ${box}`}>
+          {body}
+        </Link>
+      ) : (
+        <div className={box}>{body}</div>
+      )}
     </li>
   );
 }

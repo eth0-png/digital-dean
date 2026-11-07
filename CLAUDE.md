@@ -21,7 +21,8 @@
 - `src/lib/init-db.ts` схема базы и демо-аккаунты, выполняется при старте сервера (`src/instrumentation.ts`).
 - `src/components/ui/` компоненты shadcn/ui (Radix). Это наш код, правим под себя: кнопки от 44 px, поля 52 px. Новые ставим так: `npx shadcn@latest add <имя>`.
 - `src/lib/nav-trail.ts` и `src/components/nav-trail.tsx` путь по кабинету: `BackLink` (назад на предыдущую страницу), закрытие профиля и уведомлений. Ссылки «назад» делать только через `BackLink`.
-- `src/components/kit.tsx` наши общие части: `Reveal` (загрузка с плавной сменой), `PageTransition` (переход страницы), `EmptyState`, `SectionTitle`, `stagger`. `bottom-nav.tsx`, `logo.tsx`.
+- `src/components/kit.tsx` наши общие части: `Reveal` (загрузка с плавной сменой), `PageTransition` (переход страницы), `EmptyState`, `NotFoundView`, `SectionTitle`, `stagger`, `withOffline` (действие сервера с сообщением «Нет связи» вместо падения страницы). `error-view.tsx` экран ошибки с «Повторить» (`retry()` из Next 16). `bottom-nav.tsx`, `logo.tsx`.
+- Ошибки и «не найдено»: `app/error.tsx` и `app/not-found.tsx` на весь экран с плашкой «концепт», `(student)/error.tsx`, `(student)/not-found.tsx` и `staff/error.tsx` внутри кабинета, шапка и меню остаются. У сотрудника своего not-found нет намеренно: студент на `/staff` не должен видеть шапку кабинета сотрудника.
 - `src/components/documents/` экраны «Документов»: `documents-ui.tsx` серверные части, `documents-client.tsx` форма, «Поделиться», вкладки, `chat.tsx` переписка по заявке (одна шторка у студента и сотрудника, `ChatRoot` на уровне страницы, кнопки только открывают её), отмена заявки, `MarkRead`. `src/lib/documents.ts` статусы, типы, тексты.
 - `src/lib/applications.ts` данные заявок: `listMyApplications()`, `getMyApplication(id)` (всегда с `user_id` текущего студента), `findByVerifyCode()` для открытой проверки.
 - `src/app/(student)/documents/actions.ts` действия: `createApplication`, `sendMessage` (на вопрос деканата это ответ), `cancelApplication`, `markDeanRead`.
@@ -66,6 +67,7 @@
 - Мобильная ширина 360 px основная. Верстаем сначала под телефон, затем сразу под широкий экран.
 - Широкий экран от 1024 px (`lg:`): меню слева (`SideNav`) вместо нижнего, контент до 1024 px, переписка выезжает справа панелью. Экраны с двумя смысловыми частями делим на две колонки (`lg:grid lg:grid-cols-2`), списки и формы ограничиваем (`lg:max-w-2xl`, `lg:max-w-xl`). Если на телефоне порядок блоков другой, колонки растворяются через `contents lg:block`, а порядок задаётся `order-*` и сбрасывается `lg:order-none`.
 - Палитра синяя, без градиентов. Оранжевый, зелёный и красный только для статусов.
+- Действия сервера из клиентских компонентов вызываем через `withOffline(...)`, отметки «прочитано» с `.catch(() => {})`: обрыв сети не должен ронять страницу.
 - Каждая страница: `<PageTransition><Reveal>...</Reveal></PageTransition>`. Ссылки вглубь с `transitionTypes={["nav-forward"]}`, назад `["nav-back"]`, вкладки `["nav-tab"]`. Блоки появляются классом `enter` со `style={stagger(i)}`, нажимаемое с классом `press`.
 - Во время перехода страницы (около 0,5 с) браузер не пропускает нажатия к её частям. В автотестах ждать конца анимаций.
 

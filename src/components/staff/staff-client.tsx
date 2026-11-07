@@ -5,7 +5,7 @@ import { useId, useState, useTransition, type FormEvent, type ReactNode } from "
 import { toast } from "sonner";
 import { CircleCheck, LoaderCircle, Play, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { stagger } from "@/components/kit";
+import { stagger, withOffline } from "@/components/kit";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -48,7 +48,7 @@ function TextAction({
     e.preventDefault();
     if (required && value.trim().length < 3) return setError(required);
     start(async () => {
-      const r = await onSubmit(value);
+      const r = await withOffline(onSubmit(value));
       if (r.error) return setError(r.error);
       setOpen(false);
       setValue("");
@@ -180,7 +180,7 @@ export function StaffActions({ id, status, type, format, chat }: { id: string; s
 
   const take = () =>
     start(async () => {
-      const r = await takeInWork(id);
+      const r = await withOffline(takeInWork(id));
       if (r.error) return void toast.error("Не получилось", { description: r.error });
       toast.success("Заявка в работе", {
         description: "Студент видит новый статус.",

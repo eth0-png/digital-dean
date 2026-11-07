@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
+import { withOffline } from "@/components/kit";
 import { DEAN_OFFICE, type ChatMessage } from "@/lib/documents";
 import { cancelApplication, sendMessage } from "@/app/(student)/documents/actions";
 
@@ -90,7 +91,7 @@ function Conversation({ peer, messages, compose, closedText, open, onOpenChange 
     setText("");
     start(async () => {
       addSending({ id: "sending", from: "me", text: t, at: "отправляется" });
-      const { error } = await compose.onSend(t, ask);
+      const { error } = await withOffline(compose.onSend(t, ask));
       if (error) {
         setText(t);
         toast.error("Не отправилось", { description: error });
@@ -276,7 +277,7 @@ export function CancelButton({ appId, number }: { appId: string; number: number 
   const [pending, start] = useTransition();
   function cancel() {
     start(async () => {
-      const { error } = await cancelApplication(appId);
+      const { error } = await withOffline(cancelApplication(appId));
       if (error) return void toast.error("Не получилось", { description: error });
       setOpen(false);
       toast.success("Заявка отменена");
@@ -316,7 +317,7 @@ export function CancelButton({ appId, number }: { appId: string; number: number 
 /** Отметить прочитанным после показа, а не при отрисовке: предзагрузка ссылки не должна ничего отмечать. */
 export function MarkRead({ run }: { run: () => Promise<void> }) {
   useEffect(() => {
-    run();
+    run().catch(() => {}); // не получилось отметить, отметится при следующем открытии
   }, [run]);
   return null;
 }

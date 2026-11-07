@@ -4,16 +4,17 @@ import { requireStudent } from "./auth";
 import { fmtAt } from "./applications";
 import { DOC_TYPES, isCertificate, type AppEvent, type AppStatus, type DocType } from "./documents";
 import { scheduleNotices } from "./schedule";
+import { studyNotices } from "./grades";
 
-// Уведомления студента: что сделал деканат по заявкам и изменения в расписании группы. Оценки и объявления добавятся позже.
-// Уведомление о заявке это её событие, «прочитано» это read_at у события. Изменения расписания считаются от даты,
-// поэтому их «прочитано» лежит в notice_reads по ключу.
+// Уведомления студента: что сделал деканат по заявкам, изменения в расписании, оценки, сроки и объявления деканата.
+// Уведомление о заявке это её событие, «прочитано» это read_at у события. Остальное считается от даты
+// (расписание, оценки текущей аттестации, сроки), поэтому их «прочитано» лежит в notice_reads по ключу.
 
 export const NOTICE_KINDS: AppEvent["kind"][] = ["in_progress", "question", "reply", "ready", "rejected"];
 
 export type Notice = {
   id: string;
-  kind: AppEvent["kind"] | "moved" | "cancelled" | "room";
+  kind: AppEvent["kind"] | "moved" | "cancelled" | "room" | "grade" | "debt" | "deadline" | "announce";
   title: string;
   text?: string;
   about: string;
@@ -58,12 +59,20 @@ export async function listMyNotices(): Promise<Notice[]> {
       ts: r.created_at.getTime(),
     };
   });
-  const sched = scheduleNotices(user.groupName ?? "");
-  const read = await readKeys(user.id, sched.map((n) => n.key));
-  const changes = sched.map(
-    (n): Notice => ({ id: n.key, kind: n.kind, title: n.title, text: n.text, about: "Расписание", at: fmtAt(n.at), href: n.href, unread: !read.has(n.key), needAnswer: false, ts: n.at.getTime() }),
+  const keyed = keyedNotices(user.groupName ?? "");
+  const read = await readKeys(user.id, keyed.map((n) => n.key));
+  const others = keyed.map(
+    (n): Notice => ({ id: n.key, kind: n.kind, title: n.title, text: n.text, about: n.about, at: fmtAt(n.at), href: n.href, unread: !read.has(n.key), needAnswer: false, ts: n.at.getTime() }),
   );
-  return [...apps, ...changes].sort((a, b) => b.ts - a.ts);
+  return [...apps, ...others].sort((a, b) => b.ts - a.ts);
+}
+
+/** Уведомления без своей строки в базе: расписание, учёба, объявления. */
+function keyedNotices(group: string) {
+  return [
+    ...scheduleNotices(group).map((n) => ({ ...n, about: "Расписание" })),
+    ...studyNotices(group).map((n) => ({ ...n, about: n.kind === "announce" ? "Деканат" : "Учёба" })),
+  ];
 }
 
 async function readKeys(userId: string, keys: string[]) {
@@ -72,9 +81,9 @@ async function readKeys(userId: string, keys: string[]) {
   return new Set(rows.map((r) => r.key));
 }
 
-/** Ключи изменений расписания группы: отметить прочитанными вместе с остальной лентой. */
-export function scheduleKeys(group: string) {
-  return scheduleNotices(group).map((n) => n.key);
+/** Ключи уведомлений без своей строки в базе: отметить прочитанными вместе с остальной лентой. */
+export function keyedNoticeKeys(group: string) {
+  return keyedNotices(group).map((n) => n.key);
 }
 
 /** Сколько непрочитанных, для счётчика на колокольчике. */
@@ -84,7 +93,7 @@ export async function countMyUnread() {
     select count(*)::int as n
     from application_events e join applications a on a.id = e.application_id
     where a.user_id = ${user.id} and e.kind in ${sql(NOTICE_KINDS)} and e.read_at is null`;
-  const keys = scheduleKeys(user.groupName ?? "");
+  const keys = keyedNoticeKeys(user.groupName ?? "");
   const read = await readKeys(user.id, keys);
   return n + keys.filter((k) => !read.has(k)).length;
 }

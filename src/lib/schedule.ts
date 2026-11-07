@@ -74,14 +74,14 @@ const dayMonth = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long
 const fullDate = new Intl.DateTimeFormat("ru-RU", { weekday: "long", day: "numeric", month: "long", timeZone: TZ });
 
 /** Текущий момент. DEMO_NOW (например 2026-11-10T10:45:00+03:00) только для проверки локально, на сервере не задаётся. */
-const now = () => (process.env.DEMO_NOW ? new Date(process.env.DEMO_NOW) : new Date());
-const moscow = (d: Date) => {
+export const now = () => (process.env.DEMO_NOW ? new Date(process.env.DEMO_NOW) : new Date());
+export const moscow = (d: Date) => {
   const [h, m] = hm.format(d).split(":").map(Number);
   return { date: ymd.format(d), min: h * 60 + m };
 };
 const toMin = (hhmm: string) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3));
-const addDays = (date: string, n: number) => new Date(Date.parse(`${date}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
-const weekday = (date: string) => (new Date(`${date}T00:00:00Z`).getUTCDay() + 6) % 7; // 0 — понедельник
+export const addDays = (date: string, n: number) => new Date(Date.parse(`${date}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
+export const weekday = (date: string) => (new Date(`${date}T00:00:00Z`).getUTCDay() + 6) % 7; // 0 — понедельник
 export const dayLabel = (date: string) => dayMonth.format(new Date(`${date}T00:00:00Z`));
 const isDate = (s: unknown): s is string => typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(s)) && addDays(s, 0) === s;
 

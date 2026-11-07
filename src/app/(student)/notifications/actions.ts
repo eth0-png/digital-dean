@@ -3,7 +3,7 @@
 import { refresh } from "next/cache";
 import { sql } from "@/lib/db";
 import { requireStudent } from "@/lib/auth";
-import { NOTICE_KINDS, scheduleKeys } from "@/lib/notifications";
+import { NOTICE_KINDS, keyedNoticeKeys } from "@/lib/notifications";
 
 /**
  * Студент открыл уведомления: всё прочитано, счётчик на колокольчике гаснет.
@@ -16,7 +16,7 @@ export async function markAllNoticesRead() {
     from applications a
     where e.application_id = a.id and a.user_id = ${user.id}
       and e.kind in ${sql(NOTICE_KINDS)} and e.read_at is null`;
-  const keys = scheduleKeys(user.groupName ?? "");
+  const keys = keyedNoticeKeys(user.groupName ?? "");
   if (keys.length) await sql`insert into notice_reads ${sql(keys.map((key) => ({ user_id: user.id, key })))} on conflict do nothing`;
   refresh();
 }

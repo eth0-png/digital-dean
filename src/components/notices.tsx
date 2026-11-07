@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { CalendarClock, CalendarX, CircleCheck, CircleX, Hourglass, MapPin, MessageCircle, MessageCircleQuestion, type LucideIcon } from "lucide-react";
+import { CalendarClock, CalendarX, CircleCheck, CircleX, Clock, GraduationCap, Hourglass, MapPin, Megaphone, MessageCircle, MessageCircleQuestion, type LucideIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { SectionTitle, stagger } from "@/components/kit";
 import type { Notice } from "@/lib/notifications";
@@ -17,6 +17,10 @@ const ICON: Partial<Record<Notice["kind"], { icon: LucideIcon; tone: string }>> 
   moved: { icon: CalendarClock, tone: "bg-warning-soft text-warning" },
   room: { icon: MapPin, tone: "bg-warning-soft text-warning" },
   cancelled: { icon: CalendarX, tone: "bg-destructive-soft text-destructive" },
+  grade: { icon: GraduationCap, tone: "bg-accent text-primary" },
+  debt: { icon: GraduationCap, tone: "bg-destructive-soft text-destructive" },
+  deadline: { icon: Clock, tone: "bg-warning-soft text-warning" },
+  announce: { icon: Megaphone, tone: "bg-accent text-primary" },
 };
 
 /**

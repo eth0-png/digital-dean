@@ -48,7 +48,7 @@ async function StaffApplication({ params }: { params: Promise<{ id: string }> })
                 ["ФИО", student.full],
                 ["Группа", student.group],
                 ["Курс", student.course ? `${student.course}, ${student.faculty}` : student.faculty],
-                ["Студ. билет", student.card],
+                ["Зачётка", student.card],
               ]}
             />
             <Facts

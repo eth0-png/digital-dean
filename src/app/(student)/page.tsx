@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CalendarClock, CalendarDays, CalendarX, ChevronRight, CircleCheck, Clock, MapPin, MessageCircleQuestion, type LucideIcon } from "lucide-react";
+import { CalendarClock, CalendarDays, CalendarX, ChevronRight, CircleCheck, Clock, GraduationCap, MapPin, MessageCircleQuestion, type LucideIcon } from "lucide-react";
 import { requireStudent } from "@/lib/auth";
 import { getToday } from "@/lib/schedule";
 import { listMyApplications } from "@/lib/applications";
+import { studyAttention } from "@/lib/grades";
 import { DOC_TYPES, isCertificate } from "@/lib/documents";
 import { PageTransition, Reveal, SectionTitle, stagger } from "@/components/kit";
 import { LessonCard } from "@/components/schedule";
@@ -20,7 +21,7 @@ export default function TodayPage() {
   );
 }
 
-type Attention = { href: string; icon: LucideIcon; tone: string; title: string; text: string };
+type Attention = { href: string; icon: LucideIcon; tone: string; title: string; text: string; kind?: string };
 
 /**
  * Главный экран по опросу: ближайшая пара (13 из 23 хотят видеть первой), «требует внимания»
@@ -29,6 +30,15 @@ type Attention = { href: string; icon: LucideIcon; tone: string; title: string; 
 async function Today() {
   const user = await requireStudent();
   const [t, apps] = await Promise.all([getToday(), listMyApplications()]);
+  // Учёба: незачёт с пересдачей, свежая оценка, близкий срок
+  const study: Attention[] = studyAttention(user.groupName ?? "").map((s) => ({
+    href: s.href,
+    icon: s.kind === "deadline" ? Clock : GraduationCap,
+    tone: s.kind === "debt" ? "bg-destructive-soft text-destructive" : s.kind === "deadline" ? "bg-warning-soft text-warning" : "bg-accent text-primary",
+    title: s.title,
+    text: s.text,
+    kind: s.kind,
+  }));
 
   const attention: Attention[] = [
     ...apps
@@ -43,6 +53,8 @@ async function Today() {
         title: isCertificate(a.type) ? "Справка готова" : "Заявка выполнена",
         text: `${DOC_TYPES[a.type].title}, № ${a.number}`,
       })),
+    // Незачёт важнее остального из учёбы, изменения в расписании важнее свежих оценок и сроков
+    ...study.filter((s) => s.kind === "debt"),
     ...t.changes.map((c) => ({
       href: c.href,
       icon: c.kind === "cancelled" ? CalendarX : c.kind === "room" ? MapPin : CalendarClock,
@@ -50,6 +62,7 @@ async function Today() {
       title: c.title,
       text: c.text,
     })),
+    ...study.filter((s) => s.kind !== "debt"),
   ];
   const n = t.next;
 

@@ -92,6 +92,17 @@ const n2 = await noticeLinks(s2);
 check(n1.length > 0 && n1.every((h) => ids1.includes(h)), "в уведомлениях student1 только его заявки");
 check(n2.length > 0 && n2.every((h) => ids2.includes(h)), "в уведомлениях student2 только его заявки");
 
+// 6в. Расписание своей группы: группа из сессии, адрес её не меняет. Текст всей недели, включая скрытые на телефоне дни
+const week = async (page, p = "/schedule") => {
+  await open(page, p);
+  return page.evaluate(() => document.querySelector("main").textContent);
+};
+const w1 = await week(s1);
+const w2 = await week(s2, "/schedule?group=МП-31&date=2026-11-10");
+check(w1.includes("Международное право") && !w1.includes("Микроэкономика"), "student1 видит расписание только МП-31");
+check(w2.includes("Микроэкономика") && !w2.includes("Международное право"), "student2 видит только МИЭП-12, даже с чужой группой в адресе");
+check((await week(s1, "/schedule?date=не-дата")).includes("Международное право"), "кривая дата в адресе расписания не ломает страницу");
+
 // 6б. Кабинет сотрудника: студент не открывает карточку заявки, даже своей, сотрудник видит заявки обоих
 const own = await open(s1, ids1[0].replace("/documents/", "/staff/"));
 check(own.text.includes("Страница не найдена") && !own.text.includes("Взять в работу"), "student1 не открывает /staff/<id> даже своей заявки");

@@ -68,6 +68,14 @@ create table if not exists application_events (
 );
 create index if not exists application_events_app_idx on application_events (application_id, created_at);
 
+-- Прочитанные уведомления без своей строки в базе: изменения расписания считаются от текущей даты.
+create table if not exists notice_reads (
+  user_id uuid not null references users(id) on delete cascade,
+  key text not null,
+  read_at timestamptz not null default now(),
+  primary key (user_id, key)
+);
+
 -- Допустимые значения отдельно от таблиц, чтобы новые статусы доходили и до уже созданной базы.
 -- cancelled: студент отменил заявку. reply: сообщение деканата в переписке без паузы заявки.
 alter table applications drop constraint if exists applications_status_check;

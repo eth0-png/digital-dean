@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { CircleCheck, CircleX, Hourglass, MessageCircle, MessageCircleQuestion, type LucideIcon } from "lucide-react";
+import { CalendarClock, CalendarX, CircleCheck, CircleX, Hourglass, MapPin, MessageCircle, MessageCircleQuestion, type LucideIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { SectionTitle, stagger } from "@/components/kit";
 import type { Notice } from "@/lib/notifications";
@@ -14,6 +14,9 @@ const ICON: Partial<Record<Notice["kind"], { icon: LucideIcon; tone: string }>> 
   reply: { icon: MessageCircle, tone: "bg-accent text-primary" },
   ready: { icon: CircleCheck, tone: "bg-success-soft text-success" },
   rejected: { icon: CircleX, tone: "bg-destructive-soft text-destructive" },
+  moved: { icon: CalendarClock, tone: "bg-warning-soft text-warning" },
+  room: { icon: MapPin, tone: "bg-warning-soft text-warning" },
+  cancelled: { icon: CalendarX, tone: "bg-destructive-soft text-destructive" },
 };
 
 /**

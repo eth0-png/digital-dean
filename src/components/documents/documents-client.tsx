@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
-import { MessageCircle, Minus, Phone, Plus, Send, Share2 } from "lucide-react";
+import { ChevronDown, MessageCircle, Minus, Phone, Plus, Send, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
+import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
 import { DEAN_OFFICE, DOC_TYPES, PURPOSES, type DocType } from "@/lib/documents";
 
 // Клиентские части раздела «Документы». В превью действия только показывают уведомление, в день 3 подключим серверные действия.
@@ -137,6 +137,8 @@ export type ChatMessage = { id: string; from: "dean" | "me" | "system"; text: st
  * Переписка с деканатом по заявке, в шторке (вариант Б).
  * В основном экране пузырей нет: шторка открывается кнопкой «Ответить» или пунктом истории.
  * Телефон деканата в шапке шторки. После готовности заявки переписка только для чтения.
+ * Шторка сразу на 92% высоты, без промежуточного положения: при раскрытии по нажатию на поле
+ * на iPhone одновременно выезжает клавиатура, и получаются два движения подряд.
  */
 export function Conversation({
   number,
@@ -171,14 +173,19 @@ export function Conversation({
   return (
     <Drawer open={open} onOpenChange={setOpen} repositionInputs>
       <DrawerTrigger asChild>{trigger}</DrawerTrigger>
-      <DrawerContent className="mx-auto max-h-[88dvh] max-w-md rounded-t-[28px]">
-        <DrawerHeader className="flex-row items-center gap-3 border-b px-4 pt-2 pb-3 text-left">
-          <span className="grid size-11 shrink-0 place-items-center rounded-full bg-accent text-sm font-extrabold text-accent-foreground">{DEAN_OFFICE.initials}</span>
-          <span className="min-w-0 flex-1">
+      <DrawerContent className="mx-auto h-[92dvh] max-w-md rounded-t-[28px] data-[vaul-drawer-direction=bottom]:mt-0 data-[vaul-drawer-direction=bottom]:max-h-[92dvh]">
+        <DrawerHeader className="flex-row items-center gap-2 border-b px-2 pt-2 pb-2.5 text-left">
+          <DrawerClose asChild>
+            <Button variant="ghost" size="icon" aria-label="Свернуть переписку">
+              <ChevronDown aria-hidden="true" />
+            </Button>
+          </DrawerClose>
+          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-accent text-[13px] font-extrabold text-accent-foreground">{DEAN_OFFICE.initials}</span>
+          <span className="min-w-0 flex-1 pl-1">
             <DrawerTitle className="text-base font-bold">{DEAN_OFFICE.person}</DrawerTitle>
             <DrawerDescription className="text-[13px]">Деканат МП, заявка № {number}</DrawerDescription>
           </span>
-          <Button asChild variant="secondary" size="icon">
+          <Button asChild variant="ghost" size="icon" className="text-primary">
             <a href={`tel:${DEAN_OFFICE.phone.replace(/[^+d]/g, "")}`} aria-label={`Позвонить в деканат, ${DEAN_OFFICE.phone}`}>
               <Phone aria-hidden="true" />
             </a>

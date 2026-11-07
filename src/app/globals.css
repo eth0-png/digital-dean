@@ -1,52 +1,229 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-/* Токены варианта Б. Контраст белого текста на brand и brand-2 не ниже 5,7:1 (AA). */
-@theme {
-  --color-bg: #ffffff;
-  --color-soft: #f5f3ff;
-  --color-ink: #17112e;
-  --color-muted: #6e6888;
-  --color-line: #ece9f7;
-  --color-brand: #5b3df5;
-  --color-brand-2: #7c3aed;
-  --color-brand-soft: #eeeaff;
-  --color-ok: #067647;
-  --color-ok-soft: #e3fbef;
-  --color-warn: #b54708;
-  --color-warn-soft: #fff4e0;
-  --color-alert: #ffb547;
-  --color-danger: #c4320a;
-  --color-danger-soft: #fef3f2;
+/* Синяя палитра без градиентов. Имена переменных как у shadcn/ui, значения наши.
+   Контраст (WCAG AA): белый на primary 5,2:1, muted-foreground на белом 5,4:1,
+   accent-foreground на accent 5,6:1. Оранжевый, зелёный и красный остаются акцентами статусов. */
+:root {
+  color-scheme: light;
+  --background: #ffffff;
+  --foreground: #0e1a33;
+  --card: #ffffff;
+  --card-foreground: #0e1a33;
+  --popover: #ffffff;
+  --popover-foreground: #0e1a33;
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --primary-hover: #1d4ed8;
+  --secondary: #eef3fd;
+  --secondary-foreground: #0e1a33;
+  --muted: #f3f6fc;
+  --muted-foreground: #5b6b88;
+  --accent: #e3ecfd;
+  --accent-foreground: #1d4ed8;
+  --destructive: #c4320a;
+  --destructive-soft: #fef3f2;
+  --success: #067647;
+  --success-soft: #e3fbef;
+  --warning: #b54708;
+  --warning-soft: #fff4e0;
+  --alert: #ffb547;
+  --nav: #0e1a33;
+  --nav-foreground: #afc0e0;
+  --border: #e2e8f4;
+  --input: #e2e8f4;
+  --ring: #2563eb;
+  --radius: 0.875rem;
 
-  --radius-card: 1.25rem;
-  --radius-hero: 1.625rem;
+  /* Движение: быстрый уход, чуть дольше приход, без отскока (apple-design) */
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --duration-exit: 150ms;
+  --duration-enter: 220ms;
+  --duration-move: 380ms;
 }
 
 @theme inline {
   --font-sans: var(--font-manrope), system-ui, sans-serif;
   --font-display: var(--font-unbounded), var(--font-manrope), sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-soft: var(--destructive-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-alert: var(--alert);
+  --color-nav: var(--nav);
+  --color-nav-foreground: var(--nav-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
 }
 
-:root {
-  color-scheme: light;
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-background text-foreground;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+  :focus-visible {
+    outline: 3px solid var(--ring);
+    outline-offset: 2px;
+  }
 }
 
-body {
-  background: var(--color-bg);
-  color: var(--color-ink);
-  -webkit-tap-highlight-color: transparent;
+/* Появление блоков при первом показе, со сдвигом по --i: style={{ "--i": 2 }} */
+@utility enter {
+  animation: enter var(--duration-move) var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 50ms);
+}
+@keyframes enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
 }
 
-:focus-visible {
-  outline: 3px solid var(--color-brand);
-  outline-offset: 2px;
+/* Полоса этапа заполняется слева направо */
+@utility grow {
+  transform-origin: left;
+  animation: grow 600ms var(--ease-out) both;
+  animation-delay: calc(150ms + var(--i, 0) * 120ms);
+}
+@keyframes grow {
+  from {
+    transform: scaleX(0);
+  }
 }
 
+/* Мягкий ореол текущего этапа */
+@utility halo {
+  animation: halo 1.8s ease-out infinite;
+}
+@keyframes halo {
+  from {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  to {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+/* Отклик на нажатие сразу, а не после отпускания (apple-design) */
+@utility press {
+  transition: transform 120ms var(--ease-out);
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+/* Переходы между страницами (View Transitions, Next.js 16 + React 19.3) */
+::view-transition {
+  pointer-events: none;
+}
+::view-transition-old(.slide-down) {
+  animation: var(--duration-exit) ease-out both fade reverse, var(--duration-exit) ease-out both slide-y reverse;
+}
+::view-transition-new(.slide-up) {
+  animation: var(--duration-enter) ease-out var(--duration-exit) both fade, var(--duration-move) var(--ease-out) both slide-y;
+}
+::view-transition-old(.nav-forward) {
+  --slide: -40px;
+  animation: var(--duration-exit) ease-in both fade reverse, var(--duration-move) var(--ease-out) both slide-x reverse;
+}
+::view-transition-new(.nav-forward) {
+  --slide: 40px;
+  animation: var(--duration-enter) ease-out var(--duration-exit) both fade, var(--duration-move) var(--ease-out) both slide-x;
+}
+::view-transition-old(.nav-back) {
+  --slide: 40px;
+  animation: var(--duration-exit) ease-in both fade reverse, var(--duration-move) var(--ease-out) both slide-x reverse;
+}
+::view-transition-new(.nav-back) {
+  --slide: -40px;
+  animation: var(--duration-enter) ease-out var(--duration-exit) both fade, var(--duration-move) var(--ease-out) both slide-x;
+}
+::view-transition-old(.nav-tab) {
+  animation: var(--duration-exit) ease-in both fade reverse;
+}
+::view-transition-new(.nav-tab) {
+  animation: var(--duration-enter) ease-out both fade, var(--duration-move) var(--ease-out) both slide-y;
+}
+/* Шапка и нижнее меню не двигаются: точка опоры для глаза */
+::view-transition-group(app-header),
+::view-transition-group(app-nav) {
+  animation: none;
+  z-index: 100;
+}
+::view-transition-old(app-header),
+::view-transition-old(app-nav) {
+  display: none;
+}
+::view-transition-new(app-header),
+::view-transition-new(app-nav) {
+  animation: none;
+}
+@keyframes fade {
+  from {
+    opacity: 0;
+    filter: blur(2px);
+  }
+}
+@keyframes slide-y {
+  from {
+    transform: translateY(10px);
+  }
+}
+@keyframes slide-x {
+  from {
+    transform: translateX(var(--slide));
+  }
+}
+
+/* Уменьшение движения: убираем сдвиги, оставляем мягкие появления */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+  }
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation: none !important;
   }
 }

@@ -66,6 +66,8 @@ check((await open(staff, "/")).path === "/staff", "сотрудник с / по�
 
 // 6. После выхода сессия больше не работает
 await open(s1, "/profile");
+// Пока идёт плавный переход страницы (около 0,5 с), браузер не пропускает нажатия к его участникам. Ждём конца.
+await s1.waitForFunction(() => document.getAnimations().every((a) => a.playState !== "running" || a.effect?.getComputedTiming().iterations === Infinity));
 // Кнопку сначала в центр экрана, иначе щелчок может прийтись на закреплённое нижнее меню.
 await s1.$eval("form button[type=submit]", (b) => b.scrollIntoView({ block: "center" }));
 await s1.click("form button[type=submit]");

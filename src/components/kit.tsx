@@ -1,0 +1,59 @@
+import { Suspense, ViewTransition, type CSSProperties, type ReactNode } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
+
+/** Порядковый номер для появления по очереди: <div className="enter" style={stagger(2)}> */
+export const stagger = (i: number) => ({ "--i": i }) as CSSProperties;
+
+export function SectionTitle({ children }: { children: ReactNode }) {
+  return <h2 className="mb-2.5 font-display text-[15px] font-semibold">{children}</h2>;
+}
+
+export function EmptyState({ icon, title, text, action }: { icon: ReactNode; title: string; text: string; action?: ReactNode }) {
+  return (
+    <div className="enter flex flex-col items-center gap-2 rounded-xl bg-secondary px-5 py-8 text-center">
+      <div className="grid size-12 place-items-center rounded-2xl bg-background text-primary">{icon}</div>
+      <p className="mt-1 font-bold">{title}</p>
+      <p className="max-w-[28ch] text-sm text-muted-foreground">{text}</p>
+      {action}
+    </div>
+  );
+}
+
+export function PageSkeleton() {
+  return (
+    <div className="space-y-4" aria-busy="true" aria-label="Загрузка">
+      <Skeleton className="h-8 w-2/3 rounded-xl bg-secondary" />
+      <Skeleton className="h-4 w-1/2 rounded-xl bg-secondary" />
+      <Skeleton className="h-44 rounded-2xl bg-secondary" />
+      <Skeleton className="h-24 rounded-xl bg-secondary" />
+    </div>
+  );
+}
+
+/** Загрузка с плавной сменой: скелет уходит вниз, содержимое приходит снизу. */
+export function Reveal({ children, fallback = <PageSkeleton /> }: { children: ReactNode; fallback?: ReactNode }) {
+  return (
+    <Suspense
+      fallback={
+        <ViewTransition exit="slide-down" default="none">
+          <div>{fallback}</div>
+        </ViewTransition>
+      }
+    >
+      <ViewTransition enter="slide-up" default="none">
+        <div>{children}</div>
+      </ViewTransition>
+    </Suspense>
+  );
+}
+
+const NAV_TYPES = { "nav-forward": "nav-forward", "nav-back": "nav-back", "nav-tab": "nav-tab", default: "none" };
+
+/** Переход между страницами: вглубь сдвиг влево, назад вправо, вкладки плавной сменой. */
+export function PageTransition({ children }: { children: ReactNode }) {
+  return (
+    <ViewTransition enter={NAV_TYPES} exit={NAV_TYPES} default="none">
+      <div>{children}</div>
+    </ViewTransition>
+  );
+}

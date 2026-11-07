@@ -1,17 +1,19 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
 import { LogOut } from "lucide-react";
 import { requireStudent } from "@/lib/auth";
 import { logout } from "@/app/login/actions";
-import { btn, card, PageSkeleton } from "@/components/ui";
+import { Button } from "@/components/ui/button";
+import { PageTransition, Reveal, stagger } from "@/components/kit";
 
 export const metadata: Metadata = { title: "Профиль" };
 
 export default function ProfilePage() {
   return (
-    <Suspense fallback={<PageSkeleton />}>
-      <Profile />
-    </Suspense>
+    <PageTransition>
+      <Reveal>
+        <Profile />
+      </Reveal>
+    </PageTransition>
   );
 }
 
@@ -27,8 +29,8 @@ async function Profile() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center gap-4">
-        <div className="grid size-16 shrink-0 place-items-center rounded-full bg-linear-to-br from-[#FFD0A8] to-[#FF8FB1] text-xl font-extrabold text-[#5A1934]">
+      <div className="enter flex items-center gap-4">
+        <div className="grid size-16 shrink-0 place-items-center rounded-full bg-accent text-xl font-extrabold text-accent-foreground">
           {u.firstName[0]}
           {u.lastName[0]}
         </div>
@@ -36,24 +38,24 @@ async function Profile() {
           <h1 className="font-display text-xl leading-tight font-semibold">
             {u.lastName} {u.firstName}
           </h1>
-          {u.middleName && <p className="text-muted">{u.middleName}</p>}
+          {u.middleName && <p className="text-muted-foreground">{u.middleName}</p>}
         </div>
       </div>
 
-      <dl className={`${card} divide-y divide-line py-1`}>
-        {rows.map(([k, v]) => (
-          <div key={k} className="py-3">
-            <dt className="text-[13px] text-muted">{k}</dt>
+      <dl className="divide-y divide-border rounded-xl border bg-card px-4 py-1">
+        {rows.map(([k, v], i) => (
+          <div key={k} className="enter py-3" style={stagger(i + 1)}>
+            <dt className="text-[13px] text-muted-foreground">{k}</dt>
             <dd className="mt-0.5 font-semibold">{v}</dd>
           </div>
         ))}
       </dl>
 
       <form action={logout}>
-        <button type="submit" className={btn.secondary}>
-          <LogOut size={20} aria-hidden="true" />
+        <Button type="submit" variant="secondary" size="lg">
+          <LogOut aria-hidden="true" />
           Выйти
-        </button>
+        </Button>
       </form>
     </div>
   );

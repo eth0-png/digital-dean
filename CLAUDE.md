@@ -22,16 +22,16 @@
 - `src/components/ui/` компоненты shadcn/ui (Radix). Это наш код, правим под себя: кнопки от 44 px, поля 52 px. Новые ставим так: `npx shadcn@latest add <имя>`.
 - `src/lib/nav-trail.ts` и `src/components/nav-trail.tsx` путь по кабинету: `BackLink` (назад на предыдущую страницу), закрытие профиля и уведомлений. Ссылки «назад» делать только через `BackLink`.
 - `src/components/kit.tsx` наши общие части: `Reveal` (загрузка с плавной сменой), `PageTransition` (переход страницы), `EmptyState`, `SectionTitle`, `stagger`. `bottom-nav.tsx`, `logo.tsx`.
-- `src/components/documents/` экраны «Документов»: `documents-ui.tsx` серверные части, `documents-client.tsx` форма, шторка «Связаться с деканатом», окно QR. `src/lib/documents.ts` статусы, типы, тексты.
+- `src/components/documents/` экраны «Документов»: `documents-ui.tsx` серверные части, `documents-client.tsx` форма, «Поделиться», вкладки, `chat.tsx` переписка по заявке (одна шторка у студента и сотрудника, `ChatRoot` на уровне страницы, кнопки только открывают её), отмена заявки, `MarkRead`. `src/lib/documents.ts` статусы, типы, тексты.
 - `src/lib/applications.ts` данные заявок: `listMyApplications()`, `getMyApplication(id)` (всегда с `user_id` текущего студента), `findByVerifyCode()` для открытой проверки.
-- `src/app/(student)/documents/actions.ts` действия: `createApplication`, `answerQuestion`.
+- `src/app/(student)/documents/actions.ts` действия: `createApplication`, `sendMessage` (на вопрос деканата это ответ), `cancelApplication`, `markDeanRead`.
 - `src/app/verify/[code]/` открытая страница проверки справки по QR (без входа, только инициалы).
 - `src/lib/staff.ts` данные кабинета сотрудника: `listQueue()`, `getForStaff(id)`, обе начинаются с `requireStaff()`.
-- `src/app/staff/actions.ts` действия сотрудника: `takeInWork`, `askQuestion`, `issue`, `reject`, `markRead`. Смена статуса одним запросом с условием на текущий статус.
-- `src/components/staff/` очередь и карточка: `staff-ui.tsx` (история, сведения), `staff-client.tsx` (панель действий с окнами, `MarkRead`).
+- `src/app/staff/actions.ts` действия сотрудника: `takeInWork`, `sendReply` (с отметкой «Нужен ответ» ставит заявку на паузу), `issue`, `reject`, `markRead`. Смена статуса одним запросом с условием на текущий статус.
+- `src/components/staff/` очередь и карточка: `staff-ui.tsx` (статусы, сведения), `staff-client.tsx` (панель действий с окнами, переписка со студентом). История заявки общая: `Timeline` с `viewer="staff"`.
 - Токены цвета в `src/app/globals.css` с именами shadcn (`primary`, `muted-foreground`, `border`...) плюс наши `success`, `warning`, `alert`, `nav`.
 - `scripts/shot.mjs` скриншоты на 360 px, `scripts/check-access.mjs` проверка разделения доступа.
-- `scripts/check-nav.mjs` 35 сценариев навигации: «назад», закрытие профиля и уведомлений, нигде «Страница не найдена». `ALLOW_WRITE=1` добавляет сценарий с отправкой заявки (только локально).
+- `scripts/check-nav.mjs` 38 сценариев навигации: «назад», закрытие профиля и уведомлений, нигде «Страница не найдена». `ALLOW_WRITE=1` добавляет сценарий с отправкой заявки (только локально).
 - `scripts/check-flow.mjs` сквозной сценарий студент ↔ сотрудник через интерфейс. Создаёт заявку, поэтому только локально.
 - `scripts/measure-nav.mjs` плавность переключения вкладок на замедленном в 4 раза процессоре. После правок анимаций: длинных кадров должно быть 0.
 - `Dockerfile`, `docker-compose.yml`, `Caddyfile` выкладка на виртуальную машину Cloud.ru. Порядок выкладки в `README.md`.

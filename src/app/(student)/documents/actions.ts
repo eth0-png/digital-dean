@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { refresh } from "next/cache";
 import { sql } from "@/lib/db";
 import { requireStudent } from "@/lib/auth";
 import { UUID, dueDate } from "@/lib/applications";
@@ -34,19 +35,58 @@ export async function createApplication(_prev: OrderState, form: FormData): Prom
   redirect(`/documents/${app.id}?sent=1`);
 }
 
-/** Ответ на вопрос деканата. Заявка возвращается в работу. */
-export async function answerQuestion(appId: string, text: string): Promise<{ error?: string }> {
+const OPEN = ["submitted", "in_progress", "need_info"];
+
+/**
+ * Сообщение деканату по заявке. Если деканат ждал ответа, это ответ, и заявка возвращается в работу.
+ * Писать можно, пока заявка не закрыта. refresh() возвращает новую переписку вместе с ответом сервера.
+ */
+export async function sendMessage(appId: string, text: string): Promise<{ error?: string }> {
   const user = await requireStudent();
   const t = String(text ?? "").trim();
   if (!UUID.test(String(appId))) return { error: "Заявка не найдена." };
-  if (!t) return { error: "Напишите ответ." };
-  if (t.length > 1000) return { error: "Слишком длинный ответ. Сократите до 1000 знаков." };
+  if (!t) return { error: "Напишите сообщение." };
+  if (t.length > 1000) return { error: "Слишком длинное сообщение. Сократите до 1000 знаков." };
 
-  const [app] = await sql<{ id: string }[]>`
-    update applications set status = 'in_progress', updated_at = now()
-    where id = ${appId} and user_id = ${user.id} and status = 'need_info'
-    returning id`;
-  if (!app) return { error: "На этот вопрос уже ответили или заявка закрыта." };
-  await sql`insert into application_events (application_id, kind, text, author_id) values (${app.id}, 'answer', ${t}, ${user.id})`;
+  const sent = await sql.begin(async (tx) => {
+    const [app] = await tx<{ status: string }[]>`
+      select status from applications where id = ${appId} and user_id = ${user.id} and status in ${tx(OPEN)} for update`;
+    if (!app) return false;
+    const answer = app.status === "need_info";
+    if (answer) await tx`update applications set status = 'in_progress', updated_at = now() where id = ${appId}`;
+    await tx`insert into application_events (application_id, kind, text, author_id) values (${appId}, ${answer ? "answer" : "message"}, ${t}, ${user.id})`;
+    return true;
+  });
+  if (!sent) return { error: "Заявка уже закрыта, переписка завершена." };
+  refresh();
   return {};
+}
+
+/** Студент отменил заявку. Только свою и только пока её не закрыли. */
+export async function cancelApplication(appId: string): Promise<{ error?: string }> {
+  const user = await requireStudent();
+  if (!UUID.test(String(appId))) return { error: "Заявка не найдена." };
+  const done = await sql.begin(async (tx) => {
+    const [app] = await tx<{ id: string }[]>`
+      update applications set status = 'cancelled', updated_at = now()
+      where id = ${appId} and user_id = ${user.id} and status in ${tx(OPEN)}
+      returning id`;
+    if (!app) return false;
+    await tx`insert into application_events (application_id, kind, author_id) values (${app.id}, 'cancelled', ${user.id})`;
+    return true;
+  });
+  if (!done) return { error: "Заявку уже закрыли, отменить её нельзя." };
+  refresh();
+  return {};
+}
+
+/** Студент открыл заявку: сообщения и комментарии деканата прочитаны, деканат видит «прочитано». */
+export async function markDeanRead(appId: string) {
+  const user = await requireStudent();
+  if (!UUID.test(String(appId))) return;
+  await sql`
+    update application_events e set read_at = now()
+    from applications a
+    where e.application_id = a.id and a.id = ${appId} and a.user_id = ${user.id}
+      and e.kind in ('question', 'reply', 'ready', 'rejected') and e.read_at is null`;
 }

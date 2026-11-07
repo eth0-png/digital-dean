@@ -2,20 +2,19 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useActionState, useEffect, useLayoutEffect, useRef, useState, type FormEvent } from "react";
+import { useActionState, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { ChevronDown, LoaderCircle, MessageCircle, Minus, Phone, Plus, Send, Share2, TriangleAlert } from "lucide-react";
+import { LoaderCircle, Minus, Plus, Share2, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
-import { DEAN_OFFICE, DOC_TYPES, PURPOSES, type ChatMessage, type DocType, type Format } from "@/lib/documents";
-import { answerQuestion, createApplication, type OrderState } from "@/app/(student)/documents/actions";
+import { DEAN_OFFICE, DOC_TYPES, PURPOSES, type DocType, type Format } from "@/lib/documents";
+import { createApplication, type OrderState } from "@/app/(student)/documents/actions";
 
-// Клиентские части раздела «Документы»: форма заказа, «Поделиться», переписка с деканатом.
+// Клиентские части раздела «Документы»: форма заказа, «Поделиться», вкладки. Переписка в chat.tsx.
 
 const FORMATS: Record<Format, { title: string; text: string }> = {
   electronic: { title: "Электронная с QR", text: "Готова в кабинете, можно показать с телефона или отправить ссылкой" },
@@ -162,171 +161,6 @@ export function ShareButton({ title, url }: { title: string; url: string }) {
     <Button type="button" variant="secondary" size="icon" className="size-13 rounded-xl" onClick={share} aria-label="Поделиться справкой">
       <Share2 aria-hidden="true" />
     </Button>
-  );
-}
-
-/**
- * Переписка с деканатом по заявке, в шторке (вариант Б).
- * В основном экране пузырей нет: шторка открывается кнопкой «Ответить» или пунктом истории.
- * Шторка сразу на 92% высоты, без промежуточного положения: при раскрытии по нажатию на поле
- * на iPhone одновременно выезжает клавиатура, и получаются два движения подряд.
- */
-function Conversation({
-  number,
-  messages,
-  trigger,
-  onSend,
-}: {
-  number: number;
-  messages: ChatMessage[];
-  trigger: React.ReactNode;
-  onSend?: (text: string) => Promise<string | undefined>;
-}) {
-  const router = useRouter();
-  const [open, setOpen] = useState(false);
-  const [list, setList] = useState(messages);
-  const [text, setText] = useState("");
-  const [sending, setSending] = useState(false);
-  const [answered, setAnswered] = useState(false);
-  const end = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (open) end.current?.scrollIntoView({ block: "end" });
-  }, [open, list.length]);
-
-  async function send(e: FormEvent) {
-    e.preventDefault();
-    const t = text.trim();
-    if (!t || !onSend || sending) return;
-    setSending(true);
-    const error = await onSend(t);
-    setSending(false);
-    if (error) {
-      toast.error("Не отправилось", { description: error });
-      return;
-    }
-    setList((l) => [
-      ...l,
-      { id: `new-${l.length}`, from: "me", text: t, at: "сейчас", read: "доставлено" },
-      { id: `sys-${l.length}`, from: "system", text: "Ответ отправлен, заявка вернулась в работу", at: "сейчас" },
-    ]);
-    setText("");
-    setAnswered(true);
-  }
-
-  // Шторку закрывает сам студент. Страница с новым статусом обновляется после закрытия.
-  function change(next: boolean) {
-    setOpen(next);
-    if (!next && answered) router.refresh();
-  }
-
-  return (
-    <Drawer open={open} onOpenChange={change} repositionInputs>
-      <DrawerTrigger asChild>{trigger}</DrawerTrigger>
-      <DrawerContent className="mx-auto h-[92dvh] max-w-md rounded-t-[28px] data-[vaul-drawer-direction=bottom]:mt-0 data-[vaul-drawer-direction=bottom]:max-h-[92dvh]">
-        <DrawerHeader className="flex-row items-center gap-2 border-b px-2 pt-2 pb-2.5 text-left">
-          <DrawerClose asChild>
-            <Button variant="ghost" size="icon" aria-label="Свернуть переписку">
-              <ChevronDown aria-hidden="true" />
-            </Button>
-          </DrawerClose>
-          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-accent text-[13px] font-extrabold text-accent-foreground">{DEAN_OFFICE.initials}</span>
-          <span className="min-w-0 flex-1 pl-1">
-            <DrawerTitle className="text-base font-bold">{DEAN_OFFICE.person}</DrawerTitle>
-            <DrawerDescription className="text-[13px]">Деканат, заявка № {number}</DrawerDescription>
-          </span>
-          <Button asChild variant="ghost" size="icon" className="text-primary">
-            <a href={`tel:${DEAN_OFFICE.phone.replace(/[^+\d]/g, "")}`} aria-label={`Позвонить в деканат, ${DEAN_OFFICE.phone}`}>
-              <Phone aria-hidden="true" />
-            </a>
-          </Button>
-        </DrawerHeader>
-
-        <div role="log" aria-live="polite" className="flex-1 space-y-2.5 overflow-y-auto px-4 py-4">
-          {list.map((m) =>
-            m.from === "system" ? (
-              <p key={m.id} className="py-1 text-center text-xs font-semibold text-muted-foreground">
-                {m.at}. {m.text}
-              </p>
-            ) : (
-              <div key={m.id} className={`enter flex flex-col ${m.from === "me" ? "items-end" : "items-start"}`}>
-                <p
-                  className={`max-w-[82%] rounded-2xl px-3.5 py-2.5 text-[15px] leading-snug ${
-                    m.from === "me" ? "rounded-br-md bg-primary text-primary-foreground" : "rounded-bl-md bg-secondary"
-                  }`}
-                >
-                  {m.text}
-                </p>
-                <span className="mt-1 px-1 text-[11.5px] text-muted-foreground">
-                  {m.at}
-                  {m.read ? `, ${m.read}` : ""}
-                </span>
-              </div>
-            ),
-          )}
-          <div ref={end} />
-        </div>
-
-        {onSend && !answered ? (
-          <form onSubmit={send} className="flex items-end gap-2 border-t px-3 pt-2.5 pb-[max(12px,env(safe-area-inset-bottom))]">
-            <Label htmlFor="chat-message" className="sr-only">
-              Ответ деканату
-            </Label>
-            <Textarea
-              id="chat-message"
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              rows={1}
-              maxLength={1000}
-              placeholder="Ваш ответ"
-              className="max-h-32 min-h-11 flex-1 resize-none rounded-2xl border-0 bg-muted px-4 py-2.5 text-base"
-            />
-            <Button type="submit" size="icon" className="shrink-0" disabled={!text.trim() || sending} aria-label="Отправить">
-              {sending ? <LoaderCircle className="animate-spin" aria-hidden="true" /> : <Send aria-hidden="true" />}
-            </Button>
-          </form>
-        ) : (
-          <p className="border-t px-4 pt-3 pb-[max(14px,env(safe-area-inset-bottom))] text-center text-[13px] text-muted-foreground">
-            {answered
-              ? "Когда деканат ответит, придёт уведомление. Свернуть переписку можно стрелкой вверху."
-              : "Сейчас деканат ничего не спрашивает. Если остались вопросы, позвоните."}
-          </p>
-        )}
-      </DrawerContent>
-    </Drawer>
-  );
-}
-
-/** «Ответить» внутри карточки статуса, когда деканат задал вопрос. Ответ сохраняется в базе. */
-export function AnswerButton({ appId, number, messages }: { appId: string; number: number; messages: ChatMessage[] }) {
-  return (
-    <Conversation
-      number={number}
-      messages={messages}
-      onSend={async (t) => (await answerQuestion(appId, t)).error}
-      trigger={
-        <Button className="mt-3 w-full bg-background text-primary hover:bg-background/90">
-          <MessageCircle aria-hidden="true" />
-          Ответить
-        </Button>
-      }
-    />
-  );
-}
-
-/** Пункт истории «Уточнение от деканата»: открывает переписку для чтения. */
-export function ConversationLink({ number, messages }: { number: number; messages: ChatMessage[] }) {
-  return (
-    <Conversation
-      number={number}
-      messages={messages}
-      trigger={
-        <button type="button" className="press mt-1 inline-flex min-h-11 items-center gap-1.5 text-sm font-bold text-primary">
-          <MessageCircle size={18} aria-hidden="true" />
-          Открыть переписку
-        </button>
-      }
-    />
   );
 }
 

@@ -62,6 +62,10 @@ export function toApplication(r: AppRow, all: EventRow[]): Application {
     status: r.status,
     due: fmtDay(due),
     readyAt,
+    closedAt: (() => {
+      const closed = events.findLast((e) => e.kind === "rejected" || e.kind === "cancelled");
+      return closed ? fmtDay(closed.created_at) : undefined;
+    })(),
     question: r.status === "need_info" ? (events.findLast((e) => e.kind === "question")?.text ?? undefined) : undefined,
     verifyCode: r.verify_code ?? undefined,
     details: r.details ?? undefined,

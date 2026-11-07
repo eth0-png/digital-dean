@@ -2,14 +2,18 @@ import { FileText, PencilLine, RotateCcw, ShieldCheck, type LucideIcon } from "l
 
 // Типы и тексты раздела «Документы». Тексты из docs/design/documents-copy.md (скилл design:ux-copy).
 
-export type AppStatus = "submitted" | "in_progress" | "need_info" | "ready" | "rejected";
+export type AppStatus = "submitted" | "in_progress" | "need_info" | "ready" | "rejected" | "cancelled";
 
-export const STATUS: Record<AppStatus, { title: string; sub: string; badge: "info" | "success" | "warning" | "danger"; step: number }> = {
+/** Закрытая заявка: документ выдан, деканат отказал или студент отменил. Переписка по ней закрыта. */
+export const isClosed = (s: AppStatus) => s === "ready" || s === "rejected" || s === "cancelled";
+
+export const STATUS: Record<AppStatus, { title: string; sub: string; badge: "info" | "success" | "warning" | "danger" | "secondary"; step: number }> = {
   submitted: { title: "Заявка принята", sub: "Деканат получил заявку", badge: "info", step: 0 },
   in_progress: { title: "В работе", sub: "Сотрудник готовит документ", badge: "info", step: 1 },
   need_info: { title: "Нужно уточнение", sub: "Ответьте, и документ продолжат готовить", badge: "warning", step: 1 },
   ready: { title: "Готово", sub: "Документ готов, электронная версия ниже", badge: "success", step: 2 },
-  rejected: { title: "Отклонено", sub: "Причина указана в истории", badge: "danger", step: 1 },
+  rejected: { title: "Отклонено", sub: "Причину деканат написал в истории ниже", badge: "danger", step: 1 },
+  cancelled: { title: "Отменена", sub: "Заявку отменили, деканат её не готовит", badge: "secondary", step: 1 },
 };
 
 export const STEPS = ["Принята", "В работе", "Готово"] as const;
@@ -76,11 +80,14 @@ export const DOC_TYPES: Record<DocType, DocConfig> = {
 
 export const isDocType = (t: unknown): t is DocType => typeof t === "string" && t in DOC_TYPES;
 
+/** Справка выдаётся документом с QR. Заявления (пересдача, исправление данных) просто выполняются. */
+export const isCertificate = (t: DocType) => t === "study" || t === "military";
+
 export const PURPOSES = ["На работу", "В военкомат", "В соцзащиту", "Для визы", "Другое"];
 
 export type AppEvent = {
   at: string;
-  kind: "submitted" | "in_progress" | "question" | "answer" | "message" | "ready" | "rejected";
+  kind: "submitted" | "in_progress" | "question" | "answer" | "message" | "reply" | "ready" | "rejected" | "cancelled";
   text?: string;
   read?: boolean;
 };
@@ -94,6 +101,7 @@ export type Application = {
   status: AppStatus;
   due: string;
   readyAt?: string;
+  closedAt?: string; // когда отклонили или отменили
   question?: string;
   verifyCode?: string;
   details?: string;
@@ -106,8 +114,10 @@ export const EVENT_TITLE: Record<AppEvent["kind"], string> = {
   question: "Деканат задал вопрос",
   answer: "Вы ответили",
   message: "Вы написали в деканат",
+  reply: "Деканат ответил",
   ready: "Готово",
   rejected: "Отклонено",
+  cancelled: "Заявка отменена",
 };
 
 /** Контакты деканата (вымышленные) */
@@ -123,15 +133,36 @@ export const DEAN_OFFICE = {
 export const plural = (n: number, one: string, few: string, many: string) =>
   n % 10 === 1 && n % 100 !== 11 ? one : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? few : many;
 
-export type ChatMessage = { id: string; from: "dean" | "me" | "system"; text: string; at: string; read?: string };
+export type ChatMessage = { id: string; from: "me" | "them" | "system"; text: string; at: string; read?: string };
+export type Viewer = "student" | "staff";
 
-/** События заявки в сообщения переписки: вопросы и ответы пузырями, этапы системными строками. */
-export function toChat(app: Application): ChatMessage[] {
-  return app.events.map((e, i) => ({
-    id: String(i),
-    from: e.kind === "question" ? "dean" : e.kind === "answer" || e.kind === "message" ? "me" : "system",
-    text: e.text ?? EVENT_TITLE[e.kind],
-    at: e.at,
-    read: e.kind === "answer" ? (e.read ? "прочитано" : "доставлено") : undefined,
-  }));
+/** Переписка: вопросы и сообщения деканата, ответы студента. Остальные события истории в переписку не входят. */
+export const TALK: AppEvent["kind"][] = ["question", "reply", "answer", "message"];
+export const fromStudent = (k: AppEvent["kind"]) => k === "answer" || k === "message";
+
+const CHAT_STATUS: Partial<Record<AppEvent["kind"], string>> = {
+  submitted: "Заявка принята",
+  in_progress: "Заявка в работе",
+  rejected: "Заявка отклонена",
+  cancelled: "Заявка отменена",
+};
+
+/**
+ * События заявки в переписку с точки зрения того, кто смотрит: свои сообщения справа, чужие слева,
+ * этапы строками по центру. Комментарий деканата к готовой или отклонённой заявке идёт сообщением, под ним строка статуса.
+ */
+export function toChat(app: Application, viewer: Viewer): ChatMessage[] {
+  const out: ChatMessage[] = [];
+  const mineFrom = (k: AppEvent["kind"]) => (viewer === "student" ? fromStudent(k) : !fromStudent(k));
+  const receipt = (e: AppEvent) => (mineFrom(e.kind) ? (e.read ? "прочитано" : "доставлено") : undefined);
+  app.events.forEach((e, i) => {
+    if (TALK.includes(e.kind)) {
+      out.push({ id: String(i), from: mineFrom(e.kind) ? "me" : "them", text: e.text ?? "", at: e.at, read: receipt(e) });
+      return;
+    }
+    if (e.text) out.push({ id: `${i}-text`, from: viewer === "staff" ? "me" : "them", text: e.text, at: e.at, read: receipt(e) });
+    const title = e.kind === "ready" ? (isCertificate(app.type) ? "Справка готова" : "Заявка выполнена") : CHAT_STATUS[e.kind];
+    if (title) out.push({ id: String(i), from: "system", text: title, at: e.at });
+  });
+  return out;
 }

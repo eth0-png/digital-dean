@@ -5,7 +5,21 @@ import { ChevronRight, Clock, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { stagger } from "@/components/kit";
-import { DOC_TYPES, EVENT_TITLE, STATUS, STEPS, plural, type Application, type DocType } from "@/lib/documents";
+import {
+  DOC_TYPES,
+  EVENT_TITLE,
+  STATUS,
+  STEPS,
+  TALK,
+  fromStudent,
+  isCertificate,
+  isClosed,
+  plural,
+  type AppEvent,
+  type Application,
+  type DocType,
+  type Viewer,
+} from "@/lib/documents";
 import { ShareButton } from "./documents-client";
 
 // Серверные части раздела «Документы». Данные приходят пропсами: в день 3 из базы, в превью из примеров.
@@ -17,14 +31,7 @@ const progressText = (app: Application) => `${STATUS[app.status].title}, эта�
 function StepBar({ app, onPrimary }: { app: Application; onPrimary?: boolean }) {
   const step = STATUS[app.status].step;
   return (
-    <div
-      role="progressbar"
-      aria-valuemin={1}
-      aria-valuemax={3}
-      aria-valuenow={step + 1}
-      aria-valuetext={progressText(app)}
-      className="mt-4 grid grid-cols-3 gap-1.5"
-    >
+    <div role="progressbar" aria-valuemin={1} aria-valuemax={3} aria-valuenow={step + 1} aria-valuetext={progressText(app)} className="mt-4 grid grid-cols-3 gap-1.5">
       {STEPS.map((s, i) => (
         <span key={s} className={`h-1.5 overflow-hidden rounded-full ${onPrimary ? "bg-white/30" : "bg-border"}`}>
           {i <= step && <span className={`grow block h-full rounded-full ${onPrimary ? "bg-white" : "bg-primary"}`} style={stagger(i)} />}
@@ -38,11 +45,7 @@ function StepBar({ app, onPrimary }: { app: Application; onPrimary?: boolean }) 
 export function ApplicationTracker({ app, href }: { app: Application; href: string }) {
   const s = STATUS[app.status];
   return (
-    <Link
-      href={href}
-      transitionTypes={["nav-forward"]}
-      className="enter flex h-full flex-col rounded-2xl bg-primary p-4 text-primary-foreground"
-    >
+    <Link href={href} transitionTypes={["nav-forward"]} className="enter flex h-full flex-col rounded-2xl bg-primary p-4 text-primary-foreground">
       <div className="flex items-center justify-between gap-2">
         <span className={chip}>{DOC_TYPES[app.type].title}</span>
         <span className={chip}>№ {app.number}</span>
@@ -121,7 +124,14 @@ export function ApplicationList({ apps, hrefFor }: { apps: Application[]; hrefFo
               <span>
                 <span className="block font-bold">{DOC_TYPES[a.type].title}</span>
                 <span className="block text-[13px] text-muted-foreground">
-                  № {a.number}, {need ? "деканат задал вопрос" : a.status === "ready" ? `готово ${a.readyAt?.split(" в ")[0]}` : `до ${a.due}`}
+                  № {a.number},{" "}
+                  {need
+                    ? "деканат задал вопрос"
+                    : a.status === "ready"
+                      ? `готово ${a.readyAt?.split(" в ")[0]}`
+                      : a.closedAt
+                        ? `${s.title.toLowerCase()} ${a.closedAt}`
+                        : `до ${a.due}`}
                 </span>
               </span>
               <Badge variant={s.badge}>{need ? "Нужен ответ" : s.title}</Badge>
@@ -141,6 +151,7 @@ export function StatusCard({ app, action }: { app: Application; action?: ReactNo
   const s = STATUS[app.status];
   const ready = app.status === "ready";
   const need = app.status === "need_info";
+  const stopped = app.status === "rejected" || app.status === "cancelled";
   return (
     <section className="enter rounded-2xl bg-primary p-4 text-primary-foreground">
       <div className="flex items-center justify-between gap-2">
@@ -154,74 +165,107 @@ export function StatusCard({ app, action }: { app: Application; action?: ReactNo
           <p className="mt-1 text-[15px] leading-snug">{app.question}</p>
           {action}
         </div>
+      ) : stopped ? (
+        <p className="mt-0.5 text-sm">
+          {app.closedAt}. {s.sub}
+        </p>
       ) : (
         <p className="mt-0.5 flex items-center gap-1.5 text-sm">
           {!ready && <Clock size={16} aria-hidden="true" />}
           {ready ? app.readyAt : `Будет готово до ${app.due}`}
         </p>
       )}
-      <div role="progressbar" aria-valuemin={1} aria-valuemax={3} aria-valuenow={s.step + 1} aria-valuetext={progressText(app)} className="mt-4 flex items-center">
-        {STEPS.map((label, i) => {
-          const done = i < s.step || ready;
-          const now = i === s.step && !ready;
-          return (
-            <span key={label} className={`flex items-center ${i < 2 ? "flex-1" : ""}`}>
-              <span className="relative grid size-3.5 shrink-0 place-items-center">
-                {now && <span className={`halo absolute inset-0 rounded-full ${need ? "bg-alert" : "bg-white"}`} />}
-                <span className={`relative size-3.5 rounded-full ${done ? "bg-white" : now ? (need ? "bg-alert" : "bg-white") : "border-2 border-white"}`} />
+      {/* У отклонённой и отменённой заявки этапов дальше нет, полосу не показываем */}
+      {!stopped && (
+        <>
+          <div role="progressbar" aria-valuemin={1} aria-valuemax={3} aria-valuenow={s.step + 1} aria-valuetext={progressText(app)} className="mt-4 flex items-center">
+            {STEPS.map((label, i) => {
+              const done = i < s.step || ready;
+              const now = i === s.step && !ready;
+              return (
+                <span key={label} className={`flex items-center ${i < 2 ? "flex-1" : ""}`}>
+                  <span className="relative grid size-3.5 shrink-0 place-items-center">
+                    {now && <span className={`halo absolute inset-0 rounded-full ${need ? "bg-alert" : "bg-white"}`} />}
+                    <span className={`relative size-3.5 rounded-full ${done ? "bg-white" : now ? (need ? "bg-alert" : "bg-white") : "border-2 border-white"}`} />
+                  </span>
+                  {i < 2 && (
+                    <span
+                      className={`mx-1.5 h-[3px] flex-1 rounded-full ${i < s.step || ready ? "bg-white" : "bg-[repeating-linear-gradient(90deg,#fff_0_6px,transparent_6px_11px)]"}`}
+                    />
+                  )}
+                </span>
+              );
+            })}
+          </div>
+          <div className="mt-1.5 grid grid-cols-3 text-xs font-bold">
+            {STEPS.map((label, i) => (
+              <span key={label} className={`${i === 1 ? "text-center" : i === 2 ? "text-right" : ""} ${i > s.step && !ready ? "font-semibold" : ""}`}>
+                {label}
               </span>
-              {i < 2 && <span className={`mx-1.5 h-[3px] flex-1 rounded-full ${i < s.step || ready ? "bg-white" : "bg-[repeating-linear-gradient(90deg,#fff_0_6px,transparent_6px_11px)]"}`} />}
-            </span>
-          );
-        })}
-      </div>
-      <div className="mt-1.5 grid grid-cols-3 text-xs font-bold">
-        {STEPS.map((label, i) => (
-          <span key={label} className={`${i === 1 ? "text-center" : i === 2 ? "text-right" : ""} ${i > s.step && !ready ? "font-semibold" : ""}`}>
-            {label}
-          </span>
-        ))}
-      </div>
+            ))}
+          </div>
+        </>
+      )}
     </section>
   );
 }
 
 /**
- * История заявки линией (вариант 1). Вопросы и ответы схлопнуты в один пункт «Уточнение от деканата»,
- * сама переписка в шторке (`conversation` открывает её). Будущий этап виден пунктиром.
+ * История заявки линией (вариант 1). Переписка схлопнута в один пункт, сама она в шторке
+ * (`conversation` открывает её). Пока заявка открыта и сообщений нет, пункт стоит перед «Готово»,
+ * чтобы написать первым. Комментарий деканата к готовой или отклонённой заявке подписан.
+ * Будущий этап виден пунктиром.
  */
-export function Timeline({ app, conversation }: { app: Application; conversation?: ReactNode }) {
-  const pending = app.status !== "ready" && app.status !== "rejected";
-  const isTalk = (k: string) => k === "question" || k === "answer" || k === "message";
+export function Timeline({ app, viewer = "student", conversation }: { app: Application; viewer?: Viewer; conversation?: ReactNode }) {
+  const pending = !isClosed(app.status);
+  const isTalk = (k: AppEvent["kind"]) => TALK.includes(k);
   const talk = app.events.filter((e) => isTalk(e.kind));
   const firstTalk = app.events.findIndex((e) => isTalk(e.kind));
   const items = app.events.filter((e, i) => !isTalk(e.kind) || i === firstTalk);
+  const waiting = app.status === "need_info";
+  // Непрочитанные сообщения другой стороны
+  const unread = talk.filter((e) => !e.read && (viewer === "staff") === fromStudent(e.kind)).length;
+  const last = talk.at(-1);
+
+  const talkItem = (key: string | number, i: number) => (
+    <li key={key} className="enter relative" style={stagger(i + 1)}>
+      <span
+        className={`absolute top-1 -left-7 size-4 rounded-full ring-4 ring-background ${waiting ? "bg-alert" : talk.length ? "bg-primary" : "border-2 border-primary bg-background"}`}
+      />
+      <p className="font-bold">{viewer === "staff" ? "Переписка со студентом" : "Переписка с деканатом"}</p>
+      <p className={`text-[13px] ${unread ? "font-bold text-primary" : "text-muted-foreground"}`}>
+        {!last
+          ? "Вопрос по заявке можно задать здесь"
+          : waiting
+            ? `${last.at}, ${viewer === "staff" ? "ждём ответа студента" : "ждёт вашего ответа"}`
+            : unread
+              ? `${unread} ${plural(unread, "новое сообщение", "новых сообщения", "новых сообщений")}`
+              : `${last.at}, ${talk.length} ${plural(talk.length, "сообщение", "сообщения", "сообщений")}`}
+      </p>
+      {conversation}
+    </li>
+  );
 
   return (
     <ol className="relative space-y-4 pl-7 before:absolute before:top-2 before:bottom-2 before:left-[7px] before:w-0.5 before:bg-border">
       {items.map((e, i) => {
-        if (isTalk(e.kind)) {
-          const waiting = app.status === "need_info";
-          return (
-            <li key={i} className="enter relative" style={stagger(i + 1)}>
-              <span className={`absolute top-1 -left-7 size-4 rounded-full ring-4 ring-background ${waiting ? "bg-alert" : "bg-primary"}`} />
-              <p className="font-bold">Уточнение от деканата</p>
-              <p className="text-[13px] text-muted-foreground">
-                {waiting ? `${e.at}, ждёт вашего ответа` : `${e.at}, ${talk.length} ${plural(talk.length, "сообщение", "сообщения", "сообщений")}`}
-              </p>
-              {conversation}
-            </li>
-          );
-        }
+        if (isTalk(e.kind)) return talkItem(i, i);
+        const dot = e.kind === "rejected" ? "bg-destructive" : e.kind === "cancelled" ? "bg-muted-foreground" : "bg-success";
         return (
           <li key={i} className="enter relative" style={stagger(i + 1)}>
-            <span className="absolute top-1 -left-7 size-4 rounded-full bg-success ring-4 ring-background" />
-            <p className="font-bold">{EVENT_TITLE[e.kind]}</p>
+            <span className={`absolute top-1 -left-7 size-4 rounded-full ring-4 ring-background ${dot}`} />
+            <p className="font-bold">{e.kind === "ready" && !isCertificate(app.type) ? "Выполнено" : EVENT_TITLE[e.kind]}</p>
             <p className="text-[13px] text-muted-foreground">{e.at}</p>
-            {e.text && <p className="mt-1.5 text-sm">{e.text}</p>}
+            {e.text && (
+              <p className="mt-1.5 rounded-xl bg-secondary px-3.5 py-2.5 text-[15px] leading-snug">
+                <span className="block text-[12.5px] font-bold text-muted-foreground">Комментарий деканата</span>
+                {e.text}
+              </p>
+            )}
           </li>
         );
       })}
+      {firstTalk < 0 && pending && conversation && talkItem("talk", items.length)}
       {pending && (
         <li className="enter relative" style={stagger(items.length + 1)}>
           <span className="absolute top-1 -left-7 size-4 rounded-full border-2 border-dashed border-muted-foreground bg-background ring-4 ring-background" />
@@ -271,12 +315,19 @@ export function DocumentCard({ app, openHref, shareUrl }: { app: Application; op
 
 /** Полный лист справки с настоящим QR-кодом и пометкой «Демо» (вариант 3). Для страницы самой справки, день 5. */
 export async function DocumentPaper({ app, fio, course, faculty, verifyUrl }: { app: Application; fio: string; course: number; faculty: string; verifyUrl: string }) {
-  const svg = await QRCode.toString(verifyUrl, { type: "svg", margin: 0, errorCorrectionLevel: "M", color: { dark: "#0e1a33", light: "#ffffff" } });
+  const svg = await QRCode.toString(verifyUrl, {
+    type: "svg",
+    margin: 0,
+    errorCorrectionLevel: "M",
+    color: { dark: "#0e1a33", light: "#ffffff" },
+  });
   return (
     <section className="enter" style={stagger(1)}>
       <div className="relative overflow-hidden rounded-lg border bg-card p-4">
         <p className="text-[11.5px] font-bold tracking-wide text-muted-foreground">{faculty.toUpperCase()}</p>
-        <p className="mt-2 font-display text-[15px] font-semibold">{DOC_TYPES[app.type].title.toUpperCase()} № {app.number}</p>
+        <p className="mt-2 font-display text-[15px] font-semibold">
+          {DOC_TYPES[app.type].title.toUpperCase()} № {app.number}
+        </p>
         <dl className="mt-1 grid grid-cols-[auto_1fr] gap-x-2 text-[13px]">
           <dt className="text-muted-foreground">Выдана:</dt>
           <dd className="font-semibold">{fio}</dd>
@@ -293,7 +344,10 @@ export async function DocumentPaper({ app, fio, course, faculty, verifyUrl }: { 
           </span>
           <span className="size-[76px] shrink-0 [&_svg]:size-full" aria-label="QR-код для проверки подлинности" role="img" dangerouslySetInnerHTML={{ __html: svg }} />
         </div>
-        <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-24 -rotate-[16deg] text-center font-display text-[44px] font-bold tracking-[.1em] text-destructive/[.07]">
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-24 -rotate-[16deg] text-center font-display text-[44px] font-bold tracking-[.1em] text-destructive/[.07]"
+        >
           ДЕМО
         </span>
       </div>

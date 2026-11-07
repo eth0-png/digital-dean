@@ -3,7 +3,7 @@ import Link from "next/link";
 import { CircleCheck, Hourglass, Inbox } from "lucide-react";
 import { requireStaff } from "@/lib/auth";
 import { listQueue, type QueueItem } from "@/lib/staff";
-import { DOC_TYPES } from "@/lib/documents";
+import { DOC_TYPES, isClosed } from "@/lib/documents";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState, PageTransition, Reveal, stagger } from "@/components/kit";
 import { ApplicationTabs } from "@/components/documents/documents-client";
@@ -27,7 +27,7 @@ async function Queue() {
   const fresh = items.filter((i) => i.app.status === "submitted");
   // В работе: сначала заявки с новым ответом студента, дальше по сроку
   const work = items.filter((i) => i.app.status === "in_progress" || i.app.status === "need_info").sort((a, b) => Number(b.unread > 0) - Number(a.unread > 0));
-  const closed = items.filter((i) => i.app.status === "ready" || i.app.status === "rejected").reverse();
+  const closed = items.filter((i) => isClosed(i.app.status)).reverse();
   const overdue = items.filter((i) => i.overdue).length;
   const answers = items.filter((i) => i.unread > 0).length;
 
@@ -57,7 +57,7 @@ async function Queue() {
             value: "closed",
             label: "Закрытые",
             count: closed.length,
-            content: <QueueList items={closed} empty={<EmptyState icon={<CircleCheck size={24} aria-hidden="true" />} title="Закрытых пока нет" text="Здесь будут готовые и отклонённые заявки." />} />,
+            content: <QueueList items={closed} empty={<EmptyState icon={<CircleCheck size={24} aria-hidden="true" />} title="Закрытых пока нет" text="Здесь будут готовые, отклонённые и отменённые заявки." />} />,
           },
         ]}
       />
@@ -90,7 +90,7 @@ function QueueList({ items, empty }: { items: QueueItem[]; empty: React.ReactNod
                   {i.student.short}, {i.student.group}
                 </span>
                 <span className={`block text-[13px] ${i.overdue ? "font-bold text-destructive" : "text-muted-foreground"}`}>
-                  № {i.app.number}, {i.app.status === "ready" || i.app.status === "rejected" ? `подана ${i.createdAt.split(",")[0]}` : `срок до ${i.app.due}`}
+                  № {i.app.number}, {isClosed(i.app.status) ? `подана ${i.createdAt.split(",")[0]}` : `срок до ${i.app.due}`}
                 </span>
               </span>
               <Badge variant={badge.variant} className="shrink-0">

@@ -48,7 +48,7 @@ create table if not exists applications (
   format text not null default 'electronic' check (format in ('electronic', 'paper')),
   copies int not null default 1 check (copies between 1 and 5),
   details text check (length(details) <= 1000),
-  status text not null default 'submitted' check (status in ('submitted', 'in_progress', 'need_info', 'ready', 'rejected')),
+  status text not null default 'submitted',
   due_date date not null,
   verify_code text unique,
   created_at timestamptz not null default now(),
@@ -60,13 +60,22 @@ create index if not exists applications_user_idx on applications (user_id, creat
 create table if not exists application_events (
   id bigserial primary key,
   application_id uuid not null references applications(id) on delete cascade,
-  kind text not null check (kind in ('submitted', 'in_progress', 'question', 'answer', 'message', 'ready', 'rejected')),
+  kind text not null,
   text text check (length(text) <= 1000),
   author_id uuid references users(id),
   read_at timestamptz,
   created_at timestamptz not null default now()
 );
 create index if not exists application_events_app_idx on application_events (application_id, created_at);
+
+-- Допустимые значения отдельно от таблиц, чтобы новые статусы доходили и до уже созданной базы.
+-- cancelled: студент отменил заявку. reply: сообщение деканата в переписке без паузы заявки.
+alter table applications drop constraint if exists applications_status_check;
+alter table applications add constraint applications_status_check
+  check (status in ('submitted', 'in_progress', 'need_info', 'ready', 'rejected', 'cancelled'));
+alter table application_events drop constraint if exists application_events_kind_check;
+alter table application_events add constraint application_events_kind_check
+  check (kind in ('submitted', 'in_progress', 'question', 'answer', 'message', 'reply', 'ready', 'rejected', 'cancelled'));
 `;
 
 // Демо-заявки, чтобы жюри сразу увидело все состояния. Создаются один раз, если у студента заявок нет,

@@ -1,6 +1,7 @@
-// Сквозной сценарий: студент заказывает справку, сотрудник берёт в работу и задаёт вопрос,
-// студент отвечает, сотрудник видит ответ и выдаёт справку, проверка по QR открывается без входа.
-// Создаёт заявку в базе, поэтому только локально.
+// Сквозной сценарий: студент заказывает справку, сотрудник берёт в работу и спрашивает в переписке,
+// студент отвечает и пишет ещё, сотрудник видит новые сообщения, отвечает и выдаёт справку с комментарием,
+// переписка закрывается, проверка по QR открывается без входа. Плюс отмена заявки студентом.
+// Создаёт заявки в базе, поэтому только локально.
 // Запуск: set -a && . ./.env && set +a && node scripts/check-flow.mjs http://localhost:3000
 import puppeteer from "puppeteer-core";
 import path from "node:path";
@@ -20,17 +21,47 @@ const settle = (page) =>
   page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== "running" || a.effect?.getComputedTiming().iterations === Infinity));
 const go = async (page, p) => {
   await page.goto(new URL(p, base).href, { waitUntil: "networkidle0" });
+  await page.waitForSelector("[data-back], h1", { timeout: 10000 }).catch(() => {});
   await settle(page);
 };
-const press = async (page, label) => {
-  await page.locator(`button::-p-text(${label})`).click();
+const press = (page, label) => page.locator(`button::-p-text(${label})`).click();
+const waitText = (page, t, where = "body") =>
+  page
+    .waitForFunction((t, w) => document.querySelector(w)?.innerText.includes(t), { timeout: 10000 }, t, where)
+    .then(
+      () => true,
+      () => false,
+    );
+// Открыть шторку переписки, написать и дождаться, что сообщение пришло с сервера
+async function chat(page, trigger, message) {
+  await press(page, trigger);
+  await page.waitForSelector("[role=log]");
+  await settle(page);
+  if (!message) return;
+  await page.type("#chat-message", message);
+  await page.click('button[aria-label="Отправить"]');
+  await page.waitForFunction(
+    (m) => document.querySelector("[role=log]").innerText.includes(m) && !document.querySelector("[role=log]").innerText.includes("отправляется"),
+    { timeout: 10000 },
+    message,
+  );
+}
+const closeChat = async (page) => {
+  await page.click('button[aria-label="Свернуть переписку"]');
+  await page.waitForSelector("[role=log]", { hidden: true });
+  await settle(page);
 };
-const waitText = (page, t) => page.waitForFunction((t) => document.body.innerText.includes(t), { timeout: 10000 }, t).then(() => true, () => false);
 
 async function session(login, password) {
   const ctx = await browser.createBrowserContext();
   const page = await ctx.newPage();
-  await page.setViewport({ width: 360, height: 780, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+  await page.setViewport({
+    width: 360,
+    height: 780,
+    deviceScaleFactor: 1,
+    isMobile: true,
+    hasTouch: true,
+  });
   await page.goto(new URL("/login", base).href, { waitUntil: "networkidle0" });
   if (login) {
     await page.type("input[name=login]", login);
@@ -40,16 +71,23 @@ async function session(login, password) {
   return page;
 }
 
+async function order(page) {
+  await go(page, "/documents/new?type=study");
+  await page.click("button[type=submit]");
+  await page.waitForFunction(() => /^\/documents\/[0-9a-f-]{36}$/.test(location.pathname), { timeout: 10000 });
+  await waitText(page, "История");
+  await settle(page);
+  return {
+    id: new URL(page.url()).pathname.split("/").pop(),
+    number: (await text(page)).match(/№ (\d+)/)?.[1],
+  };
+}
+
 const student = await session("student1", process.env.SEED_PASSWORD_STUDENT1);
 const staff = await session("dekanat", process.env.SEED_PASSWORD_STAFF);
 
 // 1. Студент заказывает справку об обучении
-await go(student, "/documents/new?type=study");
-await student.click("button[type=submit]");
-await student.waitForFunction(() => /^\/documents\/[0-9a-f-]{36}$/.test(location.pathname), { timeout: 10000 });
-const id = new URL(student.url()).pathname.split("/").pop();
-await waitText(student, "История");
-const number = (await text(student)).match(/№ (\d+)/)?.[1];
+const { id, number } = await order(student);
 check(Boolean(id && number), `студент отправил заявку № ${number}`);
 
 // 2. Сотрудник видит её в новых и берёт в работу
@@ -60,48 +98,86 @@ check((await text(staff)).includes("Соколова Анна"), "в карто�
 await press(staff, "Взять в работу");
 check(await waitText(staff, "Справка готова"), "после «Взять в работу» появилась кнопка выдачи");
 
-// 3. Сотрудник задаёт вопрос
+// 3. Сотрудник спрашивает в переписке с отметкой «Нужен ответ»
 const QUESTION = "Справка нужна с указанием срока обучения?";
-await press(staff, "Задать вопрос");
-await staff.waitForSelector("[role=dialog] textarea");
-await staff.type("[role=dialog] textarea", QUESTION);
-await press(staff, "Отправить");
-check(await waitText(staff, "Ждём ответа студента"), "после вопроса заявка ждёт студента");
+await press(staff, "Переписка");
+await staff.waitForSelector("[role=log]");
+await settle(staff);
+await staff.click("button[aria-pressed]");
+await staff.type("#chat-message", QUESTION);
+await staff.click('button[aria-label="Отправить"]');
+await staff.waitForFunction((m) => document.querySelector("[role=log]").innerText.includes(m), { timeout: 10000 }, QUESTION);
+await closeChat(staff);
+check(await waitText(staff, "Ждём ответа студента"), "вопрос с отметкой «Нужен ответ» ставит заявку на паузу");
 
-// 4. Студент видит вопрос и отвечает
+// 4. Студент отвечает, переписка не закрывается, можно написать ещё
 await go(student, `/documents/${id}`);
 check((await text(student)).includes(QUESTION), "студент видит вопрос деканата в карточке заявки");
-await press(student, "Ответить");
-await student.waitForSelector("#chat-message");
-await settle(student);
-await student.type("#chat-message", "Да, со сроком");
+await chat(student, "Ответить", "Да, со сроком");
+const log = await student.$eval("[role=log]", (l) => l.innerText);
+check(!log.includes("Ответ отправлен") && !/сейчас/.test(log), "в переписке нет служебной строки «сейчас. Ответ отправлен»");
+check(Boolean(await student.$("#chat-message")), "после ответа поле ввода осталось");
+await student.type("#chat-message", "И ещё: можно на английском?");
 await student.click('button[aria-label="Отправить"]');
-check(await waitText(student, "Ответ отправлен"), "ответ студента отправлен");
+check(await waitText(student, "можно на английском", "[role=log]"), "второе сообщение подряд отправлено");
+await closeChat(student);
+check(
+  await student
+    .waitForFunction(() => !document.body.innerText.includes("Деканат спрашивает"), { timeout: 10000 })
+    .then(
+      () => true,
+      () => false,
+    ),
+  "после ответа заявка снова в работе",
+);
 
-// 5. Сотрудник видит новый ответ и выдаёт справку
+// 5. Сотрудник видит новые сообщения, отвечает без паузы и выдаёт справку с комментарием
 await go(staff, "/staff");
 await staff.locator("button[role=tab]::-p-text(В работе)").click();
 await settle(staff);
 const row = await staff.$eval(`a[href="/staff/${id}"]`, (a) => a.innerText).catch(() => "");
 check(row.includes("Новый ответ"), "в очереди у заявки метка «Новый ответ»");
 await go(staff, `/staff/${id}`);
-const card = await text(staff);
-check(card.includes("Да, со сроком") && card.includes("новое"), "в истории ответ студента с пометкой «новое»");
+check((await text(staff)).includes("2 новых сообщения"), "в истории «2 новых сообщения»");
+await chat(staff, "Переписка", "Да, сделаем на английском");
+check((await staff.$eval("[role=log]", (l) => l.innerText)).includes("Да, со сроком"), "сотрудник видит ответ студента в той же переписке");
+await closeChat(staff);
+check(!(await text(staff)).includes("Ждём ответа студента"), "обычное сообщение сотрудника не ставит заявку на паузу");
 await press(staff, "Справка готова");
 await staff.waitForSelector("[role=dialog] textarea");
+await staff.type("[role=dialog] textarea", "Справка подписана, на английском");
 await press(staff, "Выдать");
 check(await waitText(staff, "Справка выдана"), "справка выдана");
-await go(staff, `/staff/${id}`);
-check(!(await text(staff)).includes("Задать вопрос"), "у закрытой заявки нет кнопок действий");
 
-// 6. Студент видит готовую справку, проверка по QR открывается без входа
+// 6. Студент: комментарий деканата подписан, в переписке сообщением, переписка закрыта
 await go(student, `/documents/${id}`);
-check((await text(student)).includes("Справка готова"), "студент видит «Справка готова»");
+const page = await text(student);
+check(page.includes("Справка готова") && page.includes("Комментарий деканата"), "студент видит «Справка готова» и подписанный комментарий деканата");
+await chat(student, "Открыть переписку");
+const final = await student.$eval("[role=log]", (l) => l.innerText);
+check(
+  final.indexOf("Справка подписана") >= 0 && final.indexOf("Справка подписана") < final.lastIndexOf("Справка готова"),
+  "комментарий сообщением деканата, под ним строка «Справка готова»",
+);
+check(!(await student.$("#chat-message")) && (await text(student)).includes("переписка завершена"), "после выдачи писать нельзя: переписка завершена");
+await closeChat(student);
+
+// 7. Проверка по QR открывается без входа
 await go(student, `/documents/${id}/document`);
 const verify = await student.$eval("[data-verify-link]", (a) => a.getAttribute("href")).catch(() => null);
 const anon = await session();
 if (verify) await go(anon, new URL(verify).pathname);
 check(Boolean(verify) && (await text(anon)).includes("Документ действителен"), "проверка подлинности без входа: «Документ действителен»");
+
+// 8. Студент отменяет заявку, сотрудник видит её в закрытых
+const second = await order(student);
+await press(student, "Отменить заявку");
+await student.waitForSelector("[role=dialog]");
+await student.locator("[role=dialog] button::-p-text(Отменить)").click();
+check(await waitText(student, "Заявку отменили"), "студент отменил заявку, полосы этапов нет");
+check(!(await student.$("button::-p-text(Отменить заявку)")), "у отменённой заявки нет кнопки отмены");
+await go(staff, `/staff/${second.id}`);
+check((await text(staff)).includes("Отменена") && !(await text(staff)).includes("Взять в работу"), "сотрудник видит отменённую заявку без действий");
 
 await browser.close();
 console.log(failures ? `\nПровалено проверок: ${failures}` : "\nСквозной сценарий пройден");

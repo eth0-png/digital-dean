@@ -35,13 +35,19 @@ export function markBack(url: string) {
   goingBack = url;
 }
 
-/** Запомнить открытую страницу. При возврате всё после неё забываем, иначе добавляем в конец. */
+/**
+ * Запомнить открытую страницу. При возврате всё после неё забываем, иначе добавляем в конец.
+ * Возврат на страницу, которой в пути нет, это шаг вверх по разделу (путь начался с середины,
+ * например браузер перезагрузил страницу после проверки подлинности). Тогда путь начинается заново с неё,
+ * иначе следующий «назад» привёл бы обратно туда, откуда поднялись.
+ */
 export function recordVisit(url: string) {
   const back = goingBack === url || goingBack === "*";
   goingBack = null;
   const i = trail.lastIndexOf(url);
-  if (back && i >= 0) {
-    trail.length = i + 1;
+  if (back) {
+    if (i >= 0) trail.length = i + 1;
+    else trail.splice(0, trail.length, url);
     changed();
     return;
   }
@@ -83,5 +89,6 @@ export function labelFor(url: string) {
   };
   if (labels[path]) return labels[path];
   if (/^\/documents\/[0-9a-f-]{36}$/.test(path)) return "Заявка";
+  if (/^\/documents\/[0-9a-f-]{36}\/document$/.test(path)) return "Справка";
   return null;
 }

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { sql } from "./db";
 import { requireStaff } from "./auth";
 import { UUID, eventsFor, fmtAt, toApplication, type AppRow } from "./applications";
-import type { Application } from "./documents";
+import { isClosed, type Application } from "./documents";
 
 // Данные кабинета сотрудника. Каждая функция сначала проверяет роль: студент получает «не найдено».
 
@@ -22,7 +22,7 @@ type StaffRow = AppRow & {
 
 export type QueueItem = {
   app: Application;
-  student: { short: string; full: string; group: string; faculty: string; course: number | null; card: string };
+  student: { short: string; full: string; name: string; initials: string; group: string; faculty: string; course: number | null; card: string };
   createdAt: string;
   copies: number;
   overdue: boolean;
@@ -33,12 +33,14 @@ const today = () => new Date(new Intl.DateTimeFormat("en-CA", { timeZone: "Europ
 
 function toItem(r: StaffRow, app: Application): QueueItem {
   const initials = [r.first_name, r.middle_name].filter(Boolean).map((n) => `${n![0]}.`).join(" ");
-  const open = r.status !== "ready" && r.status !== "rejected";
+  const open = !isClosed(r.status);
   return {
     app,
     student: {
       short: `${r.last_name} ${initials}`,
       full: `${r.last_name} ${r.first_name} ${r.middle_name ?? ""}`.trim(),
+      name: `${r.last_name} ${r.first_name}`,
+      initials: `${r.last_name[0]}${r.first_name[0]}`,
       group: r.group_name ?? "",
       faculty: r.faculty ?? "",
       course: r.course,

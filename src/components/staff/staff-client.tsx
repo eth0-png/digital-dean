@@ -1,20 +1,21 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useState, useTransition, type FormEvent, type ReactNode } from "react";
+import { useId, useState, useTransition, type FormEvent, type ReactNode } from "react";
 import { toast } from "sonner";
-import { CircleCheck, LoaderCircle, MessageCircleQuestion, Play, X } from "lucide-react";
+import { CircleCheck, LoaderCircle, Play, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { stagger } from "@/components/kit";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import type { AppStatus, DocType, Format } from "@/lib/documents";
-import { askQuestion, issue, markRead, reject, takeInWork } from "@/app/staff/actions";
+import { isCertificate, isClosed, type AppStatus, type ChatMessage, type DocType, type Format } from "@/lib/documents";
+import { issue, reject, sendReply, takeInWork } from "@/app/staff/actions";
+import { ChatRoot } from "@/components/documents/chat";
 
 type Result = { error?: string };
 
-/** Действие с текстом в окне: вопрос студенту, отказ с причиной, комментарий к готовому документу. */
+/** Действие с текстом в окне: отказ с причиной, комментарий к готовому документу. */
 function TextAction({
   trigger,
   title,
@@ -119,40 +120,73 @@ const ISSUE_HINT: Record<DocType, string> = {
   data_fix: "Например: исправили группу в профиле",
 };
 
-/** Панель действий по статусу заявки. Сервер ещё раз проверяет роль и допустимый переход. */
-export function StaffActions({ id, status, type, format }: { id: string; status: AppStatus; type: DocType; format: Format }) {
+/** Переписка со студентом на странице заявки: та же шторка, что у студента, свои сообщения справа. */
+export function StaffChat({
+  id,
+  number,
+  student,
+  messages,
+  status,
+  children,
+}: {
+  id: string;
+  number: number;
+  student: { name: string; initials: string; group: string };
+  messages: ChatMessage[];
+  status: AppStatus;
+  children: ReactNode;
+}) {
+  return (
+    <ChatRoot
+      peer={{
+        name: student.name,
+        initials: student.initials,
+        about: `${student.group}, заявка № ${number}`,
+      }}
+      messages={messages}
+      compose={
+        !isClosed(status)
+          ? {
+              label: "Сообщение студенту",
+              placeholder: "Сообщение студенту",
+              canAsk: status !== "need_info",
+              onSend: (t, ask) => sendReply(id, t, ask),
+            }
+          : undefined
+      }
+      closedText="Заявка закрыта, переписка завершена."
+    >
+      {children}
+    </ChatRoot>
+  );
+}
+
+/**
+ * Панель действий по статусу заявки. Вопрос студенту задаётся в переписке отметкой «Нужен ответ».
+ * Сервер ещё раз проверяет роль и допустимый переход.
+ */
+export function StaffActions({ id, status, type, format, chat }: { id: string; status: AppStatus; type: DocType; format: Format; chat: ReactNode }) {
   const router = useRouter();
   const [pending, start] = useTransition();
-  const certificate = type === "study" || type === "military";
+  const certificate = isCertificate(type);
 
-  if (status === "ready" || status === "rejected") return null;
+  // Закрытую заявку не изменить, но переписку можно перечитать
+  if (isClosed(status))
+    return (
+      <div className="enter flex" style={stagger(1)}>
+        {chat}
+      </div>
+    );
 
   const take = () =>
     start(async () => {
       const r = await takeInWork(id);
       if (r.error) return void toast.error("Не получилось", { description: r.error });
-      toast.success("Заявка в работе", { description: "Студент видит новый статус." });
+      toast.success("Заявка в работе", {
+        description: "Студент видит новый статус.",
+      });
       router.refresh();
     });
-
-  const ask = (
-    <TextAction
-      trigger={
-        <Button variant="secondary" className="flex-1">
-          <MessageCircleQuestion aria-hidden="true" />
-          Задать вопрос
-        </Button>
-      }
-      title="Вопрос студенту"
-      text="Заявка встанет на паузу, пока студент не ответит. Ответ придёт сюда."
-      label="Вопрос"
-      placeholder="Например: справка нужна с отметкой о форме обучения?"
-      submit="Отправить"
-      done="Вопрос отправлен"
-      required="Напишите вопрос студенту."
-      onSubmit={(t) => askQuestion(id, t)}
-    />
-  );
 
   const refuse = (
     <TextAction
@@ -163,7 +197,7 @@ export function StaffActions({ id, status, type, format }: { id: string; status:
         </Button>
       }
       title="Отклонить заявку?"
-      text="Студент увидит причину в истории заявки. Отменить отказ нельзя."
+      text="Студент увидит причину как комментарий деканата. Отменить отказ нельзя."
       label="Причина отказа"
       placeholder="Например: справка с этой целью выдаётся только в отделе кадров"
       submit="Отклонить"
@@ -185,9 +219,9 @@ export function StaffActions({ id, status, type, format }: { id: string; status:
       text={
         certificate
           ? format === "electronic"
-            ? "Студент сразу увидит справку с QR-кодом для проверки."
-            : "Студент увидит, что справка готова, и копию с QR-кодом."
-          : "Студент увидит, что заявка выполнена, и ваш комментарий."
+            ? "Студент сразу увидит справку с QR-кодом для проверки. Переписка закроется."
+            : "Студент увидит, что справка готова, и копию с QR-кодом. Переписка закроется."
+          : "Студент увидит, что заявка выполнена, и ваш комментарий. Переписка закроется."
       }
       label="Комментарий для студента, если нужен"
       placeholder={ISSUE_HINT[type]}
@@ -213,17 +247,9 @@ export function StaffActions({ id, status, type, format }: { id: string; status:
         ready
       )}
       <div className="flex gap-2">
-        {status !== "need_info" && ask}
+        {chat}
         {refuse}
       </div>
     </section>
   );
-}
-
-/** Сотрудник открыл заявку: ответы студента прочитаны. В эффекте, чтобы предзагрузка страницы их не отмечала. */
-export function MarkRead({ id }: { id: string }) {
-  useEffect(() => {
-    markRead(id);
-  }, [id]);
-  return null;
 }

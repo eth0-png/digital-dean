@@ -25,6 +25,7 @@
 - `src/app/(student)/design/documents/` превью экранов на примерах, открывается только при `DESIGN_PREVIEW=1`.
 - Токены цвета в `src/app/globals.css` с именами shadcn (`primary`, `muted-foreground`, `border`...) плюс наши `success`, `warning`, `alert`, `nav`.
 - `scripts/shot.mjs` скриншоты на 360 px, `scripts/check-access.mjs` проверка разделения доступа.
+- `scripts/measure-nav.mjs` плавность переключения вкладок на замедленном в 4 раза процессоре. После правок анимаций: длинных кадров должно быть 0.
 - `Dockerfile`, `docker-compose.yml`, `Caddyfile` выкладка на виртуальную машину Cloud.ru. Порядок выкладки в `README.md`.
 - `research/survey.csv` не публикуется (в `.gitignore`), в репозитории только сводка.
 

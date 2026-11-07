@@ -30,17 +30,11 @@ export function PageSkeleton() {
   );
 }
 
-/** Загрузка с плавной сменой: скелет уходит вниз, содержимое приходит снизу. */
+/** Загрузка: скелет сразу, содержимое коротко проявляется на его месте. */
 export function Reveal({ children, fallback = <PageSkeleton /> }: { children: ReactNode; fallback?: ReactNode }) {
   return (
-    <Suspense
-      fallback={
-        <ViewTransition exit="slide-down" default="none">
-          <div>{fallback}</div>
-        </ViewTransition>
-      }
-    >
-      <ViewTransition enter="slide-up" default="none">
+    <Suspense fallback={fallback}>
+      <ViewTransition enter="fade-in" default="none">
         <div>{children}</div>
       </ViewTransition>
     </Suspense>

@@ -29,7 +29,7 @@ export function BottomNav() {
         {/* Подсветка скользит к выбранной вкладке */}
         <span
           aria-hidden="true"
-          className="absolute inset-y-0 left-0 w-1/4 rounded-2xl bg-primary transition-[transform,opacity] duration-[380ms] ease-[cubic-bezier(.2,.8,.2,1)]"
+          className="absolute inset-y-0 left-0 w-1/4 rounded-2xl bg-primary transition-[transform,opacity] duration-[260ms] ease-[cubic-bezier(.2,.8,.2,1)]"
           style={{ transform: `translateX(${Math.max(active, 0) * 100}%)`, opacity: active < 0 ? 0 : 1 }}
         />
         {TABS.map(({ href, label, Icon }, i) => (

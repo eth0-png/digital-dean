@@ -32,7 +32,7 @@ export function OrderForm({ type, student }: { type: DocType; student: { fio: st
   const [copies, setCopies] = useState(1);
 
   return (
-    <form action={action} className="space-y-6 pb-28" noValidate>
+    <form action={action} className="space-y-6 pb-28 lg:pb-0" noValidate>
       <input type="hidden" name="type" value={type} />
       <input type="hidden" name="purpose" value={purpose} />
       <input type="hidden" name="format" value={format} />
@@ -117,7 +117,7 @@ export function OrderForm({ type, student }: { type: DocType; student: { fio: st
         </div>
       )}
 
-      <div className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md border-t bg-background px-4 pt-3 pb-[max(16px,env(safe-area-inset-bottom))]">
+      <div className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md border-t bg-background px-4 pt-3 pb-[max(16px,env(safe-area-inset-bottom))] lg:static lg:mx-0 lg:max-w-none lg:border-0 lg:p-0">
         {state.error && (
           <p role="alert" className="enter mb-2.5 flex items-start gap-2 rounded-xl bg-destructive-soft px-3.5 py-2.5 text-sm font-semibold text-destructive">
             <TriangleAlert size={18} className="mt-px shrink-0" aria-hidden="true" />

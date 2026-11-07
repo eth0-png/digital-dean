@@ -31,36 +31,41 @@ async function StaffApplication({ params }: { params: Promise<{ id: string }> })
       <div className="space-y-4">
         {unread > 0 && <MarkRead run={markRead.bind(null, app.id)} />}
         <BackLink fallbackHref="/staff" fallbackLabel="Очередь" />
-        <StatusCard app={app} />
-        {overdue && (
-          <p role="status" className="enter flex items-center gap-2 rounded-xl bg-destructive-soft px-3.5 py-3 text-sm font-bold text-destructive">
-            <TriangleAlert size={18} aria-hidden="true" />
-            Срок прошёл {app.due}. Студент ждёт.
-          </p>
-        )}
-        <StaffActions id={app.id} status={app.status} type={app.type} format={app.format} chat={<ChatButton unread={unread} />} />
-        <Facts
-          title="Студент"
-          rows={[
-            ["ФИО", student.full],
-            ["Группа", student.group],
-            ["Курс", student.course ? `${student.course}, ${student.faculty}` : student.faculty],
-            ["Студ. билет", student.card],
-          ]}
-        />
-        <Facts
-          title="Заявка"
-          rows={[
-            ["Подана", createdAt],
-            ["Цель", app.purpose],
-            ["Формат", doc.formats.length ? (app.format === "paper" ? `бумажная, ${copies} экз.` : "электронная с QR") : ""],
-            ["Запрос", app.details],
-          ]}
-        />
-        <section className="pt-2">
-          <SectionTitle>История</SectionTitle>
-          <Timeline app={app} viewer="staff" />
-        </section>
+        {/* На широком экране две колонки: слева статус, действия и сведения, справа история */}
+        <div className="space-y-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-8 lg:space-y-0">
+          <div className="space-y-4">
+            <StatusCard app={app} />
+            {overdue && (
+              <p role="status" className="enter flex items-center gap-2 rounded-xl bg-destructive-soft px-3.5 py-3 text-sm font-bold text-destructive">
+                <TriangleAlert size={18} aria-hidden="true" />
+                Срок прошёл {app.due}. Студент ждёт.
+              </p>
+            )}
+            <StaffActions id={app.id} status={app.status} type={app.type} format={app.format} chat={<ChatButton unread={unread} />} />
+            <Facts
+              title="Студент"
+              rows={[
+                ["ФИО", student.full],
+                ["Группа", student.group],
+                ["Курс", student.course ? `${student.course}, ${student.faculty}` : student.faculty],
+                ["Студ. билет", student.card],
+              ]}
+            />
+            <Facts
+              title="Заявка"
+              rows={[
+                ["Подана", createdAt],
+                ["Цель", app.purpose],
+                ["Формат", doc.formats.length ? (app.format === "paper" ? `бумажная, ${copies} экз.` : "электронная с QR") : ""],
+                ["Запрос", app.details],
+              ]}
+            />
+          </div>
+          <section className="pt-2 lg:pt-0">
+            <SectionTitle>История</SectionTitle>
+            <Timeline app={app} viewer="staff" />
+          </section>
+        </div>
       </div>
     </StaffChat>
   );

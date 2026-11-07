@@ -8,7 +8,7 @@ import { NavTrail } from "@/components/nav-trail";
 
 export default function StaffLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col">
+    <div className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col lg:max-w-5xl lg:px-6">
       <header style={{ viewTransitionName: "app-header" }} className="sticky top-0 z-10 flex items-center gap-2.5 bg-background px-4 py-3">
         <Link href="/staff" transitionTypes={["nav-back"]} className="flex min-h-11 flex-1 items-center gap-2.5" aria-label="К очереди заявок">
           <Logo />

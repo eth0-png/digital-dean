@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { CalendarDays, FileText, GraduationCap, House } from "lucide-react";
+import { Logo } from "@/components/logo";
 
 // Порядок вкладок по опросу: расписание 19 из 22, оценки 15 из 22, справки 12 из 22.
 const TABS = [
@@ -13,9 +14,12 @@ const TABS = [
   { href: "/documents", label: "Документы", Icon: FileText },
 ];
 
+const activeTab = (path: string) => TABS.findIndex(({ href }) => (href === "/" ? path === "/" : path.startsWith(href)));
+
+/** Нижнее меню на телефоне. На широком экране вместо него меню слева (SideNav). */
 export function BottomNav() {
   const path = usePathname();
-  const active = TABS.findIndex(({ href }) => (href === "/" ? path === "/" : path.startsWith(href)));
+  const active = activeTab(path);
 
   // В профиле и уведомлениях выбранной вкладки нет: подсветка гаснет на месте, а не уезжает влево.
   // Когда возвращаемся, она появляется сразу у нужной вкладки, без проезда через всё меню.
@@ -31,7 +35,7 @@ export function BottomNav() {
     <nav
       aria-label="Разделы"
       style={{ viewTransitionName: "app-nav" }}
-      className="fixed inset-x-3 bottom-[max(12px,env(safe-area-inset-bottom))] z-20 mx-auto max-w-[420px] rounded-3xl bg-nav p-2"
+      className="fixed inset-x-3 bottom-[max(12px,env(safe-area-inset-bottom))] z-20 mx-auto max-w-[420px] rounded-3xl bg-nav p-2 lg:hidden"
     >
       <div className="relative grid grid-cols-4">
         {/* Подсветка скользит между вкладками, а к профилю и уведомлениям просто гаснет */}
@@ -58,5 +62,38 @@ export function BottomNav() {
         ))}
       </div>
     </nav>
+  );
+}
+
+/**
+ * Меню слева на широком экране (от 1024 px): те же разделы, что внизу на телефоне.
+ * Остаётся на месте при переходах, как шапка. Внутри заявки не прячется: на компьютере места хватает.
+ */
+export function SideNav() {
+  const path = usePathname();
+  const active = activeTab(path);
+  return (
+    <aside style={{ viewTransitionName: "app-side" }} className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r bg-background px-3 py-4 lg:flex">
+      <Link href="/" transitionTypes={["nav-tab"]} className="flex min-h-11 items-center gap-2.5 px-2" aria-label="На главную">
+        <Logo />
+        <span className="font-display text-base font-semibold">деканат</span>
+      </Link>
+      <nav aria-label="Разделы" className="mt-8 grid gap-1">
+        {TABS.map(({ href, label, Icon }, i) => (
+          <Link
+            key={href}
+            href={href}
+            transitionTypes={["nav-tab"]}
+            aria-current={i === active ? "page" : undefined}
+            className={`press flex min-h-11 items-center gap-3 rounded-xl px-3 text-[15px] font-bold transition-colors duration-200 ${
+              i === active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+            }`}
+          >
+            <Icon size={20} aria-hidden="true" />
+            {label}
+          </Link>
+        ))}
+      </nav>
+    </aside>
   );
 }

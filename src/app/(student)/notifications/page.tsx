@@ -19,7 +19,7 @@ export default function NotificationsPage() {
 async function Notifications() {
   const notices = await listMyNotices();
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 lg:max-w-2xl">
       <h1 className="enter font-display text-[22px] font-semibold">Уведомления</h1>
       {notices.length > 0 ? (
         <NoticeList notices={notices} />

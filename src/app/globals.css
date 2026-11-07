@@ -151,9 +151,16 @@ html[data-input="pointer"] :focus-visible {
 
 /* Отклик на нажатие сразу, а не после отпускания (apple-design) */
 @utility press {
-  transition: transform 120ms var(--ease-out);
+  transition:
+    transform 120ms var(--ease-out),
+    filter 150ms ease-out;
   &:active {
     transform: scale(0.97);
+  }
+  @media (hover: hover) {
+    &:hover {
+      filter: brightness(0.97);
+    }
   }
 }
 
@@ -194,16 +201,19 @@ html[data-input="pointer"] :focus-visible {
 }
 /* Шапка и нижнее меню не двигаются: точка опоры для глаза */
 ::view-transition-group(app-header),
-::view-transition-group(app-nav) {
+::view-transition-group(app-nav),
+::view-transition-group(app-side) {
   animation: none;
   z-index: 100;
 }
 ::view-transition-old(app-header),
-::view-transition-old(app-nav) {
+::view-transition-old(app-nav),
+::view-transition-old(app-side) {
   display: none;
 }
 ::view-transition-new(app-header),
-::view-transition-new(app-nav) {
+::view-transition-new(app-nav),
+::view-transition-new(app-side) {
   animation: none;
 }
 @keyframes fade {

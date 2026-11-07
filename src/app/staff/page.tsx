@@ -32,7 +32,7 @@ async function Queue() {
   const answers = items.filter((i) => i.unread > 0).length;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 lg:max-w-3xl">
       <h1 className="enter font-display text-[22px] font-semibold">Здравствуйте, {user.firstName}</h1>
       <dl className="enter grid grid-cols-3 gap-2" style={stagger(1)}>
         <Stat value={fresh.length} label="новых заявок" />

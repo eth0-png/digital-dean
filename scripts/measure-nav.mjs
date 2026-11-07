@@ -34,7 +34,7 @@ for (let round = 0; round < 2; round++) {
       window.__obs.observe({ type: "long-animation-frame" });
     });
     const t0 = Date.now();
-    await page.tap(`nav a[href="${href}"]`);
+    await page.tap(`nav:not(aside *) a[href="${href}"]`); // нижнее меню, боковое на телефоне скрыто
     await page.waitForFunction((h) => location.pathname === h, {}, href);
     await new Promise((r) => setTimeout(r, 1000));
     const { frames, loaf } = await page.evaluate(() => ({ frames: window.__f, loaf: window.__loaf }));

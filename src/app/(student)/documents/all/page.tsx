@@ -31,7 +31,7 @@ async function AllApplications() {
     items.length > 0 ? <ApplicationList apps={items} hrefFor={(a) => `/documents/${a.id}`} /> : empty;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 lg:max-w-2xl">
       <BackLink fallbackHref="/documents" fallbackLabel="Документы" />
       <h1 className="enter font-display text-[22px] font-semibold">Мои заявки</h1>
       <ApplicationTabs

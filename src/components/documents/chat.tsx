@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, use, useEffect, useOptimistic, useRef, useState, useTransition, type FormEvent, type ReactNode } from "react";
+import { createContext, use, useEffect, useOptimistic, useRef, useState, useSyncExternalStore, useTransition, type FormEvent, type ReactNode } from "react";
 import { toast } from "sonner";
 import { Check, ChevronDown, LoaderCircle, MessageCircle, Phone, Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -57,7 +57,22 @@ export function ChatRoot({ children, ...chat }: ChatProps & { children: ReactNod
   );
 }
 
+// На широком экране переписка выезжает справа панелью, на телефоне снизу шторкой
+const WIDE = "(min-width: 1024px)";
+function useWide() {
+  return useSyncExternalStore(
+    (onChange) => {
+      const m = matchMedia(WIDE);
+      m.addEventListener("change", onChange);
+      return () => m.removeEventListener("change", onChange);
+    },
+    () => matchMedia(WIDE).matches,
+    () => false,
+  );
+}
+
 function Conversation({ peer, messages, compose, closedText, open, onOpenChange }: ChatProps & { open: boolean; onOpenChange: (v: boolean) => void }) {
+  const wide = useWide();
   const [text, setText] = useState("");
   const [ask, setAsk] = useState(false);
   const [pending, start] = useTransition();
@@ -86,12 +101,18 @@ function Conversation({ peer, messages, compose, closedText, open, onOpenChange 
   }
 
   return (
-    <Drawer open={open} onOpenChange={onOpenChange} repositionInputs>
-      <DrawerContent className="mx-auto h-[92dvh] max-w-md rounded-t-[28px] data-[vaul-drawer-direction=bottom]:mt-0 data-[vaul-drawer-direction=bottom]:max-h-[92dvh]">
+    <Drawer open={open} onOpenChange={onOpenChange} direction={wide ? "right" : "bottom"} repositionInputs={!wide}>
+      <DrawerContent
+        className={
+          wide
+            ? "h-dvh rounded-l-[28px] data-[vaul-drawer-direction=right]:w-[420px] data-[vaul-drawer-direction=right]:sm:max-w-[420px]"
+            : "mx-auto h-[92dvh] max-w-md rounded-t-[28px] data-[vaul-drawer-direction=bottom]:mt-0 data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
+        }
+      >
         <DrawerHeader className="flex-row items-center gap-2 border-b px-2 pt-2 pb-2.5 text-left">
           <DrawerClose asChild>
             <Button variant="ghost" size="icon" aria-label="Свернуть переписку">
-              <ChevronDown aria-hidden="true" />
+              {wide ? <X aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}
             </Button>
           </DrawerClose>
           <span className="grid size-10 shrink-0 place-items-center rounded-full bg-accent text-[13px] font-extrabold text-accent-foreground">{peer.initials}</span>

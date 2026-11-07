@@ -26,7 +26,7 @@ async function DocumentView({ params }: { params: Promise<{ id: string }> }) {
   const verifyUrl = `${await siteOrigin()}/verify/${app.verifyCode}`;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 lg:max-w-lg">
       <div className="flex items-center justify-between">
         <BackLink fallbackHref={`/documents/${app.id}`} fallbackLabel={`Заявка № ${app.number}`} />
         <ShareButton title={`${DOC_TYPES[app.type].title} № ${app.number}`} url={verifyUrl} />

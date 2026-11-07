@@ -25,7 +25,7 @@ async function NewApplication({ searchParams }: { searchParams: Promise<Record<s
   const cfg = DOC_TYPES[type];
 
   return (
-    <div>
+    <div className="lg:max-w-xl">
       <BackLink fallbackHref="/documents" fallbackLabel="Документы" />
       <h1 className="enter mt-3 font-display text-[22px] leading-tight font-semibold">{cfg.title}</h1>
       <p className="enter mt-1.5 mb-6 text-muted-foreground">{cfg.about}</p>

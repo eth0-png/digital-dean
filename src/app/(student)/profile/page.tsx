@@ -29,7 +29,7 @@ async function Profile() {
   ];
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 lg:max-w-xl">
       <div className="enter flex items-center gap-4">
         <div className="grid size-16 shrink-0 place-items-center rounded-full bg-accent text-xl font-extrabold text-accent-foreground">
           {u.firstName[0]}

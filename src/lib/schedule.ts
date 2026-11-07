@@ -187,7 +187,7 @@ export async function getToday() {
     next = nextDate ? applyDay(group, nextDate, chs).find(live) : undefined;
     if (next) when = nextDate === addDays(today, 1) ? "Завтра" : ON_DAY[weekday(nextDate)].replace(/^в/, "В");
   }
-  const nextDay = nextDate && nextDate !== today ? { date: nextDate, label: `${ON_DAY[weekday(nextDate)]}, ${dayLabel(nextDate)}`, count: applyDay(group, nextDate, chs).filter(live).length } : null;
+  const nextDay = nextDate && nextDate !== today ? { date: nextDate, label: `${nextDate === addDays(today, 1) ? "завтра" : ON_DAY[weekday(nextDate)]}, ${dayLabel(nextDate)}`, count: applyDay(group, nextDate, chs).filter(live).length } : null;
   return { today, dateText: fullDate.format(now()), lessons, next, when, nextDay, changes: changeNotices(chs) };
 }
 

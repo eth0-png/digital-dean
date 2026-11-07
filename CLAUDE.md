@@ -14,7 +14,7 @@
 - `TASK.md` задание конкурса дословно. Источник правды по требованиям.
 - `PLAN.md` идея, разделы, стек, этапы по дням, что режем, чек-лист сдачи.
 - `STATUS.md` текущее состояние и следующий шаг.
-- `research/survey.csv` опрос студентов, `research/survey-summary.md` цифры и цитаты.
+- `research/survey.csv` опрос студентов, `research/survey-summary.md` цифры и цитаты, `research/lks-mgimo-review.md` обезличенный разбор настоящего кабинета МГИМО: что берём, что нет, «было и стало» для описания.
 - `docs/ai-log.md` журнал работы с ИИ, `docs/screenshots/` скриншоты, `docs/design/` макеты вариантов дизайна.
 - `src/app/` приложение Next.js 16 (App Router, TypeScript, Tailwind 4). Студенческие страницы в `src/app/(student)/`, кабинет сотрудника в `src/app/staff/`, вход в `src/app/login/`.
 - `src/lib/auth.ts` слой доступа: `requireStudent()`, `requireStaff()`, сессии, лимит попыток входа.

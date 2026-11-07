@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Документы, вариант 3: строгий, документ как бумага</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="base.css">
+<style>
+  /* Swiss Modernism 2.0 (ui-ux-pro-max): сетка, много воздуха, цвет только на действиях, контраст до AAA */
+  .tabs { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 2px solid var(--line); }
+  .tabs div { padding: 12px 0; text-align: center; font-weight: 800; color: var(--muted); }
+  .tabs div.on { color: var(--ink); box-shadow: inset 0 -3px 0 var(--brand); }
+  .rows > div { display: flex; align-items: center; gap: 14px; padding: 16px 0; border-bottom: 1px solid var(--line); }
+  .num { font: 600 13px Unbounded, sans-serif; color: var(--brand); width: 24px; }
+  .rows .t { font-weight: 800; font-size: 16px; }
+  .rows .chev { margin-left: auto; color: #b3adc9; }
+  .banner { border-left: 4px solid var(--brand); padding: 10px 14px; background: var(--soft); border-radius: 0 14px 14px 0; }
+  .sec { display: grid; gap: 10px; }
+  .sec h3 { font: 600 13px Unbounded, sans-serif; color: var(--brand); }
+  .radio-row { display: flex; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--line); font-weight: 700; }
+  .radio { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #c9c4de; flex: none; }
+  .radio.on { border: 7px solid var(--brand); }
+  .solid { background: var(--brand); box-shadow: none; }
+  .paper { position: relative; background: #fff; border: 1px solid #e4e0f0; border-radius: 6px; padding: 18px 16px; box-shadow: 0 14px 30px -18px rgba(23,17,46,.45); overflow: hidden; }
+  .paper .line { height: 6px; border-radius: 3px; background: #ece9f4; margin-top: 7px; }
+  .wm { position: absolute; left: -10px; right: -10px; top: 92px; text-align: center; transform: rotate(-18deg); font: 700 46px Unbounded, sans-serif; color: rgba(196,50,10,.12); letter-spacing: .1em; }
+  .hist > div { display: grid; grid-template-columns: 72px 1fr; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .hist time { font-variant-numeric: tabular-nums; color: var(--muted); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="board">
+
+<figure class="phone"><figcaption>1. Две вкладки, список строками</figcaption><div class="screen">
+  <div class="top"><div class="brand"><svg width="36" height="36" viewBox="0 0 36 36"><rect width="36" height="36" rx="11" fill="#6a3bf2"/><path d="M12 8.5h8l5 5V25a2.5 2.5 0 0 1-2.5 2.5h-10.5A2.5 2.5 0 0 1 9.5 25V11A2.5 2.5 0 0 1 12 8.5Z" fill="none" stroke="#fff" stroke-width="2.2"/><path d="m13.5 19 3 3 5.5-5.5" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/><circle cx="26.5" cy="9.5" r="3.5" fill="#FFB547"/></svg>деканат</div><div class="round"><i data-i="bell"></i></div><div class="round avatar">АС</div></div>
+  <div class="content" style="display:grid;gap:14px">
+    <h1 class="display" style="font-size:28px">Документы</h1>
+    <div class="banner"><div class="bold">Справка об обучении в работе</div><div class="small muted">№ 2481. Этап 2 из 3, будет готово до 12 ноября</div></div>
+    <div class="tabs"><div class="on">Заказать</div><div>Мои заявки · 3</div></div>
+    <div class="rows">
+      <div><span class="num">01</span><div><div class="t">Справка об обучении</div><div class="small muted">Электронная с QR · 1 рабочий день</div></div><span class="chev"><i data-i="chev"></i></span></div>
+      <div><span class="num">02</span><div><div class="t">Справка для военкомата</div><div class="small muted">Бумажная · 2 рабочих дня</div></div><span class="chev"><i data-i="chev"></i></span></div>
+      <div><span class="num">03</span><div><div class="t">Заявление на пересдачу</div><div class="small muted">Нужна дата и дисциплина</div></div><span class="chev"><i data-i="chev"></i></span></div>
+      <div><span class="num">04</span><div><div class="t">Исправление данных</div><div class="small muted">ФИО, группа, паспорт</div></div><span class="chev"><i data-i="chev"></i></span></div>
+    </div>
+  </div>
+  <div class="nav"><a><i data-i="home"></i>Сегодня</a><a><i data-i="cal"></i>Расписание</a><a><i data-i="cap"></i>Учёба</a><a class="on"><i data-i="doc"></i>Документы</a></div>
+</div></figure>
+
+<figure class="phone"><figcaption>2. Форма разделами по номерам</figcaption><div class="screen">
+  <div class="back"><i data-i="back"></i>Заказать</div>
+  <div class="content" style="display:grid;gap:22px">
+    <h1 class="display" style="font-size:24px">Справка об обучении</h1>
+    <div class="sec"><h3>01 · Куда нужна</h3><div class="chips"><span class="chip on">На работу</span><span class="chip">В военкомат</span><span class="chip">В соцзащиту</span><span class="chip">Для визы</span><span class="chip">Другое</span></div></div>
+    <div class="sec"><h3>02 · Формат</h3>
+      <div><div class="radio-row"><span class="radio on"></span>Электронная с QR-кодом</div><div class="radio-row"><span class="radio"></span>Бумажная, забрать в каб. 2105</div></div></div>
+    <div class="sec"><h3>03 · Проверьте данные</h3><p class="small">Соколова Анна Дмитриевна, 3 курс, МП-31. <span style="color:var(--brand);font-weight:700">Нашли ошибку?</span></p></div>
+  </div>
+  <div style="position:absolute;left:16px;right:16px;bottom:20px"><div class="btn solid">Отправить заявку</div></div>
+</div></figure>
+
+<figure class="phone"><figcaption>3. Документ как бумага и история</figcaption><div class="screen">
+  <div class="back"><i data-i="back"></i>Мои заявки</div>
+  <div class="content" style="display:grid;gap:14px">
+    <div style="display:flex;justify-content:space-between;align-items:end"><h1 class="display" style="font-size:24px">№ 2481</h1><span class="pill ok">Готово</span></div>
+    <div class="paper">
+      <div class="small muted bold">ДЕКАНАТ МЕЖДУНАРОДНО-ПРАВОВОГО ФАКУЛЬТЕТА</div>
+      <div class="display" style="font-size:16px;font-weight:600;margin-top:10px">СПРАВКА</div>
+      <div class="small">Дана Соколовой Анне Дмитриевне в том, что она обучается на 3 курсе.</div>
+      <div class="line"></div><div class="line" style="width:80%"></div><div class="line" style="width:60%"></div>
+      <div style="display:flex;justify-content:space-between;align-items:end;margin-top:12px"><span class="demo">ДЕМО, ЮРИДИЧЕСКОЙ<br>СИЛЫ НЕ ИМЕЕТ</span><svg class="qr" style="width:78px;height:78px"></svg></div>
+      <div class="wm">ДЕМО</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div class="btn solid" style="font-size:15px">Открыть</div><div class="btn ghost" style="font-size:15px">Ссылка</div></div>
+    <div class="hist">
+      <div><time>11.11 14:20</time><span><b>Готово.</b> Электронная справка</span></div>
+      <div><time>10.11 16:05</time><span><b>В работе</b></span></div>
+      <div><time>10.11 11:40</time><span><b>Уточнение.</b> Для какой организации? Ответ: для банка</span></div>
+      <div><time>10.11 09:12</time><span><b>Принята</b></span></div>
+    </div>
+  </div>
+</div></figure>
+
+</div>
+<script src="mock.js"></script>
+</body>
+</html>

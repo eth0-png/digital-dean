@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Документы, вариант 2: шторка и переписка</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="base.css">
+<style>
+  /* apple-design: шторка как модальная задача (затемнение, фон уходит назад), ручка 36×5, углы 28 px,
+     второй шаг въезжает справа, пружина без отскока при открытии кнопкой */
+  .apps { display: grid; gap: 10px; }
+  .app { border: 1px solid var(--line); border-radius: 20px; padding: 14px; }
+  .app .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .dots { display: flex; align-items: center; gap: 6px; margin-top: 12px; }
+  .dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--line); display: block; }
+  .dots i.on { background: var(--brand); }
+  .dots span { flex: 1; height: 2px; background: var(--line); }
+  .dots span.on { background: var(--brand); }
+  .order { position: absolute; left: 16px; right: 16px; bottom: 92px; }
+  .under { position: absolute; inset: 0; transform: scale(.93) translateY(-8px); border-radius: 30px; overflow: hidden; filter: brightness(.55); }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; height: 620px; background: #fff; border-radius: 28px 28px 0 0; padding: 8px 16px 20px; box-shadow: 0 -10px 40px rgba(23,17,46,.25); display: flex; flex-direction: column; gap: 18px; }
+  .grab { width: 36px; height: 5px; border-radius: 3px; background: #d6d2e6; margin: 0 auto; }
+  .sh-head { display: flex; align-items: center; gap: 10px; }
+  .opt { display: flex; align-items: center; gap: 12px; border: 2px solid var(--line); border-radius: 16px; padding: 12px 14px; }
+  .opt.on { border-color: var(--brand); background: var(--brand-soft); }
+  .radio { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #c9c4de; flex: none; }
+  .on .radio { border: 7px solid var(--brand); }
+  .eta { border-radius: 26px; padding: 16px; background: var(--grad); color: #fff; }
+  .hdots { display: flex; align-items: center; gap: 6px; margin-top: 14px; }
+  .hdots i { width: 12px; height: 12px; border-radius: 50%; background: #fff; display: block; }
+  .hdots span { flex: 1; height: 3px; border-radius: 2px; background: #fff; }
+  .lbl { display: flex; justify-content: space-between; font-size: 11.5px; font-weight: 700; margin-top: 6px; opacity: .95; }
+  .chat { display: grid; gap: 8px; }
+  .sys { text-align: center; font-size: 12px; color: var(--muted); font-weight: 600; }
+  .b { max-width: 80%; padding: 10px 12px; border-radius: 18px; font-size: 14px; }
+  .b.them { background: var(--soft); border-bottom-left-radius: 6px; }
+  .b.me { background: var(--brand); color: #fff; margin-left: auto; border-bottom-right-radius: 6px; }
+  .att { display: flex; gap: 12px; align-items: center; background: var(--soft); border-radius: 18px; border-bottom-left-radius: 6px; padding: 10px; max-width: 92%; }
+  .att .qr { width: 72px; height: 72px; border-radius: 8px; }
+</style>
+</head>
+<body>
+<div class="board">
+
+<figure class="phone"><figcaption>1. Мои заявки первыми</figcaption><div class="screen">
+  <div class="top"><div class="brand"><svg width="36" height="36" viewBox="0 0 36 36"><rect width="36" height="36" rx="11" fill="#6a3bf2"/><path d="M12 8.5h8l5 5V25a2.5 2.5 0 0 1-2.5 2.5h-10.5A2.5 2.5 0 0 1 9.5 25V11A2.5 2.5 0 0 1 12 8.5Z" fill="none" stroke="#fff" stroke-width="2.2"/><path d="m13.5 19 3 3 5.5-5.5" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/><circle cx="26.5" cy="9.5" r="3.5" fill="#FFB547"/></svg>деканат</div><div class="round"><i data-i="bell"></i></div><div class="round avatar">АС</div></div>
+  <div class="content" style="display:grid;gap:14px">
+    <h1 class="display">Документы</h1>
+    <div class="apps">
+      <div class="app"><div class="row"><div><div class="bold">Справка об обучении</div><div class="small muted">№ 2481, на работу</div></div><span class="pill work">В работе</span></div>
+        <div class="dots"><i class="on"></i><span class="on"></span><i class="on"></i><span></span><i></i></div>
+        <p class="small" style="margin-top:8px;display:flex;gap:6px;align-items:center"><i data-i="clock" style="width:16px;height:16px"></i>Будет готово до 12 ноября</p></div>
+      <div class="app" style="border-color:#f7d9a8;background:#fffaf0"><div class="row"><div><div class="bold">Заявление на пересдачу</div><div class="small muted">№ 2477, макроэкономика</div></div><span class="pill warn">Вопрос</span></div>
+        <p class="small" style="margin-top:8px">Деканат спрашивает дату. Ответьте, чтобы продолжить</p></div>
+      <div class="app"><div class="row"><div><div class="bold">Справка для военкомата</div><div class="small muted">№ 2460, 5 ноября</div></div><span class="pill ok">Готово</span></div></div>
+    </div>
+    <p class="small muted" style="display:flex;gap:6px;align-items:center"><i data-i="pin" style="width:16px;height:16px"></i>Деканат МП: каб. 2105, пн–пт 10:00–17:00</p>
+  </div>
+  <div class="order"><div class="btn"><i data-i="plus"></i>Заказать справку</div></div>
+  <div class="nav"><a><i data-i="home"></i>Сегодня</a><a><i data-i="cal"></i>Расписание</a><a><i data-i="cap"></i>Учёба</a><a class="on"><i data-i="doc"></i>Документы</a></div>
+</div></figure>
+
+<figure class="phone"><figcaption>2. Шторка, шаг 2 из 2</figcaption><div class="screen" style="background:#111">
+  <div class="under" style="background:#fff"><div class="top"><div class="brand">деканат</div></div><div class="content"><h1 class="display">Документы</h1></div></div>
+  <div class="sheet">
+    <div class="grab"></div>
+    <div class="sh-head"><div class="round" style="width:40px;height:40px"><i data-i="back"></i></div><div><div class="small muted bold">Шаг 2 из 2</div><div class="display" style="font-size:17px;font-weight:600">Справка об обучении</div></div></div>
+    <div><p class="bold small" style="margin-bottom:8px">Куда нужна справка</p><div class="chips"><span class="chip on">На работу</span><span class="chip">В военкомат</span><span class="chip">В соцзащиту</span><span class="chip">Для визы</span><span class="chip">Другое</span></div></div>
+    <div style="display:grid;gap:8px"><p class="bold small">Формат</p>
+      <div class="opt on"><span class="radio"></span><div><div class="bold">Электронная с QR</div><div class="small muted">Готова в кабинете, можно отправить ссылкой</div></div></div>
+      <div class="opt"><span class="radio"></span><div><div class="bold">Бумажная</div><div class="small muted">Забрать в деканате, каб. 2105</div></div></div></div>
+    <div style="margin-top:auto"><div class="btn">Отправить заявку</div><p class="small muted" style="text-align:center;margin-top:8px">Обычно готовят за 1 рабочий день</p></div>
+  </div>
+</div></figure>
+
+<figure class="phone"><figcaption>3. Статус как у доставки и переписка</figcaption><div class="screen">
+  <div class="back"><i data-i="back"></i>Документы</div>
+  <div class="content" style="display:grid;gap:14px">
+    <section class="eta"><div style="display:flex;justify-content:space-between"><span class="pill" style="background:rgba(0,0,0,.2);color:#fff">№ 2481</span><span class="pill" style="background:rgba(0,0,0,.2);color:#fff">11 ноября</span></div>
+      <p class="display" style="font-size:22px;font-weight:600;margin-top:12px">Готово</p><p style="opacity:.95">Справка об обучении, на работу</p>
+      <div class="hdots"><i></i><span></span><i></i><span></span><i></i></div><div class="lbl"><span>Принята</span><span>В работе</span><span>Готово</span></div></section>
+    <div class="chat">
+      <p class="sys">10 ноября, 09:12. Заявка принята</p>
+      <div class="b them">Здравствуйте! Для какой организации нужна справка?</div>
+      <div class="b me">Для банка, нужна печать</div>
+      <p class="sys">10 ноября, 16:05. В работе</p>
+      <div class="att"><svg class="qr"></svg><div><div class="bold">Справка готова</div><span class="demo" style="margin-top:4px">ДЕМО, ЮРИДИЧЕСКОЙ СИЛЫ НЕ ИМЕЕТ</span></div></div>
+      <p class="sys">11 ноября, 14:20. Готово</p>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div class="btn" style="font-size:15px"><i data-i="doc"></i>Открыть</div><div class="btn ghost" style="font-size:15px"><i data-i="qr"></i>QR-код</div></div>
+  </div>
+</div></figure>
+
+</div>
+<script src="mock.js"></script>
+</body>
+</html>

@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Документы, вариант 1: бенто-трекер</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="base.css">
+<style>
+  /* Стиль Bento Grids (ui-ux-pro-max): модульные плитки разного размера, мягкие скругления */
+  .track { border-radius: 26px; padding: 16px; color: #fff; background: var(--grad); box-shadow: 0 16px 32px -14px rgba(91,61,245,.6); }
+  .track .row { display: flex; justify-content: space-between; align-items: center; }
+  .track .chip-d { background: rgba(0,0,0,.2); border-radius: 99px; padding: 4px 10px; font-size: 12.5px; font-weight: 700; }
+  .bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 14px; }
+  .bar span { height: 6px; border-radius: 3px; background: rgba(255,255,255,.3); }
+  .bar span.on { background: #fff; }
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); font-size: 11.5px; font-weight: 700; margin-top: 6px; opacity: .9; }
+  .bento { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .tile { border-radius: 20px; padding: 14px; min-height: 112px; display: flex; flex-direction: column; justify-content: space-between; background: var(--soft); }
+  .tile.big { grid-column: span 2; min-height: 120px; background: var(--brand-soft); flex-direction: row; align-items: center; gap: 12px; }
+  .tile .ico { width: 40px; height: 40px; border-radius: 13px; display: grid; place-items: center; background: #fff; color: var(--brand); }
+  .tile .t { font-weight: 800; font-size: 14.5px; line-height: 1.25; }
+  .tile .s { font-size: 12.5px; color: var(--muted); font-weight: 600; margin-top: 2px; }
+  .go { margin-left: auto; width: 44px; height: 44px; border-radius: 14px; background: var(--grad); color: #fff; display: grid; place-items: center; }
+  .readyrow { display: flex; align-items: center; gap: 12px; border: 1px solid var(--line); border-radius: 18px; padding: 12px 14px; }
+  .label { font-size: 13px; font-weight: 700; margin: 0 0 8px; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; background: var(--soft); border-radius: 16px; padding: 4px; }
+  .seg div { text-align: center; padding: 11px 6px; border-radius: 12px; font-weight: 700; font-size: 14px; color: var(--muted); }
+  .seg div.on { background: #fff; color: var(--ink); box-shadow: 0 2px 8px -2px rgba(23,17,46,.15); }
+  .stepper { display: flex; align-items: center; gap: 14px; }
+  .stepper b { width: 44px; height: 44px; border-radius: 14px; background: var(--soft); display: grid; place-items: center; }
+  .sticky { position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 16px 20px; background: linear-gradient(transparent, #fff 30%); }
+  .hero-ok { border-radius: 26px; padding: 18px; background: linear-gradient(140deg, #0e9f6e, #067647); color: #fff; }
+  .tl { position: relative; padding-left: 26px; }
+  .tl::before { content: ""; position: absolute; left: 8px; top: 8px; bottom: 8px; width: 2px; background: var(--line); }
+  .tl .ev { position: relative; padding: 0 0 14px; }
+  .tl .ev::before { content: ""; position: absolute; left: -23px; top: 3px; width: 12px; height: 12px; border-radius: 50%; background: var(--brand); box-shadow: 0 0 0 3px #fff; }
+  .tl .ev.done::before { background: var(--ok); }
+  .q { background: var(--soft); border-radius: 14px; padding: 9px 12px; font-size: 13.5px; margin-top: 6px; }
+  .docc { border: 1px solid var(--line); border-radius: 20px; padding: 14px; display: flex; gap: 14px; align-items: center; }
+</style>
+</head>
+<body>
+<div class="board">
+
+<figure class="phone"><figcaption>1. Документы</figcaption><div class="screen">
+  <div class="top"><div class="brand"><svg width="36" height="36" viewBox="0 0 36 36"><rect width="36" height="36" rx="11" fill="#6a3bf2"/><path d="M12 8.5h8l5 5V25a2.5 2.5 0 0 1-2.5 2.5h-10.5A2.5 2.5 0 0 1 9.5 25V11A2.5 2.5 0 0 1 12 8.5Z" fill="none" stroke="#fff" stroke-width="2.2"/><path d="m13.5 19 3 3 5.5-5.5" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/><circle cx="26.5" cy="9.5" r="3.5" fill="#FFB547"/></svg>деканат</div><div class="round"><i data-i="bell"></i></div><div class="round avatar">АС</div></div>
+  <div class="content" style="display:grid;gap:16px">
+    <h1 class="display">Документы</h1>
+    <section class="track">
+      <div class="row"><span class="chip-d">Справка об обучении</span><span class="chip-d">№ 2481</span></div>
+      <p class="display" style="font-size:20px;font-weight:600;margin-top:12px">В работе</p>
+      <p style="font-size:14px;opacity:.95;margin-top:2px">Будет готово до 12 ноября</p>
+      <div class="bar"><span class="on"></span><span class="on"></span><span></span></div>
+      <div class="steps"><span>Принята</span><span style="text-align:center">В работе</span><span style="text-align:right">Готово</span></div>
+    </section>
+    <section>
+      <h2 class="display">Заказать</h2>
+      <div class="bento">
+        <div class="tile big"><div class="ico"><i data-i="doc"></i></div><div><div class="t">Справка об обучении</div><div class="s">Электронная с QR, обычно 1 день</div></div><div class="go"><i data-i="chev"></i></div></div>
+        <div class="tile"><div class="ico"><i data-i="shield"></i></div><div><div class="t">Для военкомата</div><div class="s">2 дня</div></div></div>
+        <div class="tile"><div class="ico"><i data-i="redo"></i></div><div><div class="t">Пересдача</div><div class="s">Заявление</div></div></div>
+        <div class="tile" style="grid-column:span 2;min-height:auto;flex-direction:row;align-items:center;gap:12px"><div class="ico"><i data-i="edit"></i></div><div><div class="t">Нашли ошибку в данных</div><div class="s">Исправим в профиле</div></div></div>
+      </div>
+    </section>
+    <section><h2 class="display">Готовые</h2>
+      <div class="readyrow"><span class="pill ok"><i data-i="check" style="width:14px;height:14px"></i>Готово</span><div><div class="bold">Справка для военкомата</div><div class="small muted">5 ноября, с QR-кодом</div></div></div>
+    </section>
+  </div>
+  <div class="nav"><a><i data-i="home"></i>Сегодня</a><a><i data-i="cal"></i>Расписание</a><a><i data-i="cap"></i>Учёба</a><a class="on"><i data-i="doc"></i>Документы</a></div>
+</div></figure>
+
+<figure class="phone"><figcaption>2. Оформление: отдельный экран</figcaption><div class="screen">
+  <div class="back"><i data-i="back"></i>Документы</div>
+  <div class="content" style="display:grid;gap:20px">
+    <div><h1 class="display">Справка об обучении</h1><p class="muted" style="margin-top:6px">Подтверждает, что вы учитесь на 3 курсе. Обычно готовят за 1 рабочий день.</p></div>
+    <div><p class="label">Куда нужна справка</p><div class="chips"><span class="chip on">На работу</span><span class="chip">В военкомат</span><span class="chip">В соцзащиту</span><span class="chip">Для визы</span><span class="chip">Другое</span></div></div>
+    <div><p class="label">Формат</p><div class="seg"><div class="on">Электронная с QR</div><div>Бумажная</div></div><p class="small muted" style="margin-top:8px">Электронную можно показать с телефона или отправить ссылкой.</p></div>
+    <div><p class="label">Сколько экземпляров</p><div class="stepper"><b><i data-i="minus"></i></b><span class="display" style="font-size:20px">1</span><b><i data-i="plus"></i></b></div></div>
+  </div>
+  <div class="sticky"><div class="btn">Отправить заявку</div></div>
+</div></figure>
+
+<figure class="phone"><figcaption>3. Статус и готовый документ</figcaption><div class="screen">
+  <div class="back"><i data-i="back"></i>Документы</div>
+  <div class="content" style="display:grid;gap:16px">
+    <section class="hero-ok"><span class="pill" style="background:rgba(0,0,0,.18);color:#fff">№ 2481</span><p class="display" style="font-size:22px;font-weight:600;margin-top:12px">Готово</p><p style="opacity:.95">Справка об обучении, 11 ноября в 14:20</p></section>
+    <div class="docc"><svg class="qr"></svg><div><span class="demo">ДЕМО, ЮРИДИЧЕСКОЙ СИЛЫ НЕ ИМЕЕТ</span><p class="small muted" style="margin-top:8px">Отсканируйте, чтобы проверить подлинность</p></div></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div class="btn" style="font-size:15px"><i data-i="doc"></i>Открыть</div><div class="btn ghost" style="font-size:15px"><i data-i="share"></i>Ссылка</div></div>
+    <div class="tl">
+      <div class="ev done"><div class="bold">Готово</div><div class="small muted">11 ноября, 14:20</div></div>
+      <div class="ev done"><div class="bold">В работе</div><div class="small muted">10 ноября, 16:05</div></div>
+      <div class="ev done"><div class="bold">Нужно уточнение</div><div class="small muted">10 ноября, 11:40</div><div class="q"><b>Деканат:</b> Для какой организации справка?<br><b>Вы:</b> Для банка, нужна печать</div></div>
+      <div class="ev done"><div class="bold">Заявка принята</div><div class="small muted">10 ноября, 09:12</div></div>
+    </div>
+  </div>
+</div></figure>
+
+</div>
+<script src="mock.js"></script>
+</body>
+</html>

@@ -1,3 +1,10 @@
+{
+	servers {
+		# HTTP/3 выключен: UDP 443 закрыт в фаерволле, а QUIC в мобильных сетях бывает нестабилен
+		protocols h1 h2
+	}
+}
+
 {$DOMAIN} {
 	encode zstd gzip
 	reverse_proxy app:3000

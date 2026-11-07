@@ -27,7 +27,7 @@
 - `src/app/(student)/documents/actions.ts` действия: `createApplication`, `sendMessage` (на вопрос деканата это ответ), `cancelApplication`, `markDeanRead`.
 - `src/app/verify/[code]/` открытая страница проверки справки по QR (без входа, только инициалы).
 - `src/lib/staff.ts` данные кабинета сотрудника: `listQueue()`, `getForStaff(id)`, обе начинаются с `requireStaff()`.
-- `src/app/staff/actions.ts` действия сотрудника: `takeInWork`, `sendReply` (с отметкой «Нужен ответ» ставит заявку на паузу), `issue`, `reject`, `markRead`. Смена статуса одним запросом с условием на текущий статус.
+- `src/app/staff/actions.ts` действия сотрудника: `takeInWork`, `sendReply` (с отметкой «Ответ на сообщение обязателен» ставит статус «Нужно уточнение»), `issue`, `reject`, `markRead`. Смена статуса одним запросом с условием на текущий статус.
 - `src/components/staff/` очередь и карточка: `staff-ui.tsx` (статусы, сведения), `staff-client.tsx` (панель действий с окнами, переписка со студентом). История заявки общая: `Timeline` с `viewer="staff"`.
 - Токены цвета в `src/app/globals.css` с именами shadcn (`primary`, `muted-foreground`, `border`...) плюс наши `success`, `warning`, `alert`, `nav`.
 - `scripts/shot.mjs` скриншоты на 360 px, `scripts/check-access.mjs` проверка разделения доступа.

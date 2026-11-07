@@ -162,7 +162,7 @@ export function StaffChat({
 }
 
 /**
- * Панель действий по статусу заявки. Вопрос студенту задаётся в переписке отметкой «Нужен ответ».
+ * Панель действий по статусу заявки. Вопрос студенту задаётся в переписке отметкой «Ответ на сообщение обязателен».
  * Сервер ещё раз проверяет роль и допустимый переход.
  */
 export function StaffActions({ id, status, type, format, chat }: { id: string; status: AppStatus; type: DocType; format: Format; chat: ReactNode }) {

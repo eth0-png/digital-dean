@@ -98,7 +98,7 @@ check((await text(staff)).includes("Соколова Анна"), "в карто�
 await press(staff, "Взять в работу");
 check(await waitText(staff, "Справка готова"), "после «Взять в работу» появилась кнопка выдачи");
 
-// 3. Сотрудник спрашивает в переписке с отметкой «Нужен ответ»
+// 3. Сотрудник спрашивает в переписке с отметкой «Ответ на сообщение обязателен»
 const QUESTION = "Справка нужна с указанием срока обучения?";
 await press(staff, "Переписка");
 await staff.waitForSelector("[role=log]");
@@ -108,7 +108,7 @@ await staff.type("#chat-message", QUESTION);
 await staff.click('button[aria-label="Отправить"]');
 await staff.waitForFunction((m) => document.querySelector("[role=log]").innerText.includes(m), { timeout: 10000 }, QUESTION);
 await closeChat(staff);
-check(await waitText(staff, "Ждём ответа студента"), "вопрос с отметкой «Нужен ответ» ставит заявку на паузу");
+check(await waitText(staff, "Ждём ответа студента"), "сообщение с отметкой «Ответ на сообщение обязателен» ждёт студента");
 
 // 4. Студент отвечает, переписка не закрывается, можно написать ещё
 await go(student, `/documents/${id}`);

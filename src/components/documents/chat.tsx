@@ -145,7 +145,7 @@ function Conversation({ peer, messages, compose, closedText, open, onOpenChange 
                 <span className={`grid size-5 place-items-center rounded-md border-2 ${ask ? "border-warning bg-warning text-white" : "border-muted-foreground/50"}`}>
                   {ask && <Check size={14} strokeWidth={3} aria-hidden="true" />}
                 </span>
-                Нужен ответ студента, заявка на паузу
+                Ответ на сообщение обязателен
               </button>
             )}
             <div className="flex items-end gap-2 pt-1">

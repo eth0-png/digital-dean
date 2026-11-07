@@ -95,7 +95,7 @@ function Conversation({ peer, messages, compose, closedText, open, onOpenChange 
             </Button>
           </DrawerClose>
           <span className="grid size-10 shrink-0 place-items-center rounded-full bg-accent text-[13px] font-extrabold text-accent-foreground">{peer.initials}</span>
-          <span className="min-w-0 flex-1 pl-1">
+          <span className="min-w-0 flex-1 pl-1 text-left">
             <DrawerTitle className="text-base font-bold">{peer.name}</DrawerTitle>
             <DrawerDescription className="text-[13px]">{peer.about}</DrawerDescription>
           </span>

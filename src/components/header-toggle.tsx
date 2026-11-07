@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { markBack, previousOf } from "@/lib/nav-trail";
-import { useCurrentUrl } from "@/components/nav-trail";
+import { useCurrentUrl, useTrail } from "@/components/nav-trail";
 
 /**
  * Кнопка в шапке: первое нажатие открывает страницу, повторное закрывает её
@@ -26,6 +26,7 @@ export function HeaderToggle({
   openChildren?: ReactNode;
 }) {
   const path = usePathname();
+  useTrail();
   const current = useCurrentUrl();
   const open = path === href;
   const back = open ? (previousOf(current, { skipForms: false }) ?? "/") : href;

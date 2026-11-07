@@ -95,6 +95,24 @@ check(await tap('a[aria-label="Уведомления"]', "/notifications"), "«
 check(await tap('a[aria-label="Закрыть уведомления"]', FIX), "уведомления закрываются в форму, а не в «не найдено»");
 check(await tap("[data-back]", "/documents"), "«назад» с формы ведёт в «Документы»");
 
+// 8б. Сценарий команды: «Сегодня» → профиль → исправление → «назад» → закрыть профиль → «Сегодня»
+await go("/");
+check(await tap('a[aria-label="Профиль"]', "/profile"), "«Сегодня» → профиль");
+check(await tap(`a[href="${FIX}"]`, FIX), "профиль → «Нашли ошибку в данных»");
+check(await tap("[data-back]", "/profile"), "«назад» с формы в профиль");
+check(await tap('a[aria-label="Закрыть профиль"]', "/"), "закрытие профиля после «назад» ведёт на «Сегодня», а не в форму");
+
+// 8в. Заявка → справка → «назад» → «назад»: подписи и адреса не залипают после возврата
+await go("/documents/all");
+const ready = await page.$$eval('[role=tabpanel] li a', (as) => as.find((a) => /, готово /.test(a.textContent))?.getAttribute("href"));
+if (ready) {
+  await tap(`[role=tabpanel] a[href="${ready}"]`, ready);
+  check(await tap(`a[href="${ready}/document"]`, `${ready}/document`), "заявка → «Открыть справку»");
+  check(await tap("[data-back]", ready), "«назад» со справки в заявку");
+  check((await backLabel()) === "Мои заявки", `после возврата на заявке «назад» подписан «Мои заявки» (сейчас «${await backLabel()}»)`);
+  check(await tap("[data-back]", "/documents/all"), "второй «назад» ведёт в «Мои заявки»");
+}
+
 // 9. Отправили заявку: «назад» перепрыгивает отправленную форму (только локально, создаёт заявку)
 if (process.env.ALLOW_WRITE) {
   await go("/documents");

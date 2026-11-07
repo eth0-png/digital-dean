@@ -4,6 +4,22 @@
 
 const trail: string[] = [];
 
+// Подписка на изменения пути (для useSyncExternalStore): кнопки, которые считают адрес возврата
+// при отрисовке, перерисовываются сразу, как только путь обновился. Иначе в них залипает старый адрес.
+let version = 0;
+const listeners = new Set<() => void>();
+const changed = () => {
+  version++;
+  listeners.forEach((l) => l());
+};
+export const subscribeTrail = (l: () => void) => {
+  listeners.add(l);
+  return () => {
+    listeners.delete(l);
+  };
+};
+export const trailVersion = () => version;
+
 /** Адрес без служебных параметров (?sent=1 после отправки заявки). */
 export function cleanUrl(path: string, search: string) {
   const params = new URLSearchParams(search);
@@ -26,11 +42,13 @@ export function recordVisit(url: string) {
   const i = trail.lastIndexOf(url);
   if (back && i >= 0) {
     trail.length = i + 1;
+    changed();
     return;
   }
   if (trail[trail.length - 1] === url) return;
   trail.push(url);
   if (trail.length > 30) trail.shift();
+  changed();
 }
 
 const isForm = (url: string) => url.startsWith("/documents/new");

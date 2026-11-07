@@ -103,6 +103,13 @@
   }
 }
 
+/* После касания или щелчка кольцо фокуса не нужно, только при управлении клавиатурой (см. input-modality.tsx).
+   Вне @layer, чтобы перебить утилиты shadcn focus-visible:ring и focus-visible:outline */
+html[data-input="pointer"] :focus-visible {
+  outline: none;
+  --tw-ring-shadow: 0 0 #0000;
+}
+
 /* Появление блоков при первом показе, со сдвигом по --i: style={{ "--i": 2 }} */
 @utility enter {
   animation: enter 240ms var(--ease-out) both;

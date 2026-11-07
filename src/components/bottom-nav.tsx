@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import { CalendarDays, FileText, GraduationCap, House } from "lucide-react";
 
 // Порядок вкладок по опросу: расписание 19 из 22, оценки 15 из 22, справки 12 из 22.
@@ -15,6 +16,14 @@ const TABS = [
 export function BottomNav() {
   const path = usePathname();
   const active = TABS.findIndex(({ href }) => (href === "/" ? path === "/" : path.startsWith(href)));
+
+  // В профиле и уведомлениях выбранной вкладки нет: подсветка гаснет на месте, а не уезжает влево.
+  // Когда возвращаемся, она появляется сразу у нужной вкладки, без проезда через всё меню.
+  const [pill, setPill] = useState({ active, pos: Math.max(active, 0), jump: false });
+  if (pill.active !== active) {
+    setPill({ active, pos: active >= 0 ? active : pill.pos, jump: pill.active < 0 });
+  }
+
   // Внутри задачи (оформление, заявка) меню прячется: внизу своя главная кнопка
   if (/^\/documents\/.+/.test(path)) return null;
 
@@ -25,11 +34,13 @@ export function BottomNav() {
       className="fixed inset-x-3 bottom-[max(12px,env(safe-area-inset-bottom))] z-20 mx-auto max-w-[420px] rounded-3xl bg-nav p-2"
     >
       <div className="relative grid grid-cols-4">
-        {/* Подсветка скользит к выбранной вкладке */}
+        {/* Подсветка скользит между вкладками, а к профилю и уведомлениям просто гаснет */}
         <span
           aria-hidden="true"
-          className="absolute inset-y-0 left-0 w-1/4 rounded-2xl bg-primary transition-[transform,opacity] duration-[260ms] ease-[cubic-bezier(.2,.8,.2,1)]"
-          style={{ transform: `translateX(${Math.max(active, 0) * 100}%)`, opacity: active < 0 ? 0 : 1 }}
+          className={`absolute inset-y-0 left-0 w-1/4 rounded-2xl bg-primary duration-[260ms] ease-[cubic-bezier(.2,.8,.2,1)] ${
+            pill.jump ? "transition-opacity" : "transition-[transform,opacity]"
+          }`}
+          style={{ transform: `translateX(${pill.pos * 100}%)`, opacity: active < 0 ? 0 : 1 }}
         />
         {TABS.map(({ href, label, Icon }, i) => (
           <Link

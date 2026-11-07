@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Manrope, Unbounded } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
+import { InputModality } from "@/components/input-modality";
 import "./globals.css";
 
 const manrope = Manrope({ subsets: ["latin", "cyrillic"], variable: "--font-manrope" });
@@ -25,6 +26,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full text-[15px] leading-snug">
         {children}
         <Toaster position="top-center" />
+        <InputModality />
       </body>
     </html>
   );

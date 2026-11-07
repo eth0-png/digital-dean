@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useActionState, useEffect, useRef, useState, type FormEvent } from "react";
+import { useActionState, useEffect, useLayoutEffect, useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { ChevronDown, LoaderCircle, MessageCircle, Minus, Phone, Plus, Send, Share2, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -330,25 +330,61 @@ export function ConversationLink({ number, messages }: { number: number; message
   );
 }
 
-/** Вкладки раздела «Мои заявки». Списки отрисованы на сервере, переключение мгновенное, без запросов. */
+/**
+ * Вкладки раздела «Мои заявки» в виде переключателя-пилюли, как в iOS.
+ * Белая подложка скользит к выбранной вкладке, ширина вкладок по содержимому, поэтому
+ * у длинной «В процессе» отступы такие же, как у короткой «Все». Нажимается вся высота 44 px,
+ * а видимая подложка 36 px. Список при смене вкладки въезжает с той стороны, куда переключили.
+ */
 export function ApplicationTabs({ tabs }: { tabs: { value: string; label: string; count: number; content: React.ReactNode }[] }) {
+  const [value, setValue] = useState(tabs[0].value);
+  const [dir, setDir] = useState<"left" | "right">("right");
+  const [pill, setPill] = useState<{ left: number; width: number } | null>(null);
+  const list = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const measure = () => {
+      const el = list.current?.querySelector<HTMLElement>('[data-state="active"]');
+      if (el) setPill({ left: el.offsetLeft, width: el.offsetWidth });
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [value]);
+
+  function change(next: string) {
+    const from = tabs.findIndex((t) => t.value === value);
+    const to = tabs.findIndex((t) => t.value === next);
+    setDir(to > from ? "right" : "left");
+    setValue(next);
+  }
+
   return (
-    <Tabs defaultValue={tabs[0].value} className="gap-4">
-      <TabsList className="grid w-full grid-cols-3 rounded-xl bg-secondary p-1 group-data-horizontal/tabs:h-13">
+    <Tabs value={value} onValueChange={change} className="gap-4">
+      <TabsList ref={list} className="relative flex w-full gap-0 rounded-full bg-secondary p-0 px-1 group-data-horizontal/tabs:h-11">
+        {pill && (
+          <span
+            aria-hidden="true"
+            className="absolute top-1 bottom-1 rounded-full bg-background transition-[left,width] duration-[260ms] ease-[cubic-bezier(.2,.8,.2,1)]"
+            style={{ left: pill.left, width: pill.width }}
+          />
+        )}
         {tabs.map((t) => (
           <TabsTrigger
             key={t.value}
             value={t.value}
-            className="h-full rounded-lg text-[14px] font-bold text-muted-foreground data-[state=active]:bg-background data-[state=active]:text-foreground"
+            className={`relative z-10 h-11 flex-auto rounded-full border-0 px-3.5 text-[14px] font-bold text-muted-foreground transition-colors duration-200 data-[state=active]:text-foreground ${
+              pill ? "data-[state=active]:bg-transparent" : "data-[state=active]:bg-background"
+            }`}
           >
             {t.label}
-            <span className="ml-1 text-[12.5px] font-semibold text-muted-foreground">{t.count}</span>
+            <span className="ml-1.5 text-[12.5px] font-semibold opacity-70">{t.count}</span>
           </TabsTrigger>
         ))}
       </TabsList>
       {tabs.map((t) => (
         <TabsContent key={t.value} value={t.value}>
-          {t.content}
+          <div className={`animate-in fade-in duration-200 ${dir === "right" ? "slide-in-from-right-4" : "slide-in-from-left-4"}`}>{t.content}</div>
         </TabsContent>
       ))}
     </Tabs>

@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, type ReactNode } from "react";
+import type { ReactNode } from "react";
+import { markBack, previousOf } from "@/lib/nav-trail";
+import { useCurrentUrl } from "@/components/nav-trail";
 
-const OVERLAYS = ["/profile", "/notifications"];
-// Последний раздел, открытый до профиля или уведомлений. Повторное нажатие возвращает туда.
-let lastSection = "/";
-
-/** Кнопка в шапке: первое нажатие открывает страницу, повторное закрывает её. */
+/**
+ * Кнопка в шапке: первое нажатие открывает страницу, повторное закрывает её
+ * и возвращает на ту страницу, откуда открыли, с тем же адресом целиком (включая ?type=...).
+ */
 export function HeaderToggle({
   href,
   label,
@@ -25,16 +26,15 @@ export function HeaderToggle({
   openChildren?: ReactNode;
 }) {
   const path = usePathname();
+  const current = useCurrentUrl();
   const open = path === href;
-
-  useEffect(() => {
-    if (!OVERLAYS.includes(path)) lastSection = path;
-  }, [path]);
+  const back = open ? (previousOf(current, { skipForms: false }) ?? "/") : href;
 
   return (
     <Link
-      href={open ? lastSection : href}
+      href={back}
       transitionTypes={[open ? "nav-back" : "nav-forward"]}
+      onClick={() => open && markBack(back)}
       aria-label={open ? closeLabel : label}
       className={`${className} ${open ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""}`}
     >

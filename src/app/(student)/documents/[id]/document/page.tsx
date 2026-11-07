@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getMyApplication, siteOrigin } from "@/lib/applications";
 import { DOC_TYPES } from "@/lib/documents";
-import { BackLink, PageTransition, Reveal } from "@/components/kit";
+import { PageTransition, Reveal } from "@/components/kit";
+import { BackLink } from "@/components/nav-trail";
 import { DocumentPaper } from "@/components/documents/documents-ui";
 import { ShareButton } from "@/components/documents/documents-client";
 
@@ -27,7 +28,7 @@ async function DocumentView({ params }: { params: Promise<{ id: string }> }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <BackLink href={`/documents/${app.id}`}>Заявка № {app.number}</BackLink>
+        <BackLink fallbackHref={`/documents/${app.id}`} fallbackLabel={`Заявка № ${app.number}`} />
         <ShareButton title={`${DOC_TYPES[app.type].title} № ${app.number}`} url={verifyUrl} />
       </div>
       <DocumentPaper app={app} fio={`${user.lastName} ${user.firstName} ${user.middleName ?? ""}`.trim()} course={user.course ?? 1} faculty={user.faculty ?? ""} verifyUrl={verifyUrl} />

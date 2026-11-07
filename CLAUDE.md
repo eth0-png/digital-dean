@@ -20,6 +20,7 @@
 - `src/lib/auth.ts` слой доступа: `requireStudent()`, `requireStaff()`, сессии, лимит попыток входа.
 - `src/lib/init-db.ts` схема базы и демо-аккаунты, выполняется при старте сервера (`src/instrumentation.ts`).
 - `src/components/ui/` компоненты shadcn/ui (Radix). Это наш код, правим под себя: кнопки от 44 px, поля 52 px. Новые ставим так: `npx shadcn@latest add <имя>`.
+- `src/lib/nav-trail.ts` и `src/components/nav-trail.tsx` путь по кабинету: `BackLink` (назад на предыдущую страницу), закрытие профиля и уведомлений. Ссылки «назад» делать только через `BackLink`.
 - `src/components/kit.tsx` наши общие части: `Reveal` (загрузка с плавной сменой), `PageTransition` (переход страницы), `EmptyState`, `SectionTitle`, `stagger`. `bottom-nav.tsx`, `logo.tsx`.
 - `src/components/documents/` экраны «Документов»: `documents-ui.tsx` серверные части, `documents-client.tsx` форма, шторка «Связаться с деканатом», окно QR. `src/lib/documents.ts` статусы, типы, тексты.
 - `src/lib/applications.ts` данные заявок: `listMyApplications()`, `getMyApplication(id)` (всегда с `user_id` текущего студента), `findByVerifyCode()` для открытой проверки.
@@ -27,6 +28,7 @@
 - `src/app/verify/[code]/` открытая страница проверки справки по QR (без входа, только инициалы).
 - Токены цвета в `src/app/globals.css` с именами shadcn (`primary`, `muted-foreground`, `border`...) плюс наши `success`, `warning`, `alert`, `nav`.
 - `scripts/shot.mjs` скриншоты на 360 px, `scripts/check-access.mjs` проверка разделения доступа.
+- `scripts/check-nav.mjs` 27 сценариев навигации: «назад», закрытие профиля и уведомлений, нигде «Страница не найдена». `ALLOW_WRITE=1` добавляет сценарий с отправкой заявки (только локально).
 - `scripts/measure-nav.mjs` плавность переключения вкладок на замедленном в 4 раза процессоре. После правок анимаций: длинных кадров должно быть 0.
 - `Dockerfile`, `docker-compose.yml`, `Caddyfile` выкладка на виртуальную машину Cloud.ru. Порядок выкладки в `README.md`.
 - `research/survey.csv` не публикуется (в `.gitignore`), в репозитории только сводка.

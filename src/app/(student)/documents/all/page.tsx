@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { CircleCheck, FileText, Hourglass } from "lucide-react";
 import { listMyApplications } from "@/lib/applications";
 import type { Application } from "@/lib/documents";
-import { BackLink, EmptyState, PageTransition, Reveal } from "@/components/kit";
+import { EmptyState, PageTransition, Reveal } from "@/components/kit";
+import { BackLink } from "@/components/nav-trail";
 import { ApplicationList } from "@/components/documents/documents-ui";
 import { ApplicationTabs } from "@/components/documents/documents-client";
 
@@ -31,7 +32,7 @@ async function AllApplications() {
 
   return (
     <div className="space-y-4">
-      <BackLink href="/documents">Документы</BackLink>
+      <BackLink fallbackHref="/documents" fallbackLabel="Документы" />
       <h1 className="enter font-display text-[22px] font-semibold">Мои заявки</h1>
       <ApplicationTabs
         tabs={[

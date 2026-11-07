@@ -1,17 +1,6 @@
-import Link from "next/link";
 import { Suspense, ViewTransition, type CSSProperties, type ReactNode } from "react";
-import { ChevronLeft } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
-/** Ссылка «назад» в начале вложенной страницы. */
-export function BackLink({ href, children }: { href: string; children: ReactNode }) {
-  return (
-    <Link href={href} transitionTypes={["nav-back"]} className="-ml-1 inline-flex min-h-11 items-center gap-1 font-bold">
-      <ChevronLeft size={22} aria-hidden="true" />
-      {children}
-    </Link>
-  );
-}
 
 /** Порядковый номер для появления по очереди: <div className="enter" style={stagger(2)}> */
 export const stagger = (i: number) => ({ "--i": i }) as CSSProperties;

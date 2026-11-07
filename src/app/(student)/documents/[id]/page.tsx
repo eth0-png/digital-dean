@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { getMyApplication, siteOrigin } from "@/lib/applications";
 import { toChat } from "@/lib/documents";
-import { BackLink, PageTransition, Reveal, SectionTitle } from "@/components/kit";
+import { PageTransition, Reveal, SectionTitle } from "@/components/kit";
+import { BackLink } from "@/components/nav-trail";
 import { DocumentCard, StatusCard, Timeline } from "@/components/documents/documents-ui";
 import { AnswerButton, ConversationLink, SentToast } from "@/components/documents/documents-client";
 
@@ -34,7 +35,7 @@ async function ApplicationView({
   return (
     <div className="space-y-4">
       {sent && <SentToast />}
-      <BackLink href="/documents">Документы</BackLink>
+      <BackLink fallbackHref="/documents" fallbackLabel="Документы" />
       {/* Одна точка входа в переписку: пока ждут ответа, «Ответить» в карточке, потом пункт истории */}
       <StatusCard app={app} action={need ? <AnswerButton appId={app.id} number={app.number} messages={chat} /> : undefined} />
       {app.status === "ready" && app.verifyCode && (

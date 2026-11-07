@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { requireStudent } from "@/lib/auth";
 import { DOC_TYPES, isDocType } from "@/lib/documents";
-import { BackLink, PageTransition, Reveal } from "@/components/kit";
+import { PageTransition, Reveal } from "@/components/kit";
+import { BackLink } from "@/components/nav-trail";
 import { OrderForm } from "@/components/documents/documents-client";
 
 export const metadata: Metadata = { title: "Оформление" };
@@ -25,7 +26,7 @@ async function NewApplication({ searchParams }: { searchParams: Promise<Record<s
 
   return (
     <div>
-      <BackLink href="/documents">Документы</BackLink>
+      <BackLink fallbackHref="/documents" fallbackLabel="Документы" />
       <h1 className="enter mt-3 font-display text-[22px] leading-tight font-semibold">{cfg.title}</h1>
       <p className="enter mt-1.5 mb-6 text-muted-foreground">{cfg.about}</p>
       <OrderForm

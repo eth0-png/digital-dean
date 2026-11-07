@@ -1,24 +1,52 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Токены варианта Б. Контраст белого текста на brand и brand-2 не ниже 5,7:1 (AA). */
+@theme {
+  --color-bg: #ffffff;
+  --color-soft: #f5f3ff;
+  --color-ink: #17112e;
+  --color-muted: #6e6888;
+  --color-line: #ece9f7;
+  --color-brand: #5b3df5;
+  --color-brand-2: #7c3aed;
+  --color-brand-soft: #eeeaff;
+  --color-ok: #067647;
+  --color-ok-soft: #e3fbef;
+  --color-warn: #b54708;
+  --color-warn-soft: #fff4e0;
+  --color-alert: #ffb547;
+  --color-danger: #c4320a;
+  --color-danger-soft: #fef3f2;
+
+  --radius-card: 1.25rem;
+  --radius-hero: 1.625rem;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --font-sans: var(--font-manrope), system-ui, sans-serif;
+  --font-display: var(--font-unbounded), var(--font-manrope), sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  color-scheme: light;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

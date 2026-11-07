@@ -1,0 +1,16 @@
+# Только для разработки: PostgreSQL на этом компьютере, доступен лишь с 127.0.0.1, без пароля.
+# Запуск: npm run db
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: dekanat
+      POSTGRES_DB: dekanat
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "127.0.0.1:54329:5432"
+    volumes:
+      - dev_db:/var/lib/postgresql/data
+
+volumes:
+  dev_db:

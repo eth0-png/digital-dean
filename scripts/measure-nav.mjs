@@ -28,7 +28,10 @@ for (let round = 0; round < 2; round++) {
       window.__loaf = [];
       const loop = (t) => { window.__f.push(t); if (window.__f.length < 200) requestAnimationFrame(loop); };
       requestAnimationFrame(loop);
-      new PerformanceObserver((l) => l.getEntries().forEach((e) => window.__loaf.push(e.duration))).observe({ type: "long-animation-frame" });
+      // Один наблюдатель на замер: прежний отключаем, иначе кадры считаются по нескольку раз
+      window.__obs?.disconnect();
+      window.__obs = new PerformanceObserver((l) => l.getEntries().forEach((e) => window.__loaf.push(e.duration)));
+      window.__obs.observe({ type: "long-animation-frame" });
     });
     const t0 = Date.now();
     await page.tap(`nav a[href="${href}"]`);

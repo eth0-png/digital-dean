@@ -16,7 +16,11 @@
 - `STATUS.md` текущее состояние и следующий шаг.
 - `research/survey.csv` опрос студентов, `research/survey-summary.md` цифры и цитаты.
 - `docs/ai-log.md` журнал работы с ИИ, `docs/screenshots/` скриншоты, `docs/design/` макеты вариантов дизайна.
-- `src/app/` приложение Next.js 16 (App Router, TypeScript, Tailwind 4).
+- `src/app/` приложение Next.js 16 (App Router, TypeScript, Tailwind 4). Студенческие страницы в `src/app/(student)/`, кабинет сотрудника в `src/app/staff/`, вход в `src/app/login/`.
+- `src/lib/auth.ts` слой доступа: `requireStudent()`, `requireStaff()`, сессии, лимит попыток входа.
+- `src/lib/init-db.ts` схема базы и демо-аккаунты, выполняется при старте сервера (`src/instrumentation.ts`).
+- `src/components/` общие компоненты: `ui.tsx` (кнопки, пустые состояния, скелеты), `bottom-nav.tsx`, `logo.tsx`. Токены цвета в `src/app/globals.css`.
+- `scripts/shot.mjs` скриншоты на 360 px, `scripts/check-access.mjs` проверка разделения доступа.
 - `Dockerfile`, `docker-compose.yml`, `Caddyfile` выкладка на виртуальную машину Cloud.ru. Порядок выкладки в `README.md`.
 - `research/survey.csv` не публикуется (в `.gitignore`), в репозитории только сводка.
 
@@ -28,8 +32,12 @@
 
 ## Команды
 
-- `npm run dev` локальный запуск на http://localhost:3000
+- `npm run db` локальная PostgreSQL в Docker (порт 54329), нужен запущенный Docker Desktop.
+- `npm run dev` локальный запуск на http://localhost:3000. Переменные в `.env` (образец `.env.example`).
 - `npm run check` линтер, проверка типов и сборка. Должна проходить перед каждым коммитом.
+- `set -a && . ./.env && set +a && node scripts/check-access.mjs <адрес>` проверка доступа. Для боевого сайта пароли брать с сервера: `eval "$(ssh digital-dean 'grep ^SEED_PASSWORD_ ~/digital-dean/.env | sed "s/^/export /"')"`. Пароли в чат не выводить.
+- `node scripts/shot.mjs <адрес> docs/screenshots/<дата>-<этап> имя:/путь ...` скриншоты, с `SHOT_LOGIN` и `SHOT_PASSWORD` после входа.
+- Выкладка: `ssh digital-dean 'cd ~/digital-dean && git pull && docker compose up -d --build'`.
 
 ## Правила
 
@@ -43,6 +51,7 @@
 
 ## Безопасность (не упрощать)
 
+- Каждая страница с данными и каждое серверное действие начинается с `requireStudent()` или `requireStaff()`. Страница читает сессию внутри `<Suspense>`.
 - Каждый запрос к данным студента фильтруется по `userId` из сессии на сервере. Номер из адреса или тела запроса не доказывает права.
 - Чужой объект отвечает 404, не 403.
 - Роль сотрудника проверяется в каждом серверном действии, а не только в меню.
@@ -52,7 +61,7 @@
 ## Когда задача готова
 
 - [ ] `npm run check` проходит.
-- [ ] Скрипт проверки чужих данных проходит (появится в день 3).
+- [ ] `scripts/check-access.mjs` проходит локально и на сервере. Новый раздел с данными добавляет в него свою проверку.
 - [ ] Экран проверен на 360 px в браузере, ничего не уезжает и не обрезается.
 - [ ] У экрана есть загрузка, пустое состояние и ошибка.
 - [ ] В текстах интерфейса нет «—» и «;».

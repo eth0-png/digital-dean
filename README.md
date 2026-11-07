@@ -16,10 +16,16 @@ Next.js 16 (App Router, TypeScript, Tailwind CSS), PostgreSQL. Выкладка:
 
 ## Локальный запуск
 
+Нужны Node.js 24+ и Docker.
+
 ```bash
 npm install
+cp .env.example .env   # раскомментировать DATABASE_URL, задать SEED_PASSWORD_*
+npm run db             # PostgreSQL в Docker
 npm run dev
 ```
+
+Тестовые аккаунты `student1`, `student2` (студенты) и `dekanat` (сотрудник) создаются при старте с паролями из `.env`.
 
 Проверка перед коммитом: `npm run check` (линтер, типы, сборка).
 
@@ -29,7 +35,7 @@ npm run dev
 
 ```bash
 git clone https://github.com/eth0-png/digital-dean.git && cd digital-dean
-cp .env.example .env   # заполнить DOMAIN
+cp .env.example .env   # заполнить DOMAIN, POSTGRES_PASSWORD, SEED_PASSWORD_*
 docker compose up -d --build
 ```
 

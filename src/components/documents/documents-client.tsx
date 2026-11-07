@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
-import { MapPin, MessageCircle, Minus, Phone, Plus, Send, Share2 } from "lucide-react";
+import { MessageCircle, Minus, Phone, Plus, Send, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -131,91 +131,118 @@ export function ShareButton({ title, url }: { title: string; url: string }) {
   );
 }
 
-/**
- * «Связаться с деканатом» (идея команды): вместо переписки в интерфейсе одна кнопка и шторка.
- * В шторке ответственный сотрудник, сообщение по заявке и прямые контакты. Тот же компонент отвечает на вопрос деканата.
- */
-export function ContactDean({ number, question, defaultOpen, trigger }: { number: number; question?: string; defaultOpen?: boolean; trigger?: React.ReactNode }) {
-  const [open, setOpen] = useState(defaultOpen ?? false);
-  const reply = Boolean(question);
+export type ChatMessage = { id: string; from: "dean" | "me" | "system"; text: string; at: string; read?: string };
 
-  function send(e: FormEvent<HTMLFormElement>) {
+/**
+ * Переписка с деканатом по заявке, в шторке (вариант Б).
+ * В основном экране пузырей нет: шторка открывается кнопкой «Ответить» или пунктом истории.
+ * Телефон деканата в шапке шторки. После готовности заявки переписка только для чтения.
+ */
+export function Conversation({
+  number,
+  messages,
+  trigger,
+  defaultOpen,
+  canReply = true,
+}: {
+  number: number;
+  messages: ChatMessage[];
+  trigger: React.ReactNode;
+  defaultOpen?: boolean;
+  canReply?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen ?? false);
+  const [list, setList] = useState(messages);
+  const [text, setText] = useState("");
+  const end = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (open) end.current?.scrollIntoView({ block: "end" });
+  }, [open, list.length]);
+
+  function send(e: FormEvent) {
     e.preventDefault();
-    const text = String(new FormData(e.currentTarget).get("message") ?? "").trim();
-    if (!text) {
-      toast.error(reply ? "Напишите ответ" : "Напишите вопрос", { description: "Сообщение пустое, деканату нечего отправить." });
-      return;
-    }
-    setOpen(false);
-    toast.success(reply ? "Ответ отправлен" : "Сообщение отправлено", { description: "Ответ деканата придёт в уведомления и появится в истории заявки." });
+    const t = text.trim();
+    if (!t) return;
+    setList((l) => [...l, { id: String(l.length + 1), from: "me", text: t, at: "сейчас", read: "отправлено" }]);
+    setText("");
   }
 
   return (
     <Drawer open={open} onOpenChange={setOpen} repositionInputs>
-      <DrawerTrigger asChild>
-        {trigger ?? (
-          <Button variant="outline" size="lg" className="border-2">
-            <MessageCircle aria-hidden="true" />
-            Связаться с деканатом
+      <DrawerTrigger asChild>{trigger}</DrawerTrigger>
+      <DrawerContent className="mx-auto max-h-[88dvh] max-w-md rounded-t-[28px]">
+        <DrawerHeader className="flex-row items-center gap-3 border-b px-4 pt-2 pb-3 text-left">
+          <span className="grid size-11 shrink-0 place-items-center rounded-full bg-accent text-sm font-extrabold text-accent-foreground">{DEAN_OFFICE.initials}</span>
+          <span className="min-w-0 flex-1">
+            <DrawerTitle className="text-base font-bold">{DEAN_OFFICE.person}</DrawerTitle>
+            <DrawerDescription className="text-[13px]">Деканат МП, заявка № {number}</DrawerDescription>
+          </span>
+          <Button asChild variant="secondary" size="icon">
+            <a href={`tel:${DEAN_OFFICE.phone.replace(/[^+d]/g, "")}`} aria-label={`Позвонить в деканат, ${DEAN_OFFICE.phone}`}>
+              <Phone aria-hidden="true" />
+            </a>
           </Button>
-        )}
-      </DrawerTrigger>
-      <DrawerContent className="mx-auto max-w-md rounded-t-[28px]">
-        <DrawerHeader className="text-left">
-          <DrawerTitle className="font-display text-lg">{reply ? "Ответ деканату" : "Связаться с деканатом"}</DrawerTitle>
-          <DrawerDescription>По заявке № {number}</DrawerDescription>
         </DrawerHeader>
-        <div className="space-y-4 overflow-y-auto px-4 pb-[max(20px,env(safe-area-inset-bottom))]">
-          <div className="flex items-center gap-3">
-            <span className="grid size-11 shrink-0 place-items-center rounded-full bg-accent text-sm font-extrabold text-accent-foreground">{DEAN_OFFICE.initials}</span>
-            <span>
-              <span className="block font-bold">{DEAN_OFFICE.person}</span>
-              <span className="block text-[13px] text-muted-foreground">{DEAN_OFFICE.role}. Обычно отвечает в течение рабочего дня</span>
-            </span>
-          </div>
 
-          {question && <p className="rounded-xl bg-warning-soft px-3.5 py-2.5 text-sm">{question}</p>}
+        <div role="log" aria-live="polite" className="flex-1 space-y-2.5 overflow-y-auto px-4 py-4">
+          {list.map((m) =>
+            m.from === "system" ? (
+              <p key={m.id} className="py-1 text-center text-xs font-semibold text-muted-foreground">
+                {m.at}. {m.text}
+              </p>
+            ) : (
+              <div key={m.id} className={`enter flex flex-col ${m.from === "me" ? "items-end" : "items-start"}`}>
+                <p
+                  className={`max-w-[82%] rounded-2xl px-3.5 py-2.5 text-[15px] leading-snug ${
+                    m.from === "me" ? "rounded-br-md bg-primary text-primary-foreground" : "rounded-bl-md bg-secondary"
+                  }`}
+                >
+                  {m.text}
+                </p>
+                <span className="mt-1 px-1 text-[11.5px] text-muted-foreground">
+                  {m.at}
+                  {m.read ? `, ${m.read}` : ""}
+                </span>
+              </div>
+            ),
+          )}
+          <div ref={end} />
+        </div>
 
-          <form onSubmit={send} className="space-y-2.5">
-            <Label htmlFor="message" className="text-sm font-bold">
-              {reply ? "Ваш ответ" : "Ваш вопрос по заявке"}
+        {canReply ? (
+          <form onSubmit={send} className="flex items-end gap-2 border-t px-3 pt-2.5 pb-[max(12px,env(safe-area-inset-bottom))]">
+            <Label htmlFor="chat-message" className="sr-only">
+              Сообщение деканату
             </Label>
-            <Textarea id="message" name="message" rows={3} className="min-h-24 rounded-xl bg-muted text-base" placeholder={reply ? "Например: для банка, нужна печать" : "Например: можно забрать раньше?"} />
-            <Button type="submit" size="lg">
+            <Textarea
+              id="chat-message"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              rows={1}
+              placeholder="Сообщение"
+              className="max-h-32 min-h-11 flex-1 resize-none rounded-2xl border-0 bg-muted px-4 py-2.5 text-base"
+            />
+            <Button type="submit" size="icon" className="shrink-0" disabled={!text.trim()} aria-label="Отправить">
               <Send aria-hidden="true" />
-              Отправить
             </Button>
           </form>
-
-          <div className="space-y-1 border-t pt-3">
-            <p className="text-[13px] font-bold text-muted-foreground">Или напрямую</p>
-            <a href={`tel:${DEAN_OFFICE.phone.replace(/[^+\d]/g, "")}`} className="press flex min-h-12 items-center gap-3 rounded-xl px-1">
-              <Phone size={20} className="text-primary" aria-hidden="true" />
-              <span>
-                <span className="block font-bold">{DEAN_OFFICE.phone}</span>
-                <span className="block text-[13px] text-muted-foreground">{DEAN_OFFICE.hours}</span>
-              </span>
-            </a>
-            <div className="flex min-h-12 items-center gap-3 px-1">
-              <MapPin size={20} className="text-primary" aria-hidden="true" />
-              <span>
-                <span className="block font-bold">{DEAN_OFFICE.room}, деканат МП</span>
-                <span className="block text-[13px] text-muted-foreground">{DEAN_OFFICE.hours}</span>
-              </span>
-            </div>
-          </div>
-        </div>
+        ) : (
+          <p className="border-t px-4 pt-3 pb-[max(14px,env(safe-area-inset-bottom))] text-center text-[13px] text-muted-foreground">
+            Заявка выполнена, переписка закрыта. Остались вопросы, позвоните в деканат.
+          </p>
+        )}
       </DrawerContent>
     </Drawer>
   );
 }
 
-/** «Ответить» внутри карточки статуса. Открывает ту же шторку в режиме ответа. */
-export function AnswerButton({ number, question, defaultOpen }: { number: number; question: string; defaultOpen?: boolean }) {
+/** «Ответить» внутри карточки статуса, когда деканат задал вопрос. */
+export function AnswerButton({ number, messages, defaultOpen }: { number: number; messages: ChatMessage[]; defaultOpen?: boolean }) {
   return (
-    <ContactDean
+    <Conversation
       number={number}
-      question={question}
+      messages={messages}
       defaultOpen={defaultOpen}
       trigger={
         <Button className="mt-3 w-full bg-background text-primary shadow-none hover:bg-background/90">
@@ -227,17 +254,19 @@ export function AnswerButton({ number, question, defaultOpen }: { number: number
   );
 }
 
-/** Тихая кнопка «Написать» в верхней строке страницы заявки, когда деканат ни о чём не спрашивает. */
-export function WriteButton({ number, defaultOpen }: { number: number; defaultOpen?: boolean }) {
+/** Пункт истории «Уточнение от деканата»: открывает переписку для чтения. */
+export function ConversationLink({ number, messages, defaultOpen }: { number: number; messages: ChatMessage[]; defaultOpen?: boolean }) {
   return (
-    <ContactDean
+    <Conversation
       number={number}
+      messages={messages}
       defaultOpen={defaultOpen}
+      canReply={false}
       trigger={
-        <Button variant="ghost" className="-mr-2 text-primary" aria-label="Написать в деканат">
-          <MessageCircle aria-hidden="true" />
-          Написать
-        </Button>
+        <button type="button" className="press mt-1 inline-flex min-h-11 items-center gap-1.5 text-sm font-bold text-primary">
+          <MessageCircle size={18} aria-hidden="true" />
+          Открыть переписку
+        </button>
       }
     />
   );

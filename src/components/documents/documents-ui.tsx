@@ -183,27 +183,47 @@ export function StatusCard({ app, action }: { app: Application; action?: ReactNo
   );
 }
 
-/** История заявки линией (вариант 1). Вопросы и ответы цитатой, а не перепиской. Будущий этап виден. */
-export function Timeline({ app }: { app: Application }) {
+const plural = (n: number, one: string, few: string, many: string) =>
+  n % 10 === 1 && n % 100 !== 11 ? one : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? few : many;
+
+/**
+ * История заявки линией (вариант 1). Вопросы и ответы схлопнуты в один пункт «Уточнение от деканата»,
+ * сама переписка в шторке (`conversation` открывает её). Будущий этап виден пунктиром.
+ */
+export function Timeline({ app, conversation }: { app: Application; conversation?: ReactNode }) {
   const pending = app.status !== "ready" && app.status !== "rejected";
-  // Открытый вопрос уже показан крупно над историей, здесь без повтора текста
-  const openQuestion = app.status === "need_info" ? app.events.findLastIndex((e) => e.kind === "question") : -1;
+  const isTalk = (k: string) => k === "question" || k === "answer" || k === "message";
+  const talk = app.events.filter((e) => isTalk(e.kind));
+  const firstTalk = app.events.findIndex((e) => isTalk(e.kind));
+  const items = app.events.filter((e, i) => !isTalk(e.kind) || i === firstTalk);
+
   return (
     <ol className="relative space-y-4 pl-7 before:absolute before:top-2 before:bottom-2 before:left-[7px] before:w-0.5 before:bg-border">
-      {app.events.map((e, i) => {
-        const quote = e.kind === "question" || e.kind === "answer" || e.kind === "message";
-        const dot = e.kind === "question" ? "bg-alert" : e.kind === "ready" ? "bg-success" : quote ? "bg-primary" : "bg-success";
+      {items.map((e, i) => {
+        if (isTalk(e.kind)) {
+          const waiting = app.status === "need_info";
+          return (
+            <li key={i} className="enter relative" style={stagger(i + 1)}>
+              <span className={`absolute top-1 -left-7 size-4 rounded-full ring-4 ring-background ${waiting ? "bg-alert" : "bg-primary"}`} />
+              <p className="font-bold">Уточнение от деканата</p>
+              <p className="text-[13px] text-muted-foreground">
+                {waiting ? `${e.at}, ждёт вашего ответа` : `${e.at}, ${talk.length} ${plural(talk.length, "сообщение", "сообщения", "сообщений")}`}
+              </p>
+              {conversation}
+            </li>
+          );
+        }
         return (
           <li key={i} className="enter relative" style={stagger(i + 1)}>
-            <span className={`absolute top-1 -left-7 size-4 rounded-full ring-4 ring-background ${dot}`} />
+            <span className="absolute top-1 -left-7 size-4 rounded-full bg-success ring-4 ring-background" />
             <p className="font-bold">{EVENT_TITLE[e.kind]}</p>
             <p className="text-[13px] text-muted-foreground">{e.at}</p>
-            {e.text && i !== openQuestion && <p className={`mt-1.5 rounded-xl px-3 py-2 text-sm ${quote ? "bg-secondary" : ""}`}>{e.text}</p>}
+            {e.text && <p className="mt-1.5 text-sm">{e.text}</p>}
           </li>
         );
       })}
       {pending && (
-        <li className="enter relative" style={stagger(app.events.length + 1)}>
+        <li className="enter relative" style={stagger(items.length + 1)}>
           <span className="absolute top-1 -left-7 size-4 rounded-full border-2 border-dashed border-muted-foreground bg-background ring-4 ring-background" />
           <p className="font-bold text-muted-foreground">Готово</p>
           <p className="text-[13px] text-muted-foreground">Ожидается до {app.due}</p>

@@ -4,8 +4,20 @@ import { ChevronLeft } from "lucide-react";
 import { requireStudent } from "@/lib/auth";
 import { PageTransition, Reveal, SectionTitle } from "@/components/kit";
 import { ApplicationList, ApplicationTracker, DocumentCard, OrderTiles, StatusCard, Timeline } from "@/components/documents/documents-ui";
-import { AnswerButton, OrderForm, WriteButton } from "@/components/documents/documents-client";
-import type { Application } from "@/lib/documents";
+import { AnswerButton, ConversationLink, OrderForm, type ChatMessage } from "@/components/documents/documents-client";
+import { EVENT_TITLE, type Application } from "@/lib/documents";
+
+/** События заявки в сообщения переписки: вопросы и ответы пузырями, этапы системными строками. */
+function toChat(app: Application): ChatMessage[] {
+  const last = app.events.length - 1;
+  return app.events.map((e, i) => ({
+    id: String(i),
+    from: e.kind === "question" ? "dean" : e.kind === "answer" || e.kind === "message" ? "me" : "system",
+    text: e.text ?? EVENT_TITLE[e.kind],
+    at: e.at,
+    read: e.kind === "answer" && i < last ? "прочитано" : undefined,
+  }));
+}
 
 // Превью экранов «Документов» на вымышленных примерах, чтобы утвердить дизайн до подключения базы (день 3).
 // Открывается только при DESIGN_PREVIEW=1, на сервере переменной нет, там 404.
@@ -88,20 +100,18 @@ async function Screen({ params }: { params: Promise<{ screen?: string[] }> }) {
       </div>
     );
 
-  const app = screen === "question" ? APPS.question : APPS.ready;
+  const app = screen === "question" || screen === "chat" ? APPS.question : APPS.ready;
   const need = app.status === "need_info";
+  const chat = toChat(app);
   return (
     <div className="space-y-4">
-      {/* Одна точка связи с деканатом на экране: «Ответить» в карточке, когда спрашивают, иначе «Написать» сверху */}
-      <div className="-mb-3 flex items-center justify-between">
-        {back}
-        {!need && <WriteButton number={app.number} defaultOpen={screen === "contact"} />}
-      </div>
-      <StatusCard app={app} action={need ? <AnswerButton number={app.number} question={app.question!} /> : undefined} />
+      {back}
+      <StatusCard app={app} action={need ? <AnswerButton number={app.number} messages={chat} defaultOpen={screen === "chat"} /> : undefined} />
       {app.status === "ready" && <DocumentCard app={app} openHref={`${P}/ready`} shareUrl={`https://87.242.100.109.sslip.io/verify/${app.verifyCode}`} />}
       <section className="pt-2">
         <SectionTitle>История</SectionTitle>
-        <Timeline app={app} />
+        {/* Одна точка входа в переписку: пока ждут ответа, это «Ответить» в карточке, потом пункт истории */}
+        <Timeline app={app} conversation={need ? undefined : <ConversationLink number={app.number} messages={chat} defaultOpen={screen === "history"} />} />
       </section>
     </div>
   );

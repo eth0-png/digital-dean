@@ -3,13 +3,12 @@
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
-import { FileText, MapPin, MessageCircle, MessageCircleQuestion, Minus, Phone, Plus, QrCode, Send } from "lucide-react";
+import { MapPin, MessageCircle, Minus, Phone, Plus, Send, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
 import { DEAN_OFFICE, DOC_TYPES, PURPOSES, type DocType } from "@/lib/documents";
 
@@ -115,32 +114,20 @@ export function OrderForm({ type, student, fixHref }: { type: DocType; student: 
   );
 }
 
-/** Окно с крупным QR-кодом для проверки подлинности. */
-export function QrDialog({ svg, openHref }: { svg: string; openHref: string }) {
+/** «Поделиться»: системное меню телефона, а где его нет, ссылка копируется. */
+export function ShareButton({ title, url }: { title: string; url: string }) {
+  async function share() {
+    if (navigator.share) {
+      await navigator.share({ title, url }).catch(() => {});
+      return;
+    }
+    await navigator.clipboard.writeText(url);
+    toast.success("Ссылка скопирована", { description: "По ней можно проверить подлинность справки." });
+  }
   return (
-    <div className="grid grid-cols-2 gap-2.5">
-      <Button asChild size="lg">
-        <Link href={openHref}>
-          <FileText aria-hidden="true" />
-          Открыть
-        </Link>
-      </Button>
-      <Dialog>
-        <DialogTrigger asChild>
-          <Button variant="secondary" size="lg">
-            <QrCode aria-hidden="true" />
-            QR-код
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="max-w-[340px] rounded-3xl">
-          <DialogHeader>
-            <DialogTitle className="font-display">Проверка подлинности</DialogTitle>
-            <DialogDescription>Отсканируйте, чтобы проверить подлинность. Демо, юридической силы не имеет.</DialogDescription>
-          </DialogHeader>
-          <span className="mx-auto block size-60 [&_svg]:size-full" role="img" aria-label="QR-код" dangerouslySetInnerHTML={{ __html: svg }} />
-        </DialogContent>
-      </Dialog>
-    </div>
+    <Button type="button" variant="secondary" size="icon" className="size-13 rounded-xl" onClick={share} aria-label="Поделиться справкой">
+      <Share2 aria-hidden="true" />
+    </Button>
   );
 }
 
@@ -200,51 +187,58 @@ export function ContactDean({ number, question, defaultOpen, trigger }: { number
             </Button>
           </form>
 
-          {!reply && (
-            <div className="space-y-1 border-t pt-3">
-              <p className="text-[13px] font-bold text-muted-foreground">Или напрямую</p>
-              <a href={`tel:${DEAN_OFFICE.phone.replace(/[^+\d]/g, "")}`} className="press flex min-h-12 items-center gap-3 rounded-xl px-1">
-                <Phone size={20} className="text-primary" aria-hidden="true" />
-                <span>
-                  <span className="block font-bold">{DEAN_OFFICE.phone}</span>
-                  <span className="block text-[13px] text-muted-foreground">{DEAN_OFFICE.hours}</span>
-                </span>
-              </a>
-              <div className="flex min-h-12 items-center gap-3 px-1">
-                <MapPin size={20} className="text-primary" aria-hidden="true" />
-                <span>
-                  <span className="block font-bold">{DEAN_OFFICE.room}, деканат МП</span>
-                  <span className="block text-[13px] text-muted-foreground">{DEAN_OFFICE.hours}</span>
-                </span>
-              </div>
+          <div className="space-y-1 border-t pt-3">
+            <p className="text-[13px] font-bold text-muted-foreground">Или напрямую</p>
+            <a href={`tel:${DEAN_OFFICE.phone.replace(/[^+\d]/g, "")}`} className="press flex min-h-12 items-center gap-3 rounded-xl px-1">
+              <Phone size={20} className="text-primary" aria-hidden="true" />
+              <span>
+                <span className="block font-bold">{DEAN_OFFICE.phone}</span>
+                <span className="block text-[13px] text-muted-foreground">{DEAN_OFFICE.hours}</span>
+              </span>
+            </a>
+            <div className="flex min-h-12 items-center gap-3 px-1">
+              <MapPin size={20} className="text-primary" aria-hidden="true" />
+              <span>
+                <span className="block font-bold">{DEAN_OFFICE.room}, деканат МП</span>
+                <span className="block text-[13px] text-muted-foreground">{DEAN_OFFICE.hours}</span>
+              </span>
             </div>
-          )}
+          </div>
         </div>
       </DrawerContent>
     </Drawer>
   );
 }
 
-/** Вопрос деканата под карточкой статуса. «Ответить» открывает ту же шторку в режиме ответа. */
-export function QuestionAlert({ number, question, defaultOpen }: { number: number; question: string; defaultOpen?: boolean }) {
+/** «Ответить» внутри карточки статуса. Открывает ту же шторку в режиме ответа. */
+export function AnswerButton({ number, question, defaultOpen }: { number: number; question: string; defaultOpen?: boolean }) {
   return (
-    <section className="enter rounded-xl border border-warning/25 bg-warning-soft p-3.5" style={{ "--i": 1 } as React.CSSProperties}>
-      <p className="flex items-center gap-2 font-bold text-warning">
-        <MessageCircleQuestion size={20} aria-hidden="true" />
-        Деканат спрашивает
-      </p>
-      <p className="mt-1.5">{question}</p>
-      <ContactDean
-        number={number}
-        question={question}
-        defaultOpen={defaultOpen}
-        trigger={
-          <Button className="mt-3 bg-background text-foreground hover:bg-background/80">
-            <MessageCircle aria-hidden="true" />
-            Ответить
-          </Button>
-        }
-      />
-    </section>
+    <ContactDean
+      number={number}
+      question={question}
+      defaultOpen={defaultOpen}
+      trigger={
+        <Button className="mt-3 w-full bg-background text-primary shadow-none hover:bg-background/90">
+          <MessageCircle aria-hidden="true" />
+          Ответить
+        </Button>
+      }
+    />
+  );
+}
+
+/** Тихая кнопка «Написать» в верхней строке страницы заявки, когда деканат ни о чём не спрашивает. */
+export function WriteButton({ number, defaultOpen }: { number: number; defaultOpen?: boolean }) {
+  return (
+    <ContactDean
+      number={number}
+      defaultOpen={defaultOpen}
+      trigger={
+        <Button variant="ghost" className="-mr-2 text-primary" aria-label="Написать в деканат">
+          <MessageCircle aria-hidden="true" />
+          Написать
+        </Button>
+      }
+    />
   );
 }

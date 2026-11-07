@@ -4,7 +4,7 @@ import { ChevronLeft } from "lucide-react";
 import { requireStudent } from "@/lib/auth";
 import { PageTransition, Reveal, SectionTitle } from "@/components/kit";
 import { ApplicationList, ApplicationTracker, DocumentCard, OrderTiles, StatusCard, Timeline } from "@/components/documents/documents-ui";
-import { ContactDean, OrderForm, QuestionAlert } from "@/components/documents/documents-client";
+import { AnswerButton, OrderForm, WriteButton } from "@/components/documents/documents-client";
 import type { Application } from "@/lib/documents";
 
 // Превью экранов «Документов» на вымышленных примерах, чтобы утвердить дизайн до подключения базы (день 3).
@@ -56,7 +56,7 @@ async function Screen({ params }: { params: Promise<{ screen?: string[] }> }) {
   const screen = (await params).screen?.[0] ?? "home";
   const fio = `${user.lastName} ${user.firstName} ${user.middleName ?? ""}`.trim();
   const back = (
-    <Link href={P} transitionTypes={["nav-back"]} className="-ml-1 mb-3 inline-flex min-h-11 items-center gap-1 font-bold">
+    <Link href={P} transitionTypes={["nav-back"]} className="-ml-1 inline-flex min-h-11 items-center gap-1 font-bold">
       <ChevronLeft size={22} aria-hidden="true" />
       Документы
     </Link>
@@ -82,26 +82,27 @@ async function Screen({ params }: { params: Promise<{ screen?: string[] }> }) {
     return (
       <div>
         {back}
-        <h1 className="enter font-display text-[22px] leading-tight font-semibold">Справка об обучении</h1>
+        <h1 className="enter mt-3 font-display text-[22px] leading-tight font-semibold">Справка об обучении</h1>
         <p className="enter mt-1.5 mb-6 text-muted-foreground">Подтверждает, что вы учитесь. Обычно готовят за 1 рабочий день.</p>
         <OrderForm type="study" student={{ fio, course: user.course ?? 1, group: user.groupName ?? "" }} fixHref={`${P}/new`} />
       </div>
     );
 
   const app = screen === "question" ? APPS.question : APPS.ready;
+  const need = app.status === "need_info";
   return (
     <div className="space-y-4">
-      {back}
-      <StatusCard app={app} />
-      {app.status === "need_info" && <QuestionAlert number={app.number} question={app.question!} />}
-      {app.status === "ready" && (
-        <DocumentCard app={app} fio={fio} course={user.course ?? 1} verifyUrl={`https://87.242.100.109.sslip.io/verify/${app.verifyCode}`} openHref={`${P}/ready`} />
-      )}
+      {/* Одна точка связи с деканатом на экране: «Ответить» в карточке, когда спрашивают, иначе «Написать» сверху */}
+      <div className="-mb-3 flex items-center justify-between">
+        {back}
+        {!need && <WriteButton number={app.number} defaultOpen={screen === "contact"} />}
+      </div>
+      <StatusCard app={app} action={need ? <AnswerButton number={app.number} question={app.question!} /> : undefined} />
+      {app.status === "ready" && <DocumentCard app={app} openHref={`${P}/ready`} shareUrl={`https://87.242.100.109.sslip.io/verify/${app.verifyCode}`} />}
       <section className="pt-2">
         <SectionTitle>История</SectionTitle>
         <Timeline app={app} />
       </section>
-      <ContactDean number={app.number} defaultOpen={screen === "contact"} />
     </div>
   );
 }

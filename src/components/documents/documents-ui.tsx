@@ -1,10 +1,12 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import QRCode from "qrcode";
-import { ChevronRight, Clock } from "lucide-react";
+import { ChevronRight, Clock, FileText } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { stagger } from "@/components/kit";
 import { DOC_TYPES, EVENT_TITLE, STATUS, STEPS, type Application, type DocType } from "@/lib/documents";
-import { QrDialog } from "./documents-client";
+import { ShareButton } from "./documents-client";
 
 // Серверные части раздела «Документы». Данные приходят пропсами: в день 3 из базы, в превью из примеров.
 
@@ -128,8 +130,11 @@ export function ApplicationList({ apps, hrefFor }: { apps: Application[]; hrefFo
   );
 }
 
-/** Карточка статуса на странице заявки (вариант 2): этапы точками, текущий с ореолом. */
-export function StatusCard({ app }: { app: Application }) {
+/**
+ * Карточка статуса на странице заявки (вариант 2): этапы точками, текущий с ореолом.
+ * Если деканат задал вопрос, он и кнопка ответа внутри карточки: одна точка связи на экране.
+ */
+export function StatusCard({ app, action }: { app: Application; action?: ReactNode }) {
   const s = STATUS[app.status];
   const ready = app.status === "ready";
   const need = app.status === "need_info";
@@ -140,10 +145,18 @@ export function StatusCard({ app }: { app: Application }) {
         <span className={chip}>№ {app.number}</span>
       </div>
       <p className="mt-3 font-display text-[21px] font-semibold">{ready ? "Справка готова" : s.title}</p>
-      <p className="mt-0.5 flex items-center gap-1.5 text-sm">
-        {!ready && !need && <Clock size={16} aria-hidden="true" />}
-        {ready ? app.readyAt : need ? s.sub : `Будет готово до ${app.due}`}
-      </p>
+      {need && app.question ? (
+        <div className="mt-3 rounded-xl bg-black/20 px-3.5 py-3">
+          <p className="text-[13px] font-bold">Деканат спрашивает</p>
+          <p className="mt-1 text-[15px] leading-snug">{app.question}</p>
+          {action}
+        </div>
+      ) : (
+        <p className="mt-0.5 flex items-center gap-1.5 text-sm">
+          {!ready && <Clock size={16} aria-hidden="true" />}
+          {ready ? app.readyAt : `Будет готово до ${app.due}`}
+        </p>
+      )}
       <div role="progressbar" aria-valuemin={1} aria-valuemax={3} aria-valuenow={s.step + 1} aria-valuetext={progressText(app)} className="mt-4 flex items-center">
         {STEPS.map((label, i) => {
           const done = i < s.step || ready;
@@ -200,11 +213,45 @@ export function Timeline({ app }: { app: Application }) {
   );
 }
 
-/** Готовая справка как лист бумаги (вариант 3) с настоящим QR-кодом и пометкой «Демо». */
-export async function DocumentCard({ app, fio, course, verifyUrl, openHref }: { app: Application; fio: string; course: number; verifyUrl: string; openHref: string }) {
+/**
+ * Готовая справка на странице заявки: компактно. Полный лист с QR открывается кнопкой «Открыть справку».
+ * Пометка «Демо» видна и здесь, и на самом листе.
+ */
+export function DocumentCard({ app, openHref, shareUrl }: { app: Application; openHref: string; shareUrl: string }) {
+  return (
+    <section className="enter rounded-xl border bg-card p-3.5" style={stagger(1)}>
+      <div className="flex gap-3.5">
+        {/* Мини-лист: строки текста и уголок QR */}
+        <span aria-hidden="true" className="flex h-[72px] w-14 shrink-0 flex-col gap-1 rounded-md border bg-background p-1.5 shadow-[0_6px_14px_-8px_rgba(14,26,51,.35)]">
+          <span className="h-1 w-3/4 rounded-full bg-primary/60" />
+          <span className="h-1 rounded-full bg-muted-foreground/25" />
+          <span className="h-1 w-5/6 rounded-full bg-muted-foreground/25" />
+          <span className="mt-auto ml-auto size-4 rounded-[3px] border-[3px] border-foreground/70" />
+        </span>
+        <span className="min-w-0">
+          <span className="block font-bold">{DOC_TYPES[app.type].title}</span>
+          <span className="block text-[13px] text-muted-foreground">№ {app.number}, электронная с QR-кодом</span>
+          <span className="mt-1.5 inline-block rounded-md bg-destructive-soft px-2 py-0.5 text-[12px] font-bold text-destructive">Демо, юридической силы не имеет</span>
+        </span>
+      </div>
+      <div className="mt-3.5 flex gap-2.5">
+        <Button asChild size="lg" className="flex-1">
+          <Link href={openHref} transitionTypes={["nav-forward"]}>
+            <FileText aria-hidden="true" />
+            Открыть справку
+          </Link>
+        </Button>
+        <ShareButton title={`${DOC_TYPES[app.type].title} № ${app.number}`} url={shareUrl} />
+      </div>
+    </section>
+  );
+}
+
+/** Полный лист справки с настоящим QR-кодом и пометкой «Демо» (вариант 3). Для страницы самой справки, день 5. */
+export async function DocumentPaper({ app, fio, course, verifyUrl }: { app: Application; fio: string; course: number; verifyUrl: string }) {
   const svg = await QRCode.toString(verifyUrl, { type: "svg", margin: 0, errorCorrectionLevel: "M", color: { dark: "#0e1a33", light: "#ffffff" } });
   return (
-    <section className="enter space-y-3" style={stagger(1)}>
+    <section className="enter" style={stagger(1)}>
       <div className="relative overflow-hidden rounded-lg border bg-card p-4 shadow-[0_14px_30px_-18px_rgba(14,26,51,.45)]">
         <p className="text-[11.5px] font-bold tracking-wide text-muted-foreground">ДЕКАНАТ МЕЖДУНАРОДНО-ПРАВОВОГО ФАКУЛЬТЕТА</p>
         <p className="mt-2 font-display text-[15px] font-semibold">СПРАВКА № {app.number}</p>
@@ -228,7 +275,6 @@ export async function DocumentCard({ app, fio, course, verifyUrl, openHref }: { 
           ДЕМО
         </span>
       </div>
-      <QrDialog svg={svg} openHref={openHref} />
     </section>
   );
 }

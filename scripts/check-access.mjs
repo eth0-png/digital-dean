@@ -82,6 +82,16 @@ const foreignDoc = await open(s2, `${ids1[0]}/document`);
 check(foreignDoc.text.includes("Страница не найдена"), "student2 не открывает справку student1 по прямой ссылке");
 check((await open(s1, "/documents/not-a-uuid")).text.includes("Страница не найдена"), "кривой адрес заявки даёт «не найдено», а не ошибку");
 
+// 6а. Уведомления: в ленте только свои заявки
+const noticeLinks = async (page) => {
+  await open(page, "/notifications");
+  return page.evaluate(() => [...document.querySelectorAll('main a[href^="/documents/"]')].map((a) => a.getAttribute("href")));
+};
+const n1 = await noticeLinks(s1);
+const n2 = await noticeLinks(s2);
+check(n1.length > 0 && n1.every((h) => ids1.includes(h)), "в уведомлениях student1 только его заявки");
+check(n2.length > 0 && n2.every((h) => ids2.includes(h)), "в уведомлениях student2 только его заявки");
+
 // 6б. Кабинет сотрудника: студент не открывает карточку заявки, даже своей, сотрудник видит заявки обоих
 const own = await open(s1, ids1[0].replace("/documents/", "/staff/"));
 check(own.text.includes("Страница не найдена") && !own.text.includes("Взять в работу"), "student1 не открывает /staff/<id> даже своей заявки");

@@ -110,6 +110,19 @@ await staff.waitForFunction((m) => document.querySelector("[role=log]").innerTex
 await closeChat(staff);
 check(await waitText(staff, "Ждём ответа студента"), "сообщение с отметкой «Ответ на сообщение обязателен» ждёт студента");
 
+// 3б. Студент видит счётчик на колокольчике и уведомление о вопросе, после открытия счётчик гаснет
+await go(student, "/documents");
+const bell = await student.$eval('header a[href="/notifications"]', (a) => a.getAttribute("aria-label"));
+check(/новых: \d+/.test(bell), `на колокольчике счётчик новых («${bell}»)`);
+await go(student, "/notifications");
+const notice = await student.$eval(`main a[href="/documents/${id}"]`, (a) => a.innerText).catch(() => "");
+check(notice.includes("Деканат задал вопрос") && notice.includes("Нужен ответ") && notice.includes(QUESTION), "в уведомлениях вопрос деканата с меткой «Нужен ответ»");
+// Отметка «прочитано» уходит на сервер после показа ленты, ждём её и открываем другую страницу
+await student.waitForNetworkIdle({ idleTime: 500 });
+await go(student, "/documents");
+const cleared = await student.$eval('header a[href="/notifications"]', (a) => a.getAttribute("aria-label"));
+check(cleared === "Уведомления", `после открытия уведомлений счётчик погас («${cleared}»)`);
+
 // 4. Студент отвечает, переписка не закрывается, можно написать ещё
 await go(student, `/documents/${id}`);
 check((await text(student)).includes(QUESTION), "студент видит вопрос деканата в карточке заявки");
@@ -148,6 +161,11 @@ await staff.waitForSelector("[role=dialog] textarea");
 await staff.type("[role=dialog] textarea", "Справка подписана, на английском");
 await press(staff, "Выдать");
 check(await waitText(staff, "Справка выдана"), "справка выдана");
+
+// 5б. Уведомление «Справка готова» с комментарием
+await go(student, "/notifications");
+const readyNotice = await student.$$eval(`main a[href="/documents/${id}"]`, (as) => as.map((a) => a.innerText).join(" "));
+check(readyNotice.includes("Справка готова") && readyNotice.includes("Справка подписана"), "в уведомлениях «Справка готова» с комментарием деканата");
 
 // 6. Студент: комментарий деканата подписан, в переписке сообщением, переписка закрыта
 await go(student, `/documents/${id}`);

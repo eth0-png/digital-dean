@@ -6,6 +6,7 @@ import { sql } from "@/lib/db";
 import { requireStudent } from "@/lib/auth";
 import { UUID, dueDate } from "@/lib/applications";
 import { DOC_TYPES, PURPOSES, isDocType } from "@/lib/documents";
+import { NOTICE_KINDS } from "@/lib/notifications";
 
 // Серверные действия «Документов». Каждое само проверяет, кто вошёл, и не верит данным из формы.
 
@@ -80,7 +81,10 @@ export async function cancelApplication(appId: string): Promise<{ error?: string
   return {};
 }
 
-/** Студент открыл заявку: сообщения и комментарии деканата прочитаны, деканат видит «прочитано». */
+/**
+ * Студент открыл заявку: всё, что сделал деканат, прочитано. Деканат видит «прочитано» под сообщениями,
+ * уведомления по заявке гаснут, refresh() обновляет счётчик на колокольчике в шапке.
+ */
 export async function markDeanRead(appId: string) {
   const user = await requireStudent();
   if (!UUID.test(String(appId))) return;
@@ -88,5 +92,6 @@ export async function markDeanRead(appId: string) {
     update application_events e set read_at = now()
     from applications a
     where e.application_id = a.id and a.id = ${appId} and a.user_id = ${user.id}
-      and e.kind in ('question', 'reply', 'ready', 'rejected') and e.read_at is null`;
+      and e.kind in ${sql(NOTICE_KINDS)} and e.read_at is null`;
+  refresh();
 }

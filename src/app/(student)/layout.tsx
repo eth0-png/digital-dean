@@ -6,9 +6,10 @@ import { BottomNav } from "@/components/bottom-nav";
 import { HeaderToggle } from "@/components/header-toggle";
 import { NavTrail } from "@/components/nav-trail";
 import { requireStudent } from "@/lib/auth";
+import { countMyUnread } from "@/lib/notifications";
 
 const round = "press grid size-11 place-items-center rounded-full";
-const bell = `${round} bg-secondary`;
+const bell = `${round} relative bg-secondary`;
 
 export default function StudentLayout({ children }: { children: ReactNode }) {
   return (
@@ -26,15 +27,7 @@ export default function StudentLayout({ children }: { children: ReactNode }) {
             </Link>
           }
         >
-          <HeaderToggle
-            href="/notifications"
-            label="Уведомления"
-            closeLabel="Закрыть уведомления"
-            className={bell}
-            openChildren={<X size={22} aria-hidden="true" />}
-          >
-            <Bell size={22} aria-hidden="true" />
-          </HeaderToggle>
+          <NotificationsBell />
         </Suspense>
         <Suspense fallback={<div className="size-11 animate-pulse rounded-full bg-secondary" />}>
           <Avatar />
@@ -51,6 +44,27 @@ export default function StudentLayout({ children }: { children: ReactNode }) {
         <BottomNav />
       </Suspense>
     </div>
+  );
+}
+
+/** Колокольчик со счётчиком непрочитанных. Счётчик обновляется, когда уведомления или заявку прочитали (refresh() в действии). */
+async function NotificationsBell() {
+  const unread = await countMyUnread();
+  return (
+    <HeaderToggle
+      href="/notifications"
+      label={unread ? `Уведомления, новых: ${unread}` : "Уведомления"}
+      closeLabel="Закрыть уведомления"
+      className={bell}
+      openChildren={<X size={22} aria-hidden="true" />}
+    >
+      <Bell size={22} aria-hidden="true" />
+      {unread > 0 && (
+        <span className="absolute -top-0.5 -right-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-primary px-1 text-[11px] font-extrabold text-primary-foreground ring-2 ring-background">
+          {unread > 9 ? "9+" : unread}
+        </span>
+      )}
+    </HeaderToggle>
   );
 }
 

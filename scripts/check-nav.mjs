@@ -61,7 +61,7 @@ for (const [form, name, open, close] of [
 ]) {
   await go(form);
   const target = open === "Профиль" ? "/profile" : "/notifications";
-  check(await tap(`a[aria-label="${open}"]`, target), `${name} → ${open.toLowerCase()} открывается`);
+  check(await tap(`a[aria-label^="${open}"]`, target), `${name} → ${open.toLowerCase()} открывается`);
   check(await tap(`a[aria-label="${close}"]`, form), `${open.toLowerCase()} закрывается обратно в форму «${name}»`);
 }
 
@@ -79,7 +79,7 @@ check(await tap('a[aria-label="Закрыть профиль"]', first), "про
 
 // 7. Уведомления поверх профиля закрываются в профиль
 await go("/profile");
-check(await tap('a[aria-label="Уведомления"]', "/notifications"), "профиль → уведомления");
+check(await tap('a[aria-label^="Уведомления"]', "/notifications"), "профиль → уведомления");
 check(await tap('a[aria-label="Закрыть уведомления"]', "/profile"), "уведомления закрываются в профиль");
 
 // 8. Цепочки только нажатиями, как ходит человек
@@ -91,7 +91,7 @@ check(await tap("[data-back]", "/profile"), "«назад» с этой форм
 
 await go("/documents");
 await tap(`a[href="${FIX}"]`, FIX);
-check(await tap('a[aria-label="Уведомления"]', "/notifications"), "«Документы» → плитка «Нашли ошибку» → уведомления");
+check(await tap('a[aria-label^="Уведомления"]', "/notifications"), "«Документы» → плитка «Нашли ошибку» → уведомления");
 check(await tap('a[aria-label="Закрыть уведомления"]', FIX), "уведомления закрываются в форму, а не в «не найдено»");
 check(await tap("[data-back]", "/documents"), "«назад» с формы ведёт в «Документы»");
 

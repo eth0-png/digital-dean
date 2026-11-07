@@ -26,6 +26,7 @@
 - `src/lib/applications.ts` данные заявок: `listMyApplications()`, `getMyApplication(id)` (всегда с `user_id` текущего студента), `findByVerifyCode()` для открытой проверки.
 - `src/app/(student)/documents/actions.ts` действия: `createApplication`, `sendMessage` (на вопрос деканата это ответ), `cancelApplication`, `markDeanRead`.
 - `src/app/verify/[code]/` открытая страница проверки справки по QR (без входа, только инициалы).
+- `src/lib/notifications.ts` уведомления студента: `listMyNotices()`, `countMyUnread()`. Отдельной таблицы нет, уведомление это событие заявки от деканата, «прочитано» это `read_at`. `src/components/notices.tsx` лента, `src/app/(student)/notifications/actions.ts` отметка «прочитано» с `refresh()`, чтобы обновился счётчик в шапке.
 - `src/lib/staff.ts` данные кабинета сотрудника: `listQueue()`, `getForStaff(id)`, обе начинаются с `requireStaff()`.
 - `src/app/staff/actions.ts` действия сотрудника: `takeInWork`, `sendReply` (с отметкой «Ответ на сообщение обязателен» ставит статус «Нужно уточнение»), `issue`, `reject`, `markRead`. Смена статуса одним запросом с условием на текущий статус.
 - `src/components/staff/` очередь и карточка: `staff-ui.tsx` (статусы, сведения), `staff-client.tsx` (панель действий с окнами, переписка со студентом). История заявки общая: `Timeline` с `viewer="staff"`.

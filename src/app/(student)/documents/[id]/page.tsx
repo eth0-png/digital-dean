@@ -29,7 +29,7 @@ async function ApplicationView({ params, searchParams }: { params: Promise<{ id:
   const chat = toChat(app, "student");
   const talk = app.events.filter((e) => TALK.includes(e.kind));
   // Деканат что-то написал или прокомментировал, а студент ещё не видел
-  const unseen = app.events.some((e) => !e.read && (e.kind === "ready" || e.kind === "rejected" || (TALK.includes(e.kind) && !fromStudent(e.kind))));
+  const unseen = app.events.some((e) => !e.read && (e.kind === "in_progress" || e.kind === "ready" || e.kind === "rejected" || (TALK.includes(e.kind) && !fromStudent(e.kind))));
 
   return (
     <StudentChat appId={app.id} number={app.number} messages={chat} active={open} need={need}>

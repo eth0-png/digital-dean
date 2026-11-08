@@ -110,6 +110,18 @@ export async function markRead(id: string) {
   refresh();
 }
 
+/**
+ * Отпечаток очереди: число заявок, последняя смена статуса, число сообщений и прочтений.
+ * Новая заявка, смена статуса или ответ студента меняют его, и очередь перерисовывается сама.
+ */
+export async function queueVersion() {
+  await requireStaff();
+  const [r] = await sql<{ v: string }[]>`
+    select concat_ws('|', (select count(*) from applications), (select max(updated_at) from applications),
+      (select count(*) from application_events), (select count(seen_at) from application_events)) as v`;
+  return r.v;
+}
+
 /** Отпечаток заявки для живого обновления карточки сотрудника. */
 export async function staffVersion(id: string) {
   await requireStaff();

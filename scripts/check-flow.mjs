@@ -237,7 +237,12 @@ const until = (page, fn, ...args) =>
     () => false,
   );
 const logText = (page) => page.$eval("[role=log]", (l) => l.innerText).catch(() => "");
+await go(staff, "/staff");
 const live = await order(student);
+check(
+  await until(staff, (h) => Boolean(document.querySelector(`[role=tabpanel] a[href="${h}"]`)), `/staff/${live.id}`),
+  "новая заявка сама появилась в открытой очереди сотрудника",
+);
 await go(staff, `/staff/${live.id}`);
 await press(staff, "Взять в работу");
 await waitText(staff, "Запросить уточнение");

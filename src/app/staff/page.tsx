@@ -7,6 +7,8 @@ import { DOC_TYPES, isClosed } from "@/lib/documents";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState, PageTransition, Reveal, stagger } from "@/components/kit";
 import { ApplicationTabs } from "@/components/documents/documents-client";
+import { LiveUpdates } from "@/components/documents/chat";
+import { queueVersion } from "./actions";
 import { STAFF_STATUS } from "@/components/staff/staff-ui";
 
 export const metadata: Metadata = { title: "Кабинет сотрудника" };
@@ -33,6 +35,8 @@ async function Queue() {
 
   return (
     <div className="space-y-4 lg:max-w-3xl">
+      {/* Новые заявки и ответы студентов появляются сами, без обновления страницы */}
+      <LiveUpdates version={await queueVersion()} check={queueVersion} />
       <h1 className="enter font-display text-[22px] font-semibold">Здравствуйте, {user.firstName}</h1>
       <dl className="enter grid grid-cols-3 gap-2" style={stagger(1)}>
         <Stat value={fresh.length} label="новых заявок" />

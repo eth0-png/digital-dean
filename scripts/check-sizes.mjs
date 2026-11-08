@@ -1,6 +1,6 @@
 // Проверка отрисовки в разных размерах окна браузера на компьютере: от большого монитора до половины экрана
 // и низкого окна. Студент, сотрудник и общие экраны. Ищет горизонтальную прокрутку, обрезанный текст
-// и вылезающие за окно элементы, снимает каждую страницу в папку для просмотра глазами.
+// и вылезающие за окно элементы, скачок бокового меню между страницами, снимает каждую страницу в папку для просмотра глазами.
 // Только чтение: ничего не создаёт, можно запускать на боевом сайте.
 // Запуск: SEED_PASSWORD_STUDENT1=... SEED_PASSWORD_STUDENT2=... SEED_PASSWORD_STAFF=... node scripts/check-sizes.mjs <адрес> <папка для снимков>
 import puppeteer from "puppeteer-core";
@@ -13,9 +13,12 @@ mkdirSync(out, { recursive: true });
 // Ширина × высота: полный экран, ноутбуки с масштабом, граница двух раскладок (1024 и 1023), половина экрана, низкое окно
 const SIZES = (process.env.SIZES ?? "2560x1440,1920x1080,1536x864,1366x768,1280x720,1024x768,1023x768,800x600,1440x500").split(",");
 
+// Полоса прокрутки как в обычном окне: без неё не видно скачка раскладки между короткими и длинными страницами
 const browser = await puppeteer.launch({
   executablePath: process.env.CHROME_PATH ?? path.join(process.env.LOCALAPPDATA ?? "", "Chromium/Application/chrome.exe"),
+  ignoreDefaultArgs: ["--hide-scrollbars"],
 });
+const menuX = {}; // где стоит боковое меню студента на каждой странице, по размерам окна
 let problems = 0;
 
 async function session(login, password) {
@@ -57,6 +60,11 @@ async function inspect(page, who, route, size) {
     }
     return [...new Set(issues)].slice(0, 5);
   });
+  const x = await page.evaluate(() => {
+    const a = document.querySelector("aside");
+    return a && a.getBoundingClientRect().width ? Math.round(a.getBoundingClientRect().left) : null;
+  });
+  if (x !== null && who.startsWith("student")) (menuX[size] ??= new Set()).add(x);
   const file = path.join(out, `${size}-${who}-${route.replace(/[/?=]+/g, "_").replace(/^_|_$/g, "") || "home"}.png`);
   await page.screenshot({ path: file });
   if (found.length) {
@@ -91,6 +99,11 @@ const PAGES = [
 
 for (const size of SIZES) {
   for (const [page, who, routes] of PAGES) for (const route of routes) await inspect(page, who, route, size);
+  // Боковое меню не должно прыгать при переходе между разделами (короткие страницы без полосы прокрутки, длинные с ней)
+  if (menuX[size]?.size > 1) {
+    problems++;
+    console.log(`ПРОВЕРИТЬ ${size}: боковое меню прыгает между страницами: ${[...menuX[size]].join(", ")} px`);
+  }
   console.log(`ok    ${size} снято`);
 }
 

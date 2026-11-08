@@ -26,7 +26,9 @@ for (const item of pages) {
   await page.goto(new URL(url, base).href, { waitUntil: "networkidle0" });
   await settle();
   if (button) {
-    await page.locator(`button::-p-text(${button})`).click();
+    // Кнопка по тексту или по подписи для диктора (у кнопок-значков текста нет)
+    const byLabel = `button[aria-label="${button}"]`;
+    await ((await page.$(byLabel)) ? page.click(byLabel) : page.locator(`button::-p-text(${button})`).click());
     await page.waitForSelector("[role=dialog]");
     await settle();
   }

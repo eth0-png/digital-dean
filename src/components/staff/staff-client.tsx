@@ -131,7 +131,7 @@ export function StaffChat({
 }: {
   id: string;
   number: number;
-  student: { name: string; initials: string; group: string };
+  student: { name: string; initials: string; avatar: string | null; group: string };
   messages: ChatMessage[];
   status: AppStatus;
   children: ReactNode;
@@ -141,6 +141,7 @@ export function StaffChat({
       peer={{
         name: student.name,
         initials: student.initials,
+        avatar: student.avatar,
         about: `${student.group}, заявка № ${number}`,
       }}
       messages={messages}

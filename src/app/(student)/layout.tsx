@@ -6,6 +6,7 @@ import { BottomNav, SideNav } from "@/components/bottom-nav";
 import { HeaderToggle } from "@/components/header-toggle";
 import { NavTrail } from "@/components/nav-trail";
 import { requireStudent } from "@/lib/auth";
+import { UserAvatar } from "@/components/avatar";
 import { countMyUnread } from "@/lib/notifications";
 
 const round = "press grid size-11 place-items-center rounded-full";
@@ -82,9 +83,8 @@ async function NotificationsBell() {
 async function Avatar() {
   const user = await requireStudent();
   return (
-    <HeaderToggle href="/profile" label="Профиль" closeLabel="Закрыть профиль" className={`${round} bg-accent text-sm font-extrabold text-accent-foreground`}>
-      {user.firstName[0]}
-      {user.lastName[0]}
+    <HeaderToggle href="/profile" label="Профиль" closeLabel="Закрыть профиль" className={`${round} text-sm`}>
+      <UserAvatar avatar={user.avatar} initials={`${user.firstName[0]}${user.lastName[0]}`} size="size-11" />
     </HeaderToggle>
   );
 }

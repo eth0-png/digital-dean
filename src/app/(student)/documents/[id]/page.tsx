@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getMyApplication, siteOrigin } from "@/lib/applications";
+import { deanAvatar, getMyApplication, siteOrigin } from "@/lib/applications";
 import { TALK, fromStudent, isClosed, toChat } from "@/lib/documents";
 import { PageTransition, Reveal, SectionTitle } from "@/components/kit";
 import { BackLink } from "@/components/nav-trail";
@@ -34,7 +34,7 @@ async function ApplicationView({ params, searchParams }: { params: Promise<{ id:
   );
 
   return (
-    <StudentChat appId={app.id} number={app.number} messages={chat} active={open} need={need}>
+    <StudentChat appId={app.id} number={app.number} messages={chat} active={open} need={need} deanAvatar={await deanAvatar()}>
       <div className="space-y-4">
         {sent && <SentToast />}
         {unseen && <MarkRead run={markDeanRead.bind(null, app.id)} />}

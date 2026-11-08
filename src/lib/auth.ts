@@ -20,6 +20,7 @@ export type CurrentUser = {
   course: number | null;
   groupName: string | null;
   studentCard: string | null;
+  avatar: string | null; // ключ из src/lib/avatars.ts, null — инициалы
 };
 
 const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
@@ -29,7 +30,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token) return null;
   const [user] = await sql<CurrentUser[]>`
-    select u.id, u.role, u.last_name as "lastName", u.first_name as "firstName", u.middle_name as "middleName",
+    select u.id, u.role, u.avatar, u.last_name as "lastName", u.first_name as "firstName", u.middle_name as "middleName",
            st.faculty, st.program, st.course, st.group_name as "groupName", st.student_card as "studentCard"
     from sessions s
     join users u on u.id = s.user_id
@@ -51,6 +52,13 @@ export async function requireStaff() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (user.role !== "staff") notFound();
+  return user;
+}
+
+/** Любой вошедший (студент или сотрудник): для настроек своей учётной записи, например аватарки. */
+export async function requireUser() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
   return user;
 }
 

@@ -5,6 +5,9 @@ import { logout } from "@/app/login/actions";
 import { Logo, CONCEPT_NOTE } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { NavTrail } from "@/components/nav-trail";
+import { requireStaff } from "@/lib/auth";
+import { UserAvatar } from "@/components/avatar";
+import { AvatarPicker } from "@/components/avatar-picker";
 
 export default function StaffLayout({ children }: { children: ReactNode }) {
   return (
@@ -20,6 +23,9 @@ export default function StaffLayout({ children }: { children: ReactNode }) {
             <span className="block text-xs text-muted-foreground">кабинет сотрудника</span>
           </span>
         </Link>
+        <Suspense fallback={<span className="size-11 animate-pulse rounded-full bg-secondary" />}>
+          <StaffAvatar />
+        </Suspense>
         <form action={logout}>
           <Button type="submit" variant="secondary" className="rounded-full">
             <LogOut aria-hidden="true" />
@@ -35,5 +41,22 @@ export default function StaffLayout({ children }: { children: ReactNode }) {
         <NavTrail />
       </Suspense>
     </div>
+  );
+}
+
+/** Аватарка сотрудника: её видят студенты в переписке. Нажатие открывает выбор. */
+async function StaffAvatar() {
+  const user = await requireStaff();
+  const initials = `${user.firstName[0]}${user.lastName[0]}`;
+  return (
+    <AvatarPicker
+      current={user.avatar}
+      initials={initials}
+      trigger={
+        <button type="button" aria-label="Сменить аватарку" className="press shrink-0 rounded-full">
+          <UserAvatar avatar={user.avatar} initials={initials} size="size-11 text-sm" />
+        </button>
+      }
+    />
   );
 }

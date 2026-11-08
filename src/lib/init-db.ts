@@ -68,6 +68,9 @@ create table if not exists application_events (
 );
 create index if not exists application_events_app_idx on application_events (application_id, created_at);
 
+-- Аватарка: ключ из набора значков (src/lib/avatars.ts), без загрузки фото. Пусто — инициалы.
+alter table users add column if not exists avatar text check (avatar is null or length(avatar) <= 20);
+
 -- Прочитанные уведомления без своей строки в базе: изменения расписания считаются от текущей даты.
 create table if not exists notice_reads (
   user_id uuid not null references users(id) on delete cascade,

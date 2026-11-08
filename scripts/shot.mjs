@@ -35,7 +35,7 @@ for (const item of pages) {
         // Радиокнопка внутри большой карточки-подписи: нажимается вся карточка
         const label = el.closest("label")?.getBoundingClientRect();
         const inBigLabel = label && label.height >= 44 && label.width >= 44;
-        return r.width > 0 && r.height > 0 && !inline && !inBigLabel && (r.height < 44 || r.width < 44) && !el.closest("[aria-hidden=true]");
+        return r.width > 0 && r.height > 0 && !inline && !inBigLabel && (r.height < 44 || r.width < 44) && !el.closest("[aria-hidden=true]") && !el.closest(".sr-only");
       })
       .map((el) => `${(el.getAttribute("aria-label") || el.textContent || el.tagName).trim().slice(0, 24)} ${Math.round(el.getBoundingClientRect().width)}×${Math.round(el.getBoundingClientRect().height)}`),
   );

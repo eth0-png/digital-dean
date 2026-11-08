@@ -17,7 +17,8 @@
 - `research/survey.csv` опрос студентов, `research/survey-summary.md` цифры и цитаты, `research/lks-mgimo-review.md` обезличенный разбор настоящего кабинета МГИМО: что берём, что нет, «было и стало» для описания.
 - `docs/ai-log.md` журнал работы с ИИ, `docs/screenshots/` скриншоты, `docs/design/` макеты вариантов дизайна.
 - `src/app/` приложение Next.js 16 (App Router, TypeScript, Tailwind 4). Студенческие страницы в `src/app/(student)/`, кабинет сотрудника в `src/app/staff/`, вход в `src/app/login/`.
-- `src/lib/auth.ts` слой доступа: `requireStudent()`, `requireStaff()`, сессии, лимит попыток входа.
+- `src/lib/auth.ts` слой доступа: `requireStudent()`, `requireStaff()`, `requireUser()` (любая роль), сессии, лимит попыток входа.
+- Аватарки: `src/lib/avatars.ts` набор значков `AVATARS` и `isAvatarKey()`, `src/components/avatar.tsx` `UserAvatar` (значок или инициалы), `src/components/avatar-picker.tsx` окно выбора, `src/app/avatar-actions.ts` `setAvatar()` (только свой аккаунт, только ключ из набора). Загрузки фото нет намеренно.
 - `src/lib/init-db.ts` схема базы и демо-аккаунты, выполняется при старте сервера (`src/instrumentation.ts`).
 - `src/components/ui/` компоненты shadcn/ui (Radix). Это наш код, правим под себя: кнопки от 44 px, поля 52 px. Новые ставим так: `npx shadcn@latest add <имя>`.
 - `src/lib/nav-trail.ts` и `src/components/nav-trail.tsx` путь по кабинету: `BackLink` (назад на предыдущую страницу), закрытие профиля и уведомлений. Ссылки «назад» делать только через `BackLink`.

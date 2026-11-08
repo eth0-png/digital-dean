@@ -121,3 +121,9 @@ export async function findByVerifyCode(code: string) {
   const initials = [row.first_name, row.middle_name].filter(Boolean).map((n) => `${n![0]}.`).join(" ");
   return { number: row.number, type: row.type, holder: `${row.last_name} ${initials}`, issued: row.issued_at ? fmtDay(row.issued_at) : "" };
 }
+
+/** Аватарка сотрудника деканата для переписки у студента. Только ключ из набора значков, не личные данные. */
+export async function deanAvatar() {
+  const [row] = await sql<{ avatar: string | null }[]>`select avatar from users where role = 'staff' order by created_at limit 1`;
+  return row?.avatar ?? null;
+}

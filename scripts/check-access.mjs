@@ -56,6 +56,25 @@ const p2 = await open(s2, "/profile");
 check(p1.text.includes("Соколова") && !p1.text.includes("Петров"), "student1 видит в профиле только себя");
 check(p2.text.includes("Петров") && !p2.text.includes("Соколова"), "student2 видит в профиле только себя");
 
+// 3б. Аватарка меняется только у себя: student1 выбирает значок, у student2 по-прежнему инициалы. Потом возвращаем инициалы
+const headerAvatar = async (page) => {
+  await open(page, "/");
+  return page.$eval('header a[aria-label="Профиль"]', (a) => (a.querySelector("svg") ? "значок" : a.textContent.trim()));
+};
+const pickAvatar = async (page, label) => {
+  await open(page, "/profile");
+  await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== "running" || a.effect?.getComputedTiming().iterations === Infinity));
+  await page.click('button[aria-label="Сменить аватарку"]');
+  await page.waitForSelector(`[role=radio][aria-label="${label}"]`);
+  await page.click(`[role=radio][aria-label="${label}"]`);
+  await page.waitForSelector("[role=dialog]", { hidden: true, timeout: 10000 }).catch(() => {});
+};
+await pickAvatar(s1, "Глобус");
+check((await headerAvatar(s1)) === "значок", "student1 выбрал аватарку, она видна в шапке");
+check((await headerAvatar(s2)) === "ИП", "у student2 аватарка не изменилась (инициалы)");
+await pickAvatar(s1, "Инициалы");
+check((await headerAvatar(s1)) === "АС", "student1 вернул инициалы");
+
 // 4. Студент не открывает кабинет сотрудника
 const st = await open(s1, "/staff");
 check(st.text.includes("Страница не найдена") && !st.text.includes("Очередь заявок"), "student1 на /staff видит «Страница не найдена»");

@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { withOffline } from "@/components/kit";
+import { UserAvatar } from "@/components/avatar";
 import { DEAN_OFFICE, type ChatMessage } from "@/lib/documents";
 import { cancelApplication, sendMessage } from "@/app/(student)/documents/actions";
 
@@ -17,6 +18,7 @@ import { cancelApplication, sendMessage } from "@/app/(student)/documents/action
 export type Peer = {
   name: string;
   initials: string;
+  avatar?: string | null;
   about: string;
   phone?: string;
 };
@@ -116,7 +118,7 @@ function Conversation({ peer, messages, compose, closedText, open, onOpenChange 
               {wide ? <X aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}
             </Button>
           </DrawerClose>
-          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-accent text-[13px] font-extrabold text-accent-foreground">{peer.initials}</span>
+          <UserAvatar avatar={peer.avatar} initials={peer.initials} className="text-[13px]" />
           <span className="min-w-0 flex-1 pl-1 text-left">
             <DrawerTitle className="text-base font-bold">{peer.name}</DrawerTitle>
             <DrawerDescription className="text-[13px]">{peer.about}</DrawerDescription>
@@ -203,6 +205,7 @@ export function StudentChat({
   messages,
   active,
   need,
+  deanAvatar,
   children,
 }: {
   appId: string;
@@ -210,6 +213,7 @@ export function StudentChat({
   messages: ChatMessage[];
   active: boolean;
   need: boolean;
+  deanAvatar?: string | null;
   children: ReactNode;
 }) {
   return (
@@ -217,6 +221,7 @@ export function StudentChat({
       peer={{
         name: DEAN_OFFICE.person,
         initials: DEAN_OFFICE.initials,
+        avatar: deanAvatar,
         about: `Деканат, заявка № ${number}`,
         phone: DEAN_OFFICE.phone,
       }}

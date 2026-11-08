@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { LogOut, PencilLine } from "lucide-react";
 import { requireStudent } from "@/lib/auth";
+import { UserAvatar } from "@/components/avatar";
+import { AvatarPicker } from "@/components/avatar-picker";
 import { logout } from "@/app/login/actions";
 import { Button } from "@/components/ui/button";
 import { PageTransition, Reveal, stagger } from "@/components/kit";
@@ -37,10 +39,18 @@ async function Profile() {
   return (
     <div className="space-y-5 lg:max-w-3xl">
       <div className="enter flex items-center gap-4">
-        <div className="grid size-16 shrink-0 place-items-center rounded-full bg-accent text-xl font-extrabold text-accent-foreground">
-          {u.firstName[0]}
-          {u.lastName[0]}
-        </div>
+        <AvatarPicker
+          current={u.avatar}
+          initials={`${u.firstName[0]}${u.lastName[0]}`}
+          trigger={
+            <button type="button" aria-label="Сменить аватарку" className="press relative shrink-0 rounded-full">
+              <UserAvatar avatar={u.avatar} initials={`${u.firstName[0]}${u.lastName[0]}`} size="size-16 text-xl" icon={30} />
+              <span className="absolute -right-0.5 -bottom-0.5 grid size-6 place-items-center rounded-full bg-background text-primary ring-2 ring-background">
+                <PencilLine size={14} aria-hidden="true" />
+              </span>
+            </button>
+          }
+        />
         <div>
           <h1 className="font-display text-xl leading-tight font-semibold">
             {u.lastName} {u.firstName}

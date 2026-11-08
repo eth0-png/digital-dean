@@ -24,7 +24,7 @@ export default function TodayPage() {
 type Attention = { href: string; icon: LucideIcon; tone: string; title: string; text: string; kind?: string };
 
 /**
- * Главный экран по опросу: ближайшая пара (13 из 23 хотят видеть первой), «требует внимания»
+ * Главный экран по опросу: ближайшая пара (14 из 24 хотят видеть первой), «требует внимания»
  * только если есть что показать, затем остальные пары дня. На широком экране пары дня справа.
  */
 async function Today() {

@@ -6,7 +6,7 @@ import { useState } from "react";
 import { CalendarDays, FileText, GraduationCap, House } from "lucide-react";
 import { Logo } from "@/components/logo";
 
-// Порядок вкладок по опросу: расписание 19 из 22, оценки 15 из 22, справки 12 из 22.
+// Порядок вкладок по опросу: расписание 20 из 23, оценки 16 из 23, справки 12 из 23.
 const TABS = [
   { href: "/", label: "Сегодня", Icon: House },
   { href: "/schedule", label: "Расписание", Icon: CalendarDays },

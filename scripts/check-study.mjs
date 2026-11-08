@@ -101,7 +101,7 @@ async function run(page, size, login, password) {
   await page.goto(new URL("/study", base).href, { waitUntil: "networkidle0" });
   await settle();
   const main = () => page.evaluate(() => document.querySelector("main").innerText);
-  const selected = () => page.$eval("nav[aria-label=Семестры] a[aria-current=page]", (a) => ({ href: a.getAttribute("href"), name: a.getAttribute("aria-label") })).catch(() => null);
+  const selected = () => page.$eval("nav[aria-label=Семестры] a[aria-current=page]", (a) => ({ href: a.getAttribute("href"), name: a.textContent.trim() })).catch(() => null);
   const start = await selected();
   const text = await main();
   check(start?.href === "/study" && start.name.includes("сейчас") && text.includes("средний балл"), `${tag} ${login}: открыт текущий семестр («${start?.name}»), крупно средний балл`);

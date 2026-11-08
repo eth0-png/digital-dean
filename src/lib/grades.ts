@@ -140,7 +140,7 @@ export async function getStudy(sem?: unknown) {
       course,
       semesters: [2 * course - 1, 2 * course].map((n) => ({ n, season: season(n), future: n > current, current: n === current })),
     }));
-  const semesters = Array.from({ length: current }, (_, i) => ({ n: i + 1, title: `${i + 1} семестр, ${season(i + 1)} ${year(i + 1)}`, current: i + 1 === current })).reverse();
+  const semesters = Array.from({ length: current }, (_, i) => ({ n: i + 1, title: `${season(i + 1) === "осень" ? "Осень" : "Весна"} ${year(i + 1)}`, current: i + 1 === current })).reverse();
   // Динамика: средний балл каждого прошлого семестра и текущей аттестации сейчас
   const trend = [...rec.past.map((p, i) => ({ n: i + 1, score: rating(p), current: false })), { n: current, score: summary.average, current: true }];
   if (selected === current) {

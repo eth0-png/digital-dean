@@ -96,7 +96,7 @@ function SemesterPicker({ s }: { s: Study }) {
       )}
       <nav aria-label="Семестры" className="grid grid-cols-2 gap-2 lg:max-w-md">
         {course.semesters.map((x) => {
-          const label = `${x.season[0].toUpperCase()}${x.season.slice(1)}${x.current ? ", сейчас" : ""}`;
+          const label = `${x.n} семестр${x.current ? ", сейчас" : ""}`;
           const cls = "inline-flex min-h-11 items-center justify-center rounded-full px-4 text-[14px] font-bold whitespace-nowrap";
           if (x.future)
             return (
@@ -112,7 +112,6 @@ function SemesterPicker({ s }: { s: Study }) {
               transitionTypes={["nav-tab"]}
               scroll={false}
               aria-current={on ? "page" : undefined}
-              aria-label={`${x.n} семестр, ${x.season}${x.current ? ", сейчас" : ""}`}
               className={`press ${cls} ${on ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}
             >
               {label}
@@ -124,69 +123,104 @@ function SemesterPicker({ s }: { s: Study }) {
   );
 }
 
-/** Главная карточка семестра: крупно средний балл, под ним только то, что требует внимания. */
-function SemesterCard({ title, score, children }: { title: string; score: number; children: ReactNode }) {
+/**
+ * Главная карточка семестра: крупно средний балл и рядом его динамика по семестрам, под ними только то,
+ * что требует внимания. График в карточке, чтобы его было видно сразу, а оценки остались на первом экране.
+ */
+function SemesterCard({ title, score, trend, selected, children }: { title: string; score: number; trend: Study["trend"]; selected: number; children: ReactNode }) {
   return (
     <section className="enter rounded-2xl bg-primary p-[18px] text-primary-foreground" style={stagger(2)}>
       <span className="rounded-full bg-black/20 px-3 py-1 text-[13px] font-bold">{title}</span>
-      <p className="mt-3 flex items-baseline gap-2.5">
-        <span className="font-display text-[44px] leading-none font-semibold tabular-nums">{score}</span>
-        <span className="text-[15px] font-bold">средний балл</span>
-      </p>
+      <div className="mt-3 flex items-end justify-between gap-4">
+        <p className="shrink-0">
+          <span className="block font-display text-[44px] leading-none font-semibold tabular-nums">{score}</span>
+          <span className="mt-1 block text-[14px] font-bold">средний балл</span>
+        </p>
+        {trend.length > 1 && <Trend points={trend} selected={selected} />}
+      </div>
       {children}
     </section>
   );
 }
 
 /**
- * Динамика среднего балла: прошлые семестры и текущая аттестация. Только свои оценки, без чужих данных.
- * Рисуем SVG сами: одна линия, новая библиотека графиков ради неё не нужна.
+ * Динамика среднего балла: прошлые семестры линией, текущая аттестация пунктиром. Только свои оценки.
+ * Выбранный семестр выделен, рядом разница с предыдущим. Линия прорисовывается слева направо (spark-line в globals.css).
+ * Рисуем SVG сами: одна линия, библиотека графиков ради неё не нужна.
  */
-function Trend({ points }: { points: Study["trend"] }) {
-  const W = 320;
-  const H = 128;
-  const pad = { x: 18, top: 26, bottom: 26 };
+function Trend({ points, selected }: { points: Study["trend"]; selected: number }) {
+  const W = 168;
+  const H = 80;
+  const pad = 8;
+  const axis = 18; // место под номера семестров
   const scores = points.map((p) => p.score);
-  const lo = Math.min(...scores) - 2;
-  const hi = Math.max(...scores) + 2;
-  const x = (i: number) => pad.x + (i * (W - 2 * pad.x)) / (points.length - 1);
-  const y = (v: number) => pad.top + ((hi - v) * (H - pad.top - pad.bottom)) / (hi - lo);
+  const lo = Math.min(...scores) - 1;
+  const hi = Math.max(...scores) + 1;
+  const x = (i: number) => pad + (i * (W - 2 * pad)) / (points.length - 1);
+  const y = (v: number) => pad + ((hi - v) * (H - pad - axis)) / (hi - lo);
   const past = points.filter((p) => !p.current);
   const now = points.at(-1)!;
-  const delta = now.score - past.at(-1)!.score;
-  const line = past.map((p, i) => `${x(i)},${y(p.score)}`).join(" ");
+  const i = points.findIndex((p) => p.n === selected);
+  const prev = points[i - 1];
+  const delta = prev ? points[i].score - prev.score : null;
+  const sign = delta === null || delta === 0 ? "" : delta > 0 ? "+" : "−";
   return (
-    <section className="enter rounded-2xl border bg-card px-4 pt-3.5 pb-2" style={stagger(4)} aria-labelledby="trend-title">
-      <div className="flex items-baseline justify-between gap-3">
-        <h2 id="trend-title" className="font-display text-[15px] font-semibold">
-          Средний балл по семестрам
-        </h2>
-        <span className={`shrink-0 text-[13px] font-bold tabular-nums ${delta > 0 ? "text-success" : delta < 0 ? "text-warning" : "text-muted-foreground"}`}>
-          {delta === 0 ? "как в прошлом" : `${delta > 0 ? "+" : "−"}${Math.abs(delta)} к прошлому`}
-        </span>
-      </div>
+    <figure className="min-w-0 flex-1 text-right lg:max-w-60">
       <svg
         viewBox={`0 0 ${W} ${H}`}
-        className="mt-1 block w-full"
+        className="ml-auto block h-auto w-full max-w-44 overflow-visible lg:max-w-60"
         role="img"
-        aria-label={`Средний балл: ${points.map((p) => `${p.current ? "сейчас" : `${p.n} семестр`} ${p.score}`).join(", ")}`}
+        aria-label={`Средний балл по семестрам: ${points.map((p) => `${p.current ? "сейчас" : `${p.n} семестр`} ${p.score}`).join(", ")}`}
       >
-        <polyline points={line} fill="none" className="stroke-primary" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+        <polyline
+          points={past.map((p, k) => `${x(k)},${y(p.score)}`).join(" ")}
+          pathLength={1}
+          fill="none"
+          className="spark-line stroke-primary-foreground"
+          strokeWidth="2.5"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
         {/* Текущий семестр ещё идёт: последний отрезок пунктиром */}
-        <line x1={x(past.length - 1)} y1={y(past.at(-1)!.score)} x2={x(points.length - 1)} y2={y(now.score)} className="stroke-primary" strokeWidth="2.5" strokeDasharray="4 5" strokeLinecap="round" />
-        {points.map((p, i) => (
-          <g key={p.n}>
-            <circle cx={x(i)} cy={y(p.score)} r={p.current ? 5.5 : 4} className={p.current ? "fill-primary stroke-card" : "fill-card stroke-primary"} strokeWidth="2.5" />
-            <text x={x(i)} y={y(p.score) - 10} textAnchor="middle" className="fill-foreground text-[12px] font-bold tabular-nums">
-              {p.score}
-            </text>
-            <text x={x(i)} y={H - 6} textAnchor="middle" className={`text-[11px] font-semibold ${p.current ? "fill-primary" : "fill-muted-foreground"}`}>
-              {p.current ? "сейчас" : `${p.n} сем.`}
-            </text>
-          </g>
+        <line
+          x1={x(past.length - 1)}
+          y1={y(past.at(-1)!.score)}
+          x2={x(points.length - 1)}
+          y2={y(now.score)}
+          className="spark-in stroke-primary-foreground/70"
+          style={{ "--i": points.length } as React.CSSProperties}
+          strokeWidth="2.5"
+          strokeDasharray="3 4"
+          strokeLinecap="round"
+        />
+        {points.map((p, k) => (
+          <circle
+            key={p.n}
+            cx={x(k)}
+            cy={y(p.score)}
+            r={k === i ? 5 : 3}
+            className={`spark-in ${k === i ? "fill-primary-foreground" : "fill-primary stroke-primary-foreground"}`}
+            style={{ "--i": k } as React.CSSProperties}
+            strokeWidth="2"
+          />
+        ))}
+        {/* Номера семестров под точками, выбранный ярче */}
+        {points.map((p, k) => (
+          <text
+            key={`n${p.n}`}
+            x={x(k)}
+            y={H - 2}
+            textAnchor="middle"
+            className={`text-[11px] tabular-nums ${k === i ? "fill-primary-foreground font-extrabold" : "fill-primary-foreground/65 font-semibold"}`}
+          >
+            {p.n}
+          </text>
         ))}
       </svg>
-    </section>
+      <figcaption className="mt-1.5 text-[12.5px] font-bold text-primary-foreground/85">
+        {delta === null ? "первый семестр" : delta === 0 ? `как в ${prev.n} семестре` : `${sign}${Math.abs(delta)} к ${prev.n} семестру`}
+      </figcaption>
+    </figure>
   );
 }
 
@@ -203,11 +237,9 @@ async function Study({ searchParams }: { searchParams: Promise<Record<string, st
       <SemesterPicker s={s} />
 
       {s.current ? (
-        // На телефоне график под оценками (оценки важнее и должны быть на первом экране), на компьютере справа от карточки.
-        // Колонки растворяются (contents), порядок задаёт order-last
-        <div className="flex flex-col gap-4 lg:block lg:space-y-5">
-          <div className="contents lg:grid lg:grid-cols-2 lg:items-start lg:gap-8">
-            <SemesterCard title={sem.title} score={s.summary.average}>
+        <>
+          <div className="space-y-3 lg:grid lg:grid-cols-2 lg:items-start lg:gap-8 lg:space-y-0">
+            <SemesterCard title={sem.title} score={s.summary.average} trend={s.trend} selected={sem.n}>
               {s.summary.debts.length ? (
                 <>
                   <p className="mt-3 font-bold">{s.summary.debts.length === 1 ? "1 незачёт" : `${s.summary.debts.length} незачёта`}</p>
@@ -221,8 +253,7 @@ async function Study({ searchParams }: { searchParams: Promise<Record<string, st
                 <p className="mt-3 font-bold">Долгов нет</p>
               )}
             </SemesterCard>
-            <div className="contents lg:block lg:space-y-3">
-              {s.summary.deadline && (
+            {s.summary.deadline && (
                 <p className="enter flex items-start gap-3 rounded-xl bg-warning-soft px-3.5 py-3 text-sm text-warning" style={stagger(3)}>
                   <CalendarClock size={20} className="mt-px shrink-0" aria-hidden="true" />
                   <span>
@@ -232,13 +263,7 @@ async function Study({ searchParams }: { searchParams: Promise<Record<string, st
                     {s.summary.deadline.text}
                   </span>
                 </p>
-              )}
-              {s.trend.length > 1 && (
-                <div className="order-last lg:order-none">
-                  <Trend points={s.trend} />
-                </div>
-              )}
-            </div>
+            )}
           </div>
           <Parts
             key={sem.n}
@@ -278,12 +303,12 @@ async function Study({ searchParams }: { searchParams: Promise<Record<string, st
               },
             ]}
           />
-        </div>
+        </>
       ) : (
         s.past && (
           <>
             <div className="lg:max-w-md">
-              <SemesterCard title={sem.title} score={s.past.score}>
+              <SemesterCard title={sem.title} score={s.past.score} trend={s.trend} selected={sem.n}>
                 <p className="mt-3 font-bold">{s.past.passed ? "Все экзамены и зачёты сданы" : "Есть несданные дисциплины"}</p>
               </SemesterCard>
             </div>

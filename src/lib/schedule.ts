@@ -125,6 +125,7 @@ const ON_DAY = ["в понедельник", "во вторник", "в сред
 const ymd = new Intl.DateTimeFormat("en-CA", { timeZone: TZ });
 const hm = new Intl.DateTimeFormat("en-GB", { timeZone: TZ, hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
 const dayMonth = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long", timeZone: "UTC" });
+const dayMonthShort = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short", timeZone: "UTC" });
 const fullDate = new Intl.DateTimeFormat("ru-RU", { weekday: "long", day: "numeric", month: "long", timeZone: TZ });
 
 /** Текущий момент. DEMO_NOW (например 2026-11-10T10:45:00+03:00) только для проверки локально, на сервере не задаётся. */
@@ -200,9 +201,12 @@ export async function getWeek(date?: unknown) {
     return { date: d, short, full: FULL[i], label: dayLabel(d), today: d === today, session: inSession(group, d), lessons: applyDay(group, d, chs, d === today ? min : undefined) };
   });
   const sat = addDays(monday, 5);
-  const days2 = monday.slice(0, 7) === sat.slice(0, 7) ? `${Number(monday.slice(8))}–${dayLabel(sat)}` : `${dayLabel(monday)} – ${dayLabel(sat)}`;
-  // Неделя другого года (или на стыке лет): год в конце, иначе «4–9 января» непонятно какого года
+  // Подпись недели в одну строку на 360 px: «9–14 ноября». Если неделя на стыке месяцев или другого года (тогда в конце год),
+  // месяцы коротко: «30 нояб. – 5 дек.», «28 дек. – 2 янв. 2027», «11–16 янв. 2027»
   const otherYear = monday.slice(0, 4) !== today.slice(0, 4) || sat.slice(0, 4) !== today.slice(0, 4);
+  const sameMonth = monday.slice(0, 7) === sat.slice(0, 7);
+  const fmt = (d: string) => (otherYear || !sameMonth ? dayMonthShort : dayMonth).format(new Date(`${d}T00:00:00Z`));
+  const days2 = sameMonth ? `${Number(monday.slice(8))}–${fmt(sat)}` : `${fmt(monday)} – ${fmt(sat)}`;
   const range = otherYear ? `${days2} ${sat.slice(0, 4)}` : days2;
   const current = addDays(today, -weekday(today) + (weekday(today) === 6 ? 7 : 0));
   return {

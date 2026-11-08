@@ -73,6 +73,21 @@ async function run(page, size) {
   await settle();
   check((await where()).includes(picked) && (await text()).includes("декабря"), `${tag}: выбор ${picked} в календаре открыл его неделю (${await where()})`);
 
+  // Подпись недели в одну строку: все недели учебного года с сентября по июнь, включая стыки месяцев и лет
+  if (phone) {
+    const wrapped = [];
+    for (let d = Date.parse("2026-08-31T00:00:00Z"); d <= Date.parse("2027-06-28T00:00:00Z"); d += 7 * 86400000) {
+      const date = new Date(d).toISOString().slice(0, 10);
+      await page.goto(new URL(`/schedule?date=${date}`, base).href, { waitUntil: "networkidle0" });
+      const r = await page.$eval('button[aria-label^="Выбрать неделю"] > span', (el) => {
+        const lh = parseFloat(getComputedStyle(el).lineHeight) || 20;
+        return { text: el.textContent.trim(), lines: Math.round(el.getBoundingClientRect().height / lh) };
+      });
+      if (r.lines > 1) wrapped.push(r.text);
+    }
+    check(wrapped.length === 0, `${tag}: подпись недели в одну строку на всех неделях с сентября по июнь${wrapped.length ? `, в две: ${wrapped.join("; ")}` : ""}`);
+  }
+
   // Дата из календаря в той же неделе: переключается день (раньше адрес менялся, а день нет)
   await go("/schedule");
   const monday = await page.$eval('main input[type="date"]', (el) => el.defaultValue);

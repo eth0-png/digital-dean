@@ -24,15 +24,15 @@ async function Schedule({ searchParams }: { searchParams: Promise<Record<string,
 
   return (
     <div className="space-y-4">
-      {/* На другой неделе рядом с заголовком «Сегодня»: возвращает к текущей неделе и сегодняшнему дню */}
-      <div className="flex min-h-11 items-center justify-between gap-3 lg:max-w-md">
+      {/* На другой неделе сразу после заголовка «Сегодня» без заливки: возвращает к текущей неделе и сегодняшнему дню */}
+      <div className="flex min-h-11 items-center gap-1 lg:max-w-md">
         <h1 className="enter font-display text-[22px] font-semibold">Расписание</h1>
         {!w.isCurrent && (
           <Link
             href="/schedule"
             transitionTypes={["nav-tab"]}
             scroll={false}
-            className="press enter inline-flex min-h-11 items-center gap-1.5 rounded-full bg-accent px-3.5 text-[14px] font-bold text-primary"
+            className="press enter inline-flex min-h-11 items-center gap-1.5 rounded-full px-2.5 text-[14px] font-bold text-primary hover:bg-accent"
           >
             <RotateCcw size={16} aria-hidden="true" />
             Сегодня

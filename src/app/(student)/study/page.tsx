@@ -127,13 +127,9 @@ function SemesterPicker({ s }: { s: Study }) {
 
 /**
  * Главная карточка семестра: крупно средний балл, под ним только то, что требует внимания,
- * внизу кнопка статистики (разница с прошлым семестром, по нажатию шторка с графиком).
+ * внизу кнопка «Успеваемость» (по нажатию шторка со статистикой).
  */
 function SemesterCard({ s, title, score, children }: { s: Study; title: string; score: number; children: ReactNode }) {
-  const i = s.trend.findIndex((p) => p.n === s.selected);
-  const prev = s.trend[i - 1];
-  const delta = prev ? s.trend[i].score - prev.score : null;
-  const label = delta === null ? "Успеваемость" : delta === 0 ? `Как в ${prev.n} семестре` : `${delta > 0 ? "+" : "−"}${Math.abs(delta)} к ${prev.n} семестру`;
   const points = s.trend.map((p) => ({ ...p, title: s.semesters.find((x) => x.n === p.n)?.title ?? "", href: semHref(p.n, p.current) }));
   return (
     <section className="enter rounded-2xl bg-primary p-[18px] text-primary-foreground" style={stagger(2)}>
@@ -143,7 +139,7 @@ function SemesterCard({ s, title, score, children }: { s: Study; title: string; 
         <span className="text-[15px] font-bold">средний балл</span>
       </p>
       {children}
-      <StatsSheet label={label} points={points} letters={s.letters} selected={s.selected} />
+      <StatsSheet label="Успеваемость" points={points} letters={s.letters} selected={s.selected} />
     </section>
   );
 }

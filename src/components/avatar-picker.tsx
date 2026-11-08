@@ -47,7 +47,7 @@ export function AvatarPicker({ current, initials, trigger }: { current: string |
                 aria-label={label}
                 disabled={pending}
                 onClick={() => choose(key)}
-                className={`press grid place-items-center justify-self-center rounded-full p-1.5 transition-shadow ${selected ? "bg-primary/15 ring-2 ring-primary" : "hover:bg-secondary"}`}
+                className={`press grid place-items-center justify-self-center rounded-full p-1.5 transition-shadow ${selected ? "ring-2 ring-primary" : "hover:bg-secondary"}`}
               >
                 <UserAvatar avatar={key} initials={initials} size="size-14" icon={26} />
               </button>

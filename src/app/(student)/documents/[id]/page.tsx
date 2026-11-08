@@ -5,8 +5,8 @@ import { PageTransition, Reveal, SectionTitle } from "@/components/kit";
 import { BackLink } from "@/components/nav-trail";
 import { DocumentCard, StatusCard, Timeline } from "@/components/documents/documents-ui";
 import { SentToast } from "@/components/documents/documents-client";
-import { AnswerButton, CancelButton, ConversationLink, MarkRead, StudentChat } from "@/components/documents/chat";
-import { markDeanRead } from "../actions";
+import { AnswerButton, CancelButton, ConversationLink, LiveUpdates, MarkRead, StudentChat } from "@/components/documents/chat";
+import { markDeanRead, myVersion } from "../actions";
 
 export const metadata: Metadata = { title: "Заявка" };
 
@@ -28,9 +28,13 @@ async function ApplicationView({ params, searchParams }: { params: Promise<{ id:
   const open = !isClosed(app.status);
   const chat = toChat(app, "student");
   const talk = app.events.filter((e) => TALK.includes(e.kind));
-  // Деканат что-то написал или прокомментировал, а студент ещё не видел
+  // Деканат что-то написал или прокомментировал, а студент ещё не видел: уведомление не просмотрено
+  // или вопрос и комментарий, видные на этой странице, ещё не отмечены прочитанными
+  const onPage = (k: string) => k === "question" || k === "ready" || k === "rejected";
   const unseen = app.events.some(
-    (e) => !e.read && (e.kind === "in_progress" || e.kind === "ready" || e.kind === "rejected" || (TALK.includes(e.kind) && !fromStudent(e.kind))),
+    (e) =>
+      (!e.read && (e.kind === "in_progress" || e.kind === "ready" || e.kind === "rejected" || (TALK.includes(e.kind) && !fromStudent(e.kind)))) ||
+      (onPage(e.kind) && e.text && !e.seen),
   );
 
   return (
@@ -38,6 +42,7 @@ async function ApplicationView({ params, searchParams }: { params: Promise<{ id:
       <div className="space-y-4">
         {sent && <SentToast />}
         {unseen && <MarkRead run={markDeanRead.bind(null, app.id)} />}
+        <LiveUpdates version={await myVersion(app.id)} check={myVersion.bind(null, app.id)} />
         <BackLink fallbackHref="/documents" fallbackLabel="Документы" />
         {/* Переписка открывается из истории, а пока деканат ждёт ответа, ещё и кнопкой «Ответить» в карточке.
             На широком экране две колонки: слева статус и документ, справа история. На телефоне левая колонка

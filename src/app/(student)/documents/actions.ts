@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { refresh } from "next/cache";
 import { sql } from "@/lib/db";
 import { requireStudent } from "@/lib/auth";
-import { UUID, dueDate } from "@/lib/applications";
+import { UUID, dueDate, fingerprint } from "@/lib/applications";
 import { DOC_TYPES, PURPOSES, isDocType } from "@/lib/documents";
 import { NOTICE_KINDS } from "@/lib/notifications";
 
@@ -98,5 +98,29 @@ export async function markDeanRead(appId: string) {
     from applications a
     where e.application_id = a.id and a.id = ${appId} and a.user_id = ${user.id}
       and e.kind in ${sql(NOTICE_KINDS)} and e.read_at is null`;
+  // Вопрос деканата и комментарий к готовой или отклонённой заявке видны прямо на странице заявки
+  await sql`
+    update application_events e set seen_at = now()
+    from applications a
+    where e.application_id = a.id and a.id = ${appId} and a.user_id = ${user.id}
+      and e.kind in ('question', 'ready', 'rejected') and e.text is not null and e.seen_at is null`;
   refresh();
+}
+
+/** Студент видит переписку (шторка открыта, вкладка на экране): все сообщения деканата прочитаны. */
+export async function markDeanSeen(appId: string) {
+  const user = await requireStudent();
+  if (!UUID.test(String(appId))) return;
+  await sql`
+    update application_events e set seen_at = now(), read_at = coalesce(e.read_at, now())
+    from applications a
+    where e.application_id = a.id and a.id = ${appId} and a.user_id = ${user.id}
+      and e.kind in ('question', 'reply', 'ready', 'rejected') and e.text is not null and e.seen_at is null`;
+  refresh();
+}
+
+/** Отпечаток своей заявки для живого обновления. Чужая заявка даёт пустую строку. */
+export async function myVersion(appId: string) {
+  const user = await requireStudent();
+  return fingerprint(appId, user.id);
 }

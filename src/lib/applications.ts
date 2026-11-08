@@ -41,7 +41,7 @@ export type AppRow = {
   due_date: Date;
   verify_code: string | null;
 };
-export type EventRow = { application_id: string; kind: AppEvent["kind"]; text: string | null; read_at: Date | null; created_at: Date };
+export type EventRow = { application_id: string; kind: AppEvent["kind"]; text: string | null; read_at: Date | null; seen_at: Date | null; created_at: Date };
 
 export function toApplication(r: AppRow, all: EventRow[]): Application {
   const events = all.filter((e) => e.application_id === r.id);
@@ -69,14 +69,14 @@ export function toApplication(r: AppRow, all: EventRow[]): Application {
     question: r.status === "need_info" ? (events.findLast((e) => e.kind === "question")?.text ?? undefined) : undefined,
     verifyCode: r.verify_code ?? undefined,
     details: r.details ?? undefined,
-    events: events.map((e) => ({ at: fmtAt(e.created_at), kind: e.kind, text: e.text ?? undefined, read: e.read_at ? true : undefined })),
+    events: events.map((e) => ({ at: fmtAt(e.created_at), kind: e.kind, text: e.text ?? undefined, read: e.read_at ? true : undefined, seen: e.seen_at ? true : undefined })),
   };
 }
 
 export async function eventsFor(ids: string[]) {
   if (ids.length === 0) return [];
   return sql<EventRow[]>`
-    select application_id, kind, text, read_at, created_at from application_events
+    select application_id, kind, text, read_at, seen_at, created_at from application_events
     where application_id in ${sql(ids)} order by created_at, id`;
 }
 
@@ -126,4 +126,18 @@ export async function findByVerifyCode(code: string) {
 export async function deanAvatar() {
   const [row] = await sql<{ avatar: string | null }[]>`select avatar from users where role = 'staff' order by created_at limit 1`;
   return row?.avatar ?? null;
+}
+
+/**
+ * Отпечаток заявки для живого обновления: статус, число событий и отметок прочтения.
+ * Меняется, когда пришло сообщение, сменился статус или другая сторона прочитала. userId: только заявка этого студента.
+ */
+export async function fingerprint(appId: string, userId: string | null) {
+  if (!UUID.test(String(appId))) return "";
+  const [r] = await sql<{ v: string }[]>`
+    select concat_ws('|', a.status, count(e.id), count(e.seen_at), count(e.read_at)) as v
+    from applications a left join application_events e on e.application_id = a.id
+    where a.id = ${appId} ${userId ? sql`and a.user_id = ${userId}` : sql``}
+    group by a.id, a.status`;
+  return r?.v ?? "";
 }

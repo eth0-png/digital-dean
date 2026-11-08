@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useId, useState, useTransition, type FormEvent, type ReactNode } from "react";
+import { useCallback, useId, useState, useTransition, type FormEvent, type ReactNode } from "react";
 import { toast } from "sonner";
 import { CalendarCheck, CircleCheck, LoaderCircle, MessageCircleQuestion, PencilLine, Play, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import type { Names } from "@/lib/staff";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { isCertificate, isClosed, type AppStatus, type ChatMessage, type DocType, type Format } from "@/lib/documents";
-import { askStudent, issue, reject, sendReply, takeInWork } from "@/app/staff/actions";
+import { askStudent, issue, markRead, reject, sendReply, takeInWork } from "@/app/staff/actions";
 import { ChatRoot } from "@/components/documents/chat";
 
 type Result = { error?: string };
@@ -176,6 +176,7 @@ export function StaffChat({
   status: AppStatus;
   children: ReactNode;
 }) {
+  const seen = useCallback(() => markRead(id), [id]);
   return (
     <ChatRoot
       peer={{
@@ -185,6 +186,7 @@ export function StaffChat({
         about: `${student.group}, заявка № ${number}`,
       }}
       messages={messages}
+      onSeen={seen}
       compose={!isClosed(status) ? { label: "Сообщение студенту", placeholder: "Сообщение студенту", onSend: (t) => sendReply(id, t) } : undefined}
       closedText="Заявка закрыта, переписка завершена."
     >

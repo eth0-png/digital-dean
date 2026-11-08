@@ -89,7 +89,8 @@ export type AppEvent = {
   at: string;
   kind: "submitted" | "in_progress" | "question" | "answer" | "message" | "reply" | "ready" | "rejected" | "cancelled";
   text?: string;
-  read?: boolean;
+  read?: boolean; // уведомление просмотрено
+  seen?: boolean; // сообщение прочитано в переписке
 };
 
 export type Application = {
@@ -133,7 +134,7 @@ export const DEAN_OFFICE = {
 export const plural = (n: number, one: string, few: string, many: string) =>
   n % 10 === 1 && n % 100 !== 11 ? one : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? few : many;
 
-export type ChatMessage = { id: string; from: "me" | "them" | "system"; text: string; at: string; read?: string };
+export type ChatMessage = { id: string; from: "me" | "them" | "system"; text: string; at: string; read?: string; fresh?: boolean };
 export type Viewer = "student" | "staff";
 
 /** Переписка: вопросы и сообщения деканата, ответы студента. Остальные события истории в переписку не входят. */
@@ -154,13 +155,14 @@ const CHAT_STATUS: Partial<Record<AppEvent["kind"], string>> = {
 export function toChat(app: Application, viewer: Viewer): ChatMessage[] {
   const out: ChatMessage[] = [];
   const mineFrom = (k: AppEvent["kind"]) => (viewer === "student" ? fromStudent(k) : !fromStudent(k));
-  const receipt = (e: AppEvent) => (mineFrom(e.kind) ? (e.read ? "прочитано" : "доставлено") : undefined);
+  const receipt = (e: AppEvent) => (mineFrom(e.kind) ? (e.seen ? "прочитано" : "доставлено") : undefined);
+  const fresh = (e: AppEvent) => (!mineFrom(e.kind) && !e.seen) || undefined;
   app.events.forEach((e, i) => {
     if (TALK.includes(e.kind)) {
-      out.push({ id: String(i), from: mineFrom(e.kind) ? "me" : "them", text: e.text ?? "", at: e.at, read: receipt(e) });
+      out.push({ id: String(i), from: mineFrom(e.kind) ? "me" : "them", text: e.text ?? "", at: e.at, read: receipt(e), fresh: fresh(e) });
       return;
     }
-    if (e.text) out.push({ id: `${i}-text`, from: viewer === "staff" ? "me" : "them", text: e.text, at: e.at, read: receipt(e) });
+    if (e.text) out.push({ id: `${i}-text`, from: viewer === "staff" ? "me" : "them", text: e.text, at: e.at, read: receipt(e), fresh: fresh(e) });
     const title = e.kind === "ready" ? (isCertificate(app.type) ? "Справка готова" : "Заявка выполнена") : CHAT_STATUS[e.kind];
     if (title) out.push({ id: String(i), from: "system", text: title, at: e.at });
   });

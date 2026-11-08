@@ -1,6 +1,7 @@
 // Сквозной сценарий: студент заказывает справку, сотрудник берёт в работу и спрашивает в переписке,
 // студент отвечает и пишет ещё, сотрудник видит новые сообщения, отвечает и выдаёт справку с комментарием,
-// переписка закрывается, проверка по QR открывается без входа. Плюс отмена заявки студентом и исправление ФИО сотрудником.
+// переписка закрывается, проверка по QR открывается без входа. Плюс отмена заявки студентом, исправление ФИО сотрудником
+// и переписка в двух окнах сразу: всё приходит без перезагрузки, «прочитано» только у открытой переписки.
 // Создаёт заявки в базе, поэтому только локально.
 // Запуск: set -a && . ./.env && set +a && node scripts/check-flow.mjs http://localhost:3000
 // В окне компьютера: FLOW_SIZE=1366x768 node scripts/check-flow.mjs <адрес>
@@ -226,6 +227,74 @@ await fixName("Дмитриевна");
 await staff.waitForSelector("[role=dialog]", { hidden: true, timeout: 10000 });
 await go(student, "/profile");
 check((await text(student)).includes("Дмитриевна"), "ФИО вернули как было");
+
+// 9. Два окна одновременно: сообщения и статус приходят без перезагрузки, «прочитано» только у открытой переписки.
+// Страница заявки спрашивает сервер раз в 3 секунды, поэтому ждём до 10 секунд
+const LIVE = 10000;
+const until = (page, fn, ...args) =>
+  page.waitForFunction(fn, { timeout: LIVE }, ...args).then(
+    () => true,
+    () => false,
+  );
+const logText = (page) => page.$eval("[role=log]", (l) => l.innerText).catch(() => "");
+const live = await order(student);
+await go(staff, `/staff/${live.id}`);
+await press(staff, "Взять в работу");
+await waitText(staff, "Запросить уточнение");
+await settle(staff);
+check(await waitText(student, "В работе"), "студент без обновления видит «В работе»");
+
+await chat(student, "Написать в деканат", "Здравствуйте, когда будет готово?");
+check(
+  await until(staff, () => /1 нов/.test(document.querySelector("main").innerText)),
+  "сотрудник без обновления видит новое сообщение студента в истории",
+);
+// Карточку сотрудник открыл, переписку нет: сообщение не прочитано
+await new Promise((r) => setTimeout(r, 4000));
+check((await logText(student)).includes("доставлено") && !(await logText(student)).includes("прочитано"), "пока сотрудник не открыл переписку, у студента «доставлено»");
+
+await press(staff, "Переписка");
+await staff.waitForSelector("[role=log]");
+await settle(staff);
+check((await logText(staff)).includes("когда будет готово"), "сотрудник видит сообщение в переписке");
+check(
+  await until(student, () => document.querySelector("[role=log]")?.innerText.includes("прочитано")),
+  "сотрудник открыл переписку, у студента без обновления «прочитано»",
+);
+
+await staff.type("#chat-message", "Завтра к обеду");
+await staff.click('button[aria-label="Отправить"]');
+check(
+  await until(student, () => document.querySelector("[role=log]")?.innerText.includes("Завтра к обеду")),
+  "ответ сотрудника появился в открытой переписке студента без обновления",
+);
+check(
+  await until(staff, () => /Завтра к обеду[\s\S]*прочитано/.test(document.querySelector("[role=log]")?.innerText ?? "")),
+  "переписка у студента открыта, сотрудник видит «прочитано»",
+);
+
+// Студент закрыл переписку: новое сообщение доставлено, но не прочитано, даже после ленты уведомлений
+await closeChat(student);
+await staff.type("#chat-message", "Можно забрать в каб. 2105");
+await staff.click('button[aria-label="Отправить"]');
+await staff.waitForFunction(() => document.querySelector("[role=log]").innerText.includes("каб. 2105"), { timeout: LIVE });
+await go(student, "/notifications");
+await student.waitForNetworkIdle({ idleTime: 500 });
+await new Promise((r) => setTimeout(r, 4000));
+check(
+  /каб\. 2105\s+[^\n]*доставлено/.test(await logText(staff)) && !/каб\. 2105[\s\S]*прочитано/.test(await logText(staff)),
+  "студент видел только уведомление, у сотрудника «доставлено»",
+);
+
+// Статус тоже приходит сам: сотрудник запрашивает уточнение, студент на странице заявки видит вопрос
+await go(student, `/documents/${live.id}`);
+await closeChat(staff);
+await press(staff, "Запросить уточнение");
+await staff.waitForSelector("[role=dialog] textarea");
+await settle(staff);
+await staff.type("[role=dialog] textarea", "Нужна ли печать?");
+await staff.click("[role=dialog] button[type=submit]");
+check(await until(student, () => document.body.innerText.includes("Нужна ли печать?")), "студент без обновления видит «Нужно уточнение» и вопрос");
 
 await browser.close();
 console.log(failures ? `\nПровалено проверок: ${failures}` : "\nСквозной сценарий пройден");

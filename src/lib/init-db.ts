@@ -67,6 +67,14 @@ create table if not exists application_events (
   created_at timestamptz not null default now()
 );
 create index if not exists application_events_app_idx on application_events (application_id, created_at);
+-- seen_at: сообщение действительно прочитали в открытой переписке (для «прочитано» у автора).
+-- При первом появлении колонки переносим прежние отметки, дальше read_at и seen_at независимы
+do $$ begin
+  if not exists (select 1 from information_schema.columns where table_name = 'application_events' and column_name = 'seen_at') then
+    alter table application_events add column seen_at timestamptz;
+    update application_events set seen_at = read_at where read_at is not null;
+  end if;
+end $$;
 
 -- Аватарка: ключ из набора значков (src/lib/avatars.ts), без загрузки фото. Пусто — инициалы.
 alter table users add column if not exists avatar text check (avatar is null or length(avatar) <= 20);
@@ -147,8 +155,9 @@ async function seedApplications(userId: string, login: string, staffId: string |
     for (const e of a.events) {
       const author = e.kind === "question" ? (staffId ?? null) : e.kind === "answer" ? userId : null;
       await sql`
-        insert into application_events (application_id, kind, text, author_id, read_at, created_at)
+        insert into application_events (application_id, kind, text, author_id, read_at, seen_at, created_at)
         values (${app.id}, ${e.kind}, ${e.text ?? null}, ${author},
+                ${e.read ? sql`least(${base} + ${e.after}::interval, now())` : null},
                 ${e.read ? sql`least(${base} + ${e.after}::interval, now())` : null},
                 least(${base} + ${e.after}::interval, now()))`;
     }

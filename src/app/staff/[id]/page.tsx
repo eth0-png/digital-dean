@@ -5,10 +5,10 @@ import { DOC_TYPES, toChat } from "@/lib/documents";
 import { PageTransition, Reveal, SectionTitle } from "@/components/kit";
 import { BackLink } from "@/components/nav-trail";
 import { StatusCard, Timeline } from "@/components/documents/documents-ui";
-import { ChatButton, MarkRead } from "@/components/documents/chat";
+import { ChatButton, LiveUpdates } from "@/components/documents/chat";
 import { Facts } from "@/components/staff/staff-ui";
 import { StaffActions, StaffChat } from "@/components/staff/staff-client";
-import { markRead } from "../actions";
+import { staffVersion } from "../actions";
 
 export const metadata: Metadata = { title: "Заявка студента" };
 
@@ -29,7 +29,8 @@ async function StaffApplication({ params }: { params: Promise<{ id: string }> })
   return (
     <StaffChat id={app.id} number={app.number} student={student} messages={toChat(app, "staff")} status={app.status}>
       <div className="space-y-4">
-        {unread > 0 && <MarkRead run={markRead.bind(null, app.id)} />}
+        {/* Сообщения студента отмечаются прочитанными в открытой переписке, а не при открытии карточки */}
+        <LiveUpdates version={await staffVersion(app.id)} check={staffVersion.bind(null, app.id)} />
         <BackLink fallbackHref="/staff" fallbackLabel="Очередь" />
         {/* На широком экране две колонки: слева статус, действия и сведения, справа история */}
         <div className="space-y-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-8 lg:space-y-0">

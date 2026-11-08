@@ -242,7 +242,7 @@ export function Timeline({ app, viewer = "student", conversation }: { app: Appli
   const items = app.events.filter((e, i) => !isTalk(e.kind) || i === firstTalk);
   const waiting = app.status === "need_info";
   // Непрочитанные сообщения другой стороны
-  const unread = talk.filter((e) => !e.read && (viewer === "staff") === fromStudent(e.kind)).length;
+  const unread = talk.filter((e) => !e.seen && (viewer === "staff") === fromStudent(e.kind)).length;
   const last = talk.at(-1);
 
   const talkItem = (key: string | number, i: number) => (

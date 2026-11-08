@@ -62,7 +62,7 @@ const SELECT = sql`
   select a.id, a.number, a.type, a.purpose, a.format, a.details, a.status, a.due_date, a.verify_code, a.copies, a.created_at,
          u.last_name, u.first_name, u.middle_name, u.avatar, st.group_name, st.faculty, st.course, st.student_card,
          (select count(*) from application_events e
-           where e.application_id = a.id and e.kind in ('answer', 'message') and e.read_at is null)::int as unread
+           where e.application_id = a.id and e.kind in ('answer', 'message') and e.seen_at is null)::int as unread
   from applications a
   join users u on u.id = a.user_id
   left join students st on st.user_id = u.id`;

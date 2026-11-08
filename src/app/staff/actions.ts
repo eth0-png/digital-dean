@@ -5,7 +5,7 @@ import { refresh } from "next/cache";
 import type postgres from "postgres";
 import { sql } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
-import { UUID } from "@/lib/applications";
+import { UUID, fingerprint } from "@/lib/applications";
 
 // Действия сотрудника. Каждое само проверяет роль и допустимый переход статуса в WHERE:
 // заявку нельзя выдать дважды, а закрытую нельзя снова взять в работу.
@@ -101,10 +101,17 @@ export async function reject(id: string, reason: string) {
   return isError(r) ? r : move(id, ["submitted", "in_progress", "need_info"], "rejected", "rejected", r);
 }
 
-/** Сотрудник открыл заявку: ответы студента отмечаются прочитанными, студент видит «прочитано». */
+/** Сотрудник видит переписку (шторка открыта, вкладка на экране): сообщения студента прочитаны, студент видит «прочитано». */
 export async function markRead(id: string) {
   await requireStaff();
   if (!UUID.test(String(id))) return;
-  await sql`update application_events set read_at = now()
-            where application_id = ${id} and kind in ('answer', 'message') and read_at is null`;
+  await sql`update application_events set seen_at = now(), read_at = coalesce(read_at, now())
+            where application_id = ${id} and kind in ('answer', 'message') and seen_at is null`;
+  refresh();
+}
+
+/** Отпечаток заявки для живого обновления карточки сотрудника. */
+export async function staffVersion(id: string) {
+  await requireStaff();
+  return fingerprint(id, null);
 }

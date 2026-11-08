@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, use, useEffect, useOptimistic, useRef, useState, useSyncExternalStore, useTransition, type FormEvent, type ReactNode } from "react";
+import { createContext, use, useCallback, useEffect, useOptimistic, useRef, useState, useSyncExternalStore, useTransition, type FormEvent, type ReactNode } from "react";
 import { toast } from "sonner";
 import { ChevronDown, LoaderCircle, MessageCircle, Phone, SendHorizontal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,8 @@ import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerHeader, Dr
 import { withOffline } from "@/components/kit";
 import { UserAvatar } from "@/components/avatar";
 import { DEAN_OFFICE, type ChatMessage } from "@/lib/documents";
-import { cancelApplication, sendMessage } from "@/app/(student)/documents/actions";
+import { cancelApplication, markDeanSeen, sendMessage } from "@/app/(student)/documents/actions";
+import { useRouter } from "next/navigation";
 
 // Переписка по заявке (у студента и у сотрудника одна и та же), отмена заявки, отметка «прочитано».
 
@@ -43,6 +44,8 @@ type ChatProps = {
   messages: ChatMessage[];
   compose?: Compose;
   closedText: string;
+  /** Отметить входящие прочитанными. Вызывается, только пока шторка открыта и вкладка на экране */
+  onSeen?: () => Promise<void>;
 };
 
 const OpenChat = createContext<() => void>(() => {});
@@ -72,7 +75,7 @@ function useWide() {
   );
 }
 
-function Conversation({ peer, messages, compose, closedText, open, onOpenChange }: ChatProps & { open: boolean; onOpenChange: (v: boolean) => void }) {
+function Conversation({ peer, messages, compose, closedText, onSeen, open, onOpenChange }: ChatProps & { open: boolean; onOpenChange: (v: boolean) => void }) {
   const wide = useWide();
   const [text, setText] = useState("");
   const [pending, start] = useTransition();
@@ -82,6 +85,16 @@ function Conversation({ peer, messages, compose, closedText, open, onOpenChange 
   useEffect(() => {
     if (open) end.current?.scrollIntoView({ block: "end" });
   }, [open, list.length]);
+
+  // «Прочитано» ставим, только когда сообщение действительно перед глазами: шторка открыта и вкладка не в фоне
+  const fresh = messages.some((m) => m.fresh);
+  useEffect(() => {
+    if (!open || !fresh || !onSeen) return;
+    const mark = () => document.visibilityState === "visible" && onSeen().catch(() => {});
+    mark();
+    document.addEventListener("visibilitychange", mark);
+    return () => document.removeEventListener("visibilitychange", mark);
+  }, [open, fresh, onSeen]);
 
   function send(e: FormEvent) {
     e.preventDefault();
@@ -199,6 +212,7 @@ export function StudentChat({
   deanAvatar?: string | null;
   children: ReactNode;
 }) {
+  const seen = useCallback(() => markDeanSeen(appId), [appId]);
   return (
     <ChatRoot
       peer={{
@@ -209,6 +223,7 @@ export function StudentChat({
         phone: DEAN_OFFICE.phone,
       }}
       messages={messages}
+      onSeen={seen}
       compose={
         active
           ? {
@@ -303,6 +318,37 @@ export function CancelButton({ appId, number }: { appId: string; number: number 
 }
 
 /** Отметить прочитанным после показа, а не при отрисовке: предзагрузка ссылки не должна ничего отмечать. */
+/**
+ * Живое обновление страницы заявки: раз в 3 секунды, пока вкладка на экране, спрашиваем у сервера отпечаток
+ * (статус, число событий и отметок прочтения). Изменился, значит, пришло сообщение, сменился статус или другая сторона
+ * прочитала: перерисовываем страницу с сервера. Открытая шторка и набранный текст при этом остаются.
+ * ponytail: опрос, а не WebSocket. Для прототипа хватает, при сотнях открытых заявок перейти на LISTEN/NOTIFY и SSE.
+ */
+export function LiveUpdates({ version, check }: { version: string; check: () => Promise<string> }) {
+  const router = useRouter();
+  const known = useRef(version);
+  useEffect(() => {
+    known.current = version;
+  }, [version]);
+  useEffect(() => {
+    const tick = async () => {
+      if (document.visibilityState !== "visible") return;
+      const v = await check().catch(() => known.current);
+      if (v && v !== known.current) {
+        known.current = v;
+        router.refresh();
+      }
+    };
+    const timer = setInterval(tick, 3000);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", tick);
+    };
+  }, [check, router]);
+  return null;
+}
+
 export function MarkRead({ run }: { run: () => Promise<void> }) {
   useEffect(() => {
     run().catch(() => {}); // не получилось отметить, отметится при следующем открытии

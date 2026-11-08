@@ -14,6 +14,11 @@ const TABS = [
   { href: "/documents", label: "Документы", Icon: FileText },
 ];
 
+// Доли ширины вкладок под длину подписи: «Расписание» и «Документы» шире «Учёбы», чтобы у текста были поля. Сумма 4
+const COLS = [0.92, 1.16, 0.76, 1.16];
+const SUM = COLS.reduce((a, b) => a + b, 0);
+const left = (i: number) => (COLS.slice(0, i).reduce((a, b) => a + b, 0) / SUM) * 100;
+
 const activeTab = (path: string) => TABS.findIndex(({ href }) => (href === "/" ? path === "/" : path.startsWith(href)));
 
 /** Нижнее меню на телефоне. На широком экране вместо него меню слева (SideNav). */
@@ -37,14 +42,14 @@ export function BottomNav() {
       style={{ viewTransitionName: "app-nav" }}
       className="fixed inset-x-3 bottom-[max(12px,env(safe-area-inset-bottom))] z-20 mx-auto max-w-[420px] rounded-3xl bg-nav p-2 lg:hidden"
     >
-      <div className="relative grid grid-cols-4">
+      <div className="relative grid" style={{ gridTemplateColumns: COLS.map((c) => `${c}fr`).join(" ") }}>
         {/* Подсветка скользит между вкладками, а к профилю и уведомлениям просто гаснет */}
         <span
           aria-hidden="true"
-          className={`absolute inset-y-0 left-0 w-1/4 rounded-2xl bg-primary duration-[260ms] ease-[cubic-bezier(.2,.8,.2,1)] ${
-            pill.jump ? "transition-opacity" : "transition-[transform,opacity]"
+          className={`absolute inset-y-0 rounded-2xl bg-primary duration-[260ms] ease-[cubic-bezier(.2,.8,.2,1)] ${
+            pill.jump ? "transition-opacity" : "transition-[left,width,opacity]"
           }`}
-          style={{ transform: `translateX(${pill.pos * 100}%)`, opacity: active < 0 ? 0 : 1 }}
+          style={{ left: `${left(pill.pos)}%`, width: `${(COLS[pill.pos] / SUM) * 100}%`, opacity: active < 0 ? 0 : 1 }}
         />
         {TABS.map(({ href, label, Icon }, i) => (
           <Link

@@ -1,15 +1,10 @@
 // Проверка навигации: «назад» ведёт на предыдущую страницу, профиль и уведомления закрываются туда,
 // откуда их открыли, и нигде не появляется «Страница не найдена».
 // Запуск: SHOT_LOGIN=student1 SHOT_PASSWORD=... node scripts/check-nav.mjs <адрес>
-import puppeteer from "puppeteer-core";
-import path from "node:path";
+import { openPage } from "./browser.mjs";
 
 const base = process.argv[2];
-const browser = await puppeteer.launch({
-  executablePath: process.env.CHROME_PATH ?? path.join(process.env.LOCALAPPDATA ?? "", "Chromium/Application/chrome.exe"),
-});
-const page = await browser.newPage();
-await page.setViewport({ width: 360, height: 780, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+const { page, close } = await openPage();
 let failures = 0;
 const check = (ok, text) => {
   console.log(`${ok ? "ok    " : "ОШИБКА"} ${text}`);
@@ -135,6 +130,6 @@ if (process.env.ALLOW_WRITE) {
 await go("/profile");
 check(await tap('a[aria-label="Закрыть профиль"]', "/"), "профиль, открытый по ссылке, закрывается на «Сегодня»");
 
-await browser.close();
+await close();
 console.log(failures ? `\nПровалено проверок: ${failures}` : "\nВсе проверки навигации пройдены");
 process.exit(failures ? 1 : 0);

@@ -2,9 +2,8 @@
 // Запуск: node scripts/shot.mjs <адрес сайта> <префикс файла> имя:/путь [имя:/путь ...]
 // Пример: node scripts/shot.mjs http://localhost:3000 docs/screenshots/2026-11-08 login:/login today:/
 // Войти перед съёмкой: переменные SHOT_LOGIN и SHOT_PASSWORD.
-// Chromium: переменная CHROME_PATH или %LOCALAPPDATA%\Chromium\Application\chrome.exe.
-import puppeteer from "puppeteer-core";
-import path from "node:path";
+// Chromium: переменная CHROME_PATH или %LOCALAPPDATA%\Chromium\Application\chrome.exe. Эмулятор Android: CHROME_REMOTE (scripts/browser.mjs).
+import { openPage } from "./browser.mjs";
 
 const [base, prefix, ...pages] = process.argv.slice(2);
 if (!base || !prefix || pages.length === 0) {
@@ -12,13 +11,7 @@ if (!base || !prefix || pages.length === 0) {
   process.exit(2);
 }
 
-const browser = await puppeteer.launch({
-  executablePath:
-    process.env.CHROME_PATH ??
-    path.join(process.env.LOCALAPPDATA ?? "", "Chromium/Application/chrome.exe"),
-});
-const page = await browser.newPage();
-await page.setViewport({ width: 360, height: 780, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+const { page, close } = await openPage();
 await page.emulateMediaFeatures([{ name: "prefers-color-scheme", value: "light" }]);
 
 if (process.env.SHOT_LOGIN) {
@@ -48,10 +41,10 @@ for (const item of pages) {
   );
   const file = `${prefix}-${name}.png`;
   await page.screenshot({ path: file });
-  const ok = width <= 360;
+  const ok = width <= (await page.evaluate(() => innerWidth));
   failed ||= !ok;
   console.log(`${ok ? "ok  " : "ШИРЕ"} ${route} ширина ${width} px -> ${file}`);
   if (small.length) console.log(`     меньше 44 px: ${small.join(", ")}`);
 }
-await browser.close();
+await close();
 process.exit(failed ? 1 : 0);

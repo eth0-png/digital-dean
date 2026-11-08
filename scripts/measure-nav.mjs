@@ -2,20 +2,16 @@
 // считаем кадры дольше 33 мс (заметный рывок) и длинные кадры анимации браузера.
 // Запуск: SHOT_LOGIN=student1 SHOT_PASSWORD=... node scripts/measure-nav.mjs <адрес>
 // REDUCED=1 включает «уменьшение движения»: сравнить, сколько рывков даёт сама отрисовка без анимаций.
-import puppeteer from "puppeteer-core";
-import path from "node:path";
+import { openPage, remote } from "./browser.mjs";
 
 const base = process.argv[2];
-const browser = await puppeteer.launch({
-  executablePath: process.env.CHROME_PATH ?? path.join(process.env.LOCALAPPDATA ?? "", "Chromium/Application/chrome.exe"),
-});
-const page = await browser.newPage();
-await page.setViewport({ width: 360, height: 780, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+const { page, close } = await openPage();
 await page.goto(new URL("/login", base).href, { waitUntil: "networkidle0" });
 await page.type("input[name=login]", process.env.SHOT_LOGIN);
 await page.type("input[name=password]", process.env.SHOT_PASSWORD);
 await Promise.all([page.waitForNavigation({ waitUntil: "networkidle0" }), page.click("button[type=submit]")]);
-await page.emulateCPUThrottling(4);
+// В эмуляторе меряем как есть, на локальном Chromium замедляем процессор в 4 раза, как у среднего телефона
+if (!remote) await page.emulateCPUThrottling(4);
 if (process.env.REDUCED) await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "reduce" }]);
 
 const tabs = ["/schedule", "/study", "/documents", "/"];
@@ -42,7 +38,7 @@ for (let round = 0; round < 2; round++) {
     rows.push({ href, jank: d.filter((x) => x > 33).length, max: Math.round(Math.max(...d)), loaf: loaf.filter((x) => x > 50).length, ms: Date.now() - t0 });
   }
 }
-await browser.close();
+await close();
 const sum = (k) => rows.reduce((a, r) => a + r[k], 0);
 for (const r of rows) console.log(`${r.href.padEnd(11)} рывков ${String(r.jank).padStart(2)}  самый долгий кадр ${String(r.max).padStart(4)} мс  длинных кадров ${r.loaf}`);
 console.log(`Итого: рывков ${sum("jank")}, длинных кадров ${sum("loaf")}, самый долгий кадр ${Math.max(...rows.map((r) => r.max))} мс`);

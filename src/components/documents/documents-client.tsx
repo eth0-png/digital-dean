@@ -175,7 +175,7 @@ export function ShareButton({ title, url }: { title: string; url: string }) {
  * чем по вертикали, вертикальная прокрутка как обычно. Пока жест горизонтальный, гасим его для браузера (passive: false),
  * иначе браузер принимает свайп вправо за «назад» и уходит со страницы. Мышь не трогаем.
  */
-function useSwipe(ref: React.RefObject<HTMLElement | null>, onSwipe: (dir: 1 | -1) => void) {
+export function useSwipe(ref: React.RefObject<HTMLElement | null>, onSwipe: (dir: 1 | -1) => void) {
   const cb = useRef(onSwipe);
   useLayoutEffect(() => {
     cb.current = onSwipe;

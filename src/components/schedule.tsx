@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { Coffee } from "lucide-react";
+import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { CalendarDays, Coffee } from "lucide-react";
+import { useSwipe } from "@/components/documents/documents-client";
 import { stagger } from "@/components/kit";
 import type { Day, Lesson } from "@/lib/schedule";
 
@@ -70,6 +72,9 @@ export function DayLessons({ day }: { day: Day }) {
 export function WeekView({ days, selected }: { days: Day[]; selected: number }) {
   const [sel, setSel] = useState(selected);
   const day = days[sel];
+  // Свайп по парам листает дни внутри недели: влево следующий, вправо предыдущий
+  const area = useRef<HTMLDivElement>(null);
+  useSwipe(area, (dir) => setSel((i) => Math.min(Math.max(i + dir, 0), days.length - 1)));
   return (
     <div>
       <div className="grid grid-cols-6 gap-1.5 lg:hidden">
@@ -90,13 +95,15 @@ export function WeekView({ days, selected }: { days: Day[]; selected: number }) 
           </button>
         ))}
       </div>
-      <section key={day.date} className="mt-4 animate-in duration-200 fade-in lg:hidden" aria-label={`${day.full}, ${day.label}`}>
-        <h2 className="mb-2.5 font-display text-[15px] font-semibold">
-          {day.full}, {day.label}
-          {day.today && <span className="ml-2 rounded-md bg-accent px-1.5 py-0.5 text-[12px] text-accent-foreground">сегодня</span>}
-        </h2>
-        <DayLessons day={day} />
-      </section>
+      <div ref={area} className="touch-pan-y lg:hidden">
+        <section key={day.date} className="mt-4 animate-in duration-200 fade-in" aria-label={`${day.full}, ${day.label}`}>
+          <h2 className="mb-2.5 font-display text-[15px] font-semibold">
+            {day.full}, {day.label}
+            {day.today && <span className="ml-2 rounded-md bg-accent px-1.5 py-0.5 text-[12px] text-accent-foreground">сегодня</span>}
+          </h2>
+          <DayLessons day={day} />
+        </section>
+      </div>
 
       <div className="hidden gap-x-6 gap-y-8 lg:grid lg:grid-cols-2 xl:grid-cols-3">
         {days.map((d) => (
@@ -109,6 +116,48 @@ export function WeekView({ days, selected }: { days: Day[]; selected: number }) 
           </section>
         ))}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Даты недели посередине переключателя: нажатие открывает системный выбор даты (календарь телефона или браузера),
+ * выбранный день открывает свою неделю. Поле даты скрыто, открываем его через showPicker, где он есть.
+ */
+export function WeekPicker({ range, relation, monday }: { range: string; relation: string; monday: string }) {
+  const router = useRouter();
+  const input = useRef<HTMLInputElement>(null);
+  return (
+    <div className="relative flex-1">
+      <button
+        type="button"
+        onClick={() => {
+          const el = input.current;
+          if (!el) return;
+          try {
+            el.showPicker();
+          } catch {
+            el.focus();
+          }
+        }}
+        aria-label={`Выбрать неделю в календаре, сейчас ${range}${relation ? `, ${relation}` : ""}`}
+        className="press flex min-h-11 w-full flex-col items-center justify-center rounded-xl leading-tight"
+      >
+        <span className="inline-flex items-center gap-1.5 font-bold">
+          <CalendarDays size={17} className="text-primary" aria-hidden="true" />
+          {range}
+        </span>
+        {relation && <span className="text-[13px] text-muted-foreground">{relation}</span>}
+      </button>
+      <input
+        ref={input}
+        type="date"
+        tabIndex={-1}
+        aria-hidden="true"
+        defaultValue={monday}
+        onChange={(e) => e.target.value && router.push(`/schedule?date=${e.target.value}`, { scroll: false })}
+        className="pointer-events-none absolute bottom-0 left-1/2 h-px w-px opacity-0"
+      />
     </div>
   );
 }

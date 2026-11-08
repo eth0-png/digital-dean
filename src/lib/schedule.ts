@@ -144,7 +144,10 @@ export async function getWeek(date?: unknown) {
     return { date: d, short, full: FULL[i], label: dayLabel(d), today: d === today, lessons: applyDay(group, d, chs, d === today ? min : undefined) };
   });
   const sat = addDays(monday, 5);
-  const range = monday.slice(0, 7) === sat.slice(0, 7) ? `${Number(monday.slice(8))}–${dayLabel(sat)}` : `${dayLabel(monday)} – ${dayLabel(sat)}`;
+  const days2 = monday.slice(0, 7) === sat.slice(0, 7) ? `${Number(monday.slice(8))}–${dayLabel(sat)}` : `${dayLabel(monday)} – ${dayLabel(sat)}`;
+  // Неделя другого года (или на стыке лет): год в конце, иначе «4–9 января» непонятно какого года
+  const otherYear = monday.slice(0, 4) !== today.slice(0, 4) || sat.slice(0, 4) !== today.slice(0, 4);
+  const range = otherYear ? `${days2} ${sat.slice(0, 4)}` : days2;
   const current = addDays(today, -weekday(today) + (weekday(today) === 6 ? 7 : 0));
   return {
     days,

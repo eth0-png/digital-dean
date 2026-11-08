@@ -55,6 +55,37 @@ async function run(page, size) {
   await open('main a[href="/schedule"]', "/schedule", true);
   check((await where()) === "/schedule" && (await text()).includes("эта неделя"), `${tag}: «Сегодня» вернула текущую неделю`);
 
+  // Карточка пары: нажатие открывает шторку (на компьютере панель) с преподавателем, кафедрой, почтой, этажом,
+  // следующей такой же парой и «Добавить в календарь», который отдаёт файл .ics
+  await go("/schedule?date=2026-11-16"); // понедельник: у второй пары МП-31 есть комментарий
+  const lessonSel = "main li button";
+  const lessons = await page.$$eval(lessonSel, (bs) => bs.filter((b) => b.getClientRects().length).length);
+  await page.evaluate(() => {
+    const b = [...document.querySelectorAll("main li button")].filter((x) => x.getClientRects().length)[1];
+    b.setAttribute("data-pick", "1");
+    b.scrollIntoView({ block: "center" });
+  });
+  await settle();
+  await press('[data-pick="1"]');
+  const card = await page
+    .waitForSelector("[role=dialog]", { timeout: 8000 })
+    .then(() => settle())
+    .then(() => page.$eval("[role=dialog]", (d) => d.innerText))
+    .catch(() => "");
+  check(
+    lessons > 0 && /Преподаватель/.test(card) && /Кафедра/.test(card) && /@example\.org/.test(card) && /этаж/.test(card) && /Следующая такая пара/.test(card) && /Комментарий преподавателя/.test(card),
+    `${tag}: карточка пары открыта: преподаватель, кафедра, почта, этаж, комментарий, следующая пара`,
+  );
+  await page.evaluate(() => {
+    window.__ics = null;
+    URL.createObjectURL = (b) => ((window.__ics = b), "blob:test");
+  });
+  await page.locator("[role=dialog] button::-p-text(Добавить в календарь)").click();
+  const ics = await page.waitForFunction(() => window.__ics, { timeout: 5000 }).then(() => page.evaluate(() => window.__ics.text())).catch(() => "");
+  check(/BEGIN:VCALENDAR/.test(ics) && /DTSTART:2026111\dT\d{6}Z/.test(ics) && /SUMMARY:/.test(ics), `${tag}: «Добавить в календарь» собирает файл .ics`);
+  await page.keyboard.press("Escape");
+  await page.waitForSelector("[role=dialog]", { hidden: true, timeout: 8000 }).catch(() => {});
+
   // Неделя другого года: год в подписи
   await go("/schedule?date=2027-01-12");
   const range = await page.$eval('button[aria-label^="Выбрать неделю"]', (b) => b.innerText.replace(/\s+/g, " ").trim());

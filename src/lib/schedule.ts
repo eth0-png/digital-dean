@@ -22,17 +22,62 @@ type Kind = "лекция" | "семинар" | "практика";
 type Base = { slot: number; subject: string; kind: Kind; room: string; teacher: string };
 type ChangeKind = "moved" | "cancelled" | "room";
 
+export type Teacher = { full: string; dept: string; email: string };
 export type Lesson = Omit<Base, "kind"> & {
   kind: string; // лекция, семинар, практика, а в сессию «экзамен», «зачёт»
   start: string;
   end: string;
   place: string; // «ауд. 1024» или «спортзал»
+  date: string; // для карточки пары и календаря
+  day: string; // «Понедельник, 9 ноября»
+  floor?: number; // этаж по первой цифре номера аудитории
+  info?: Teacher; // полное имя, кафедра, почта
+  comment?: string; // комментарий преподавателя к паре
+  next?: string; // когда следующая такая же пара: «Четверг, 12 ноября, 10:30»
   change?: { kind: ChangeKind; from?: string; note?: string };
   state?: "past" | "now";
 };
 export type Day = { date: string; short: string; full: string; label: string; today: boolean; session: boolean; lessons: Lesson[] };
 
 const place = (room: string) => (/^\d/.test(room) ? `ауд. ${room}` : room);
+// Этаж по первой цифре четырёхзначного номера (ауд. 3012 на 3 этаже). Демо-допущение, уточнить у команды
+const floorOf = (room: string) => (/^\d{4}$/.test(room) ? Number(room[0]) : undefined);
+
+/**
+ * Преподаватели: полное имя, кафедра, почта. Все вымышленные, почта на зарезервированном для примеров домене example.org,
+ * чтобы не совпасть с чьим-то настоящим адресом. Названия кафедр по реалиям вуза.
+ */
+const TEACHERS: Record<string, Teacher> = {
+  "Орлова Н. В.": { full: "Орлова Наталья Викторовна", dept: "Кафедра международного права", email: "n.orlova@example.org" },
+  "Ершова А. Д.": { full: "Ершова Анна Дмитриевна", dept: "Кафедра английского языка", email: "a.ershova@example.org" },
+  "Кравцов Д. А.": { full: "Кравцов Денис Андреевич", dept: "Кафедра гражданского права и процесса", email: "d.kravtsov@example.org" },
+  "Миронова Е. П.": { full: "Миронова Елена Павловна", dept: "Кафедра уголовного права, уголовного процесса и криминалистики", email: "e.mironova@example.org" },
+  "Ткаченко В. Л.": { full: "Ткаченко Вера Леонидовна", dept: "Кафедра испанского языка", email: "v.tkachenko@example.org" },
+  "Савельев А. Н.": { full: "Савельев Артём Николаевич", dept: "Кафедра административного и финансового права", email: "a.saveliev@example.org" },
+  "Зайцев М. Р.": { full: "Зайцев Максим Романович", dept: "Кафедра физического воспитания", email: "m.zaitsev@example.org" },
+  "Лебедев К. С.": { full: "Лебедев Кирилл Сергеевич", dept: "Кафедра европейского права", email: "k.lebedev@example.org" },
+  "Фомина О. Ю.": { full: "Фомина Ольга Юрьевна", dept: "Кафедра гражданского права и процесса", email: "o.fomina@example.org" },
+  "Голубева Т. И.": { full: "Голубева Татьяна Игоревна", dept: "Кафедра уголовного права, уголовного процесса и криминалистики", email: "t.golubeva@example.org" },
+  "Белоусов П. Г.": { full: "Белоусов Павел Геннадьевич", dept: "Кафедра экономической теории", email: "p.belousov@example.org" },
+  "Соловьёва И. К.": { full: "Соловьёва Ирина Константиновна", dept: "Кафедра математики, эконометрики и информатики", email: "i.solovieva@example.org" },
+  "Шевченко Л. Н.": { full: "Шевченко Лариса Николаевна", dept: "Кафедра английского языка", email: "l.shevchenko@example.org" },
+  "Полякова Е. А.": { full: "Полякова Евгения Александровна", dept: "Кафедра истории России", email: "e.polyakova@example.org" },
+  "Никитин Р. В.": { full: "Никитин Роман Владимирович", dept: "Кафедра математики, эконометрики и информатики", email: "r.nikitin@example.org" },
+  "Гаврилов С. М.": { full: "Гаврилов Сергей Михайлович", dept: "Кафедра международных энергетических отношений", email: "s.gavrilov@example.org" },
+  "Тарасова М. О.": { full: "Тарасова Марина Олеговна", dept: "Кафедра философии", email: "m.tarasova@example.org" },
+};
+
+/** Комментарии преподавателей к парам: группа, день недели (0 — понедельник), номер пары. Демо-данные. */
+const COMMENTS: Record<string, string> = {
+  "МП-31:0:2": "К семинару прочитать главу 5 учебника и решить задачи 1–3.",
+  "МП-31:1:3": "Словарный диктант по теме «Суд и процесс».",
+  "МП-31:2:3": "Взять распечатку кейса, он в рассылке группы.",
+  "МП-31:3:3": "Разбор контрольной работы, принесите тетради.",
+  "МИЭП-12:0:2": "После лекции консультация для тех, кто пересдаёт контрольную.",
+  "МИЭП-12:1:3": "Решить задачи из раздела 4, в начале семинара самостоятельная.",
+  "МИЭП-12:3:3": "Подготовить выступление на 3 минуты о своём городе.",
+  "МИЭП-12:4:2": "Обсуждаем эссе, принесите черновики.",
+};
 const L = (slot: number, subject: string, kind: Kind, room: string, teacher: string): Base => ({ slot, subject, kind, room, teacher });
 
 // Неделя с понедельника. Суббота свободна.
@@ -95,13 +140,18 @@ function sessionDay(group: string, date: string): Lesson[] {
     .map((x) => {
       const base = all.find((l) => l.subject === x.subject && l.kind === "лекция") ?? all.find((l) => l.subject === x.subject);
       const room = base?.room ?? "1024";
+      const teacher = base?.teacher ?? "";
       return {
         slot: 1,
         subject: x.subject,
         kind: x.extra ? `${x.control} ${x.extra}` : x.control,
         room,
         place: place(room),
-        teacher: base?.teacher ?? "",
+        floor: floorOf(room),
+        teacher,
+        info: TEACHERS[teacher],
+        date,
+        day: dayFull(date),
         start: "10:00",
         end: x.control === "экзамен" ? "13:00" : "11:30",
       };
@@ -169,7 +219,19 @@ function changes(group: string, today: string): Change[] {
   });
 }
 
-function applyDay(group: string, date: string, chs: Change[], nowMin?: number): Lesson[] {
+const dayFull = (date: string) => `${FULL[weekday(date)]}, ${dayLabel(date)}`;
+
+/** Когда следующая такая же пара (тот же предмет и вид) в ближайшие две недели, с учётом изменений и сессии. */
+function nextOf(group: string, date: string, l: Lesson, chs: Change[]) {
+  for (let i = 1; i <= 14; i++) {
+    const d = addDays(date, i);
+    const n = applyDay(group, d, chs, undefined, false).find((x) => x.subject === l.subject && x.kind === l.kind && x.change?.kind !== "cancelled");
+    if (n) return `${dayFull(d)}, ${n.start}`;
+  }
+  return undefined;
+}
+
+function applyDay(group: string, date: string, chs: Change[], nowMin?: number, withNext = true): Lesson[] {
   const list = inSession(group, date)
     ? sessionDay(group, date)
     : baseDay(group, date)
@@ -177,7 +239,19 @@ function applyDay(group: string, date: string, chs: Change[], nowMin?: number): 
       const c = chs.find((c) => c.date === date && c.slot === l.slot);
       const slot = c?.toSlot ?? l.slot;
       const room = c?.room ?? l.room;
-      const lesson: Lesson = { ...l, slot, start: SLOTS[slot - 1][0], end: SLOTS[slot - 1][1], room, place: place(room) };
+      const lesson: Lesson = {
+        ...l,
+        slot,
+        start: SLOTS[slot - 1][0],
+        end: SLOTS[slot - 1][1],
+        room,
+        place: place(room),
+        floor: floorOf(room),
+        date,
+        day: dayFull(date),
+        info: TEACHERS[l.teacher],
+        comment: COMMENTS[`${group}:${weekday(date)}:${l.slot}`],
+      };
       if (c) lesson.change = { kind: c.kind, from: c.kind === "moved" ? SLOTS[l.slot - 1][0] : c.kind === "room" ? place(l.room) : undefined, note: c.note };
       return lesson;
     })
@@ -185,6 +259,7 @@ function applyDay(group: string, date: string, chs: Change[], nowMin?: number): 
   if (nowMin !== undefined) {
     for (const l of list) l.state = nowMin >= toMin(l.end) ? "past" : nowMin >= toMin(l.start) ? "now" : undefined;
   }
+  if (withNext) for (const l of list) l.next = nextOf(group, date, l, chs);
   return list;
 }
 

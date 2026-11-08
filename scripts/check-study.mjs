@@ -1,5 +1,5 @@
-// Проход по разделу «Учёба» обоими студентами: все семестры, вкладки на телефоне, колонки на компьютере, «назад» браузера.
-// На каждом шаге: нет горизонтальной прокрутки, ничего не вылезает за окно, выбранный семестр виден, кнопки от 44 px (телефон).
+// Проход по разделу «Учёба» обоими студентами: все курсы и семестры, график, вкладки на телефоне, колонки на компьютере, «назад» браузера.
+// На каждом шаге: нет горизонтальной прокрутки, ничего не вылезает за окно, кнопки от 44 px (телефон).
 // Только чтение, можно на боевом сайте.
 // Телефон: node scripts/check-study.mjs <адрес> <папка для снимков>   (с CHROME_REMOTE идёт в Chrome эмулятора Android)
 // Компьютер: SIZES=1024x768,1440x900 node scripts/check-study.mjs <адрес> <папка>
@@ -29,14 +29,14 @@ async function run(page, size, login, password) {
     });
   const where = () => page.evaluate(() => location.pathname + location.search);
   let shot = 0;
-  // Вёрстка: прокрутка вбок, вылезающее за окно (кроме прокручиваемой ленты семестров), мелкие кнопки на телефоне
+  // Вёрстка: прокрутка вбок, вылезающее за окно, мелкие кнопки на телефоне
   const inspect = async (step) => {
     await settle().catch(() => {});
     const bad = await page.evaluate((phone) => {
       const out = [];
       if (document.documentElement.scrollWidth > innerWidth) out.push(`прокрутка вбок ${document.documentElement.scrollWidth} > ${innerWidth}`);
       for (const el of document.querySelectorAll("main *")) {
-        if (el.closest(".sr-only, [aria-hidden=true], nav[aria-label=Семестры]") || !el.getClientRects().length) continue;
+        if (el.closest(".sr-only, [aria-hidden=true]") || !el.getClientRects().length) continue;
         const r = el.getBoundingClientRect();
         if (r.width && (r.right > innerWidth + 1 || r.left < -1)) out.push(`за окном: ${(el.textContent || el.tagName).trim().slice(0, 30)}`);
         if (phone && el.matches("a, button, [role=tab]") && getComputedStyle(el).display !== "inline" && (r.height < 44 || r.width < 44))
@@ -75,6 +75,8 @@ async function run(page, size, login, password) {
     });
     check(st.fromUrl && st.rows > 0 && st.pill, `${tag} ${login} ${step}: сразу открыта «${st.name}», строк ${st.rows}, подложка ${st.pill ? "на месте" : "не под ней"}`);
     for (const [i, id] of ids.entries()) {
+      // Вкладки могут быть под нижним меню: как человек, сначала прокручиваем к ним
+      await page.$eval(`[id="${id}"]`, (t) => t.scrollIntoView({ block: "center" }));
       await press(`[id="${id}"]`);
       await page.waitForFunction((id) => document.getElementById(id)?.getAttribute("aria-selected") === "true", { timeout: 5000 }, id).catch(() => {});
       const info = await page.evaluate((id) => {
@@ -98,41 +100,52 @@ async function run(page, size, login, password) {
   await page.waitForFunction(() => location.pathname !== "/login", { timeout: 20000 });
   await page.goto(new URL("/study", base).href, { waitUntil: "networkidle0" });
   await settle();
-  const sems = await page.$$eval("nav[aria-label=Семестры] a", (as) => as.map((a) => ({ href: a.getAttribute("href"), name: a.textContent.trim(), now: a.hasAttribute("aria-current") })));
-  check(sems.length > 0 && sems[0].now && sems[0].name.includes("сейчас"), `${tag} ${login}: открыт текущий семестр («${sems[0]?.name}»), всего ${sems.length}`);
-  check((await page.evaluate(() => document.body.innerText)).includes("Как дела"), `${tag} ${login}: сводка «Как дела» на месте`);
+  const main = () => page.evaluate(() => document.querySelector("main").innerText);
+  const selected = () => page.$eval("nav[aria-label=Семестры] a[aria-current=page]", (a) => ({ href: a.getAttribute("href"), name: a.getAttribute("aria-label") })).catch(() => null);
+  const start = await selected();
+  const text = await main();
+  check(start?.href === "/study" && start.name.includes("сейчас") && text.includes("средний балл"), `${tag} ${login}: открыт текущий семестр («${start?.name}»), крупно средний балл`);
+  // График только если есть прошлые семестры: с одним семестром сравнивать не с чем
+  const trend = await page.$eval("main svg[role=img]", (s) => s.getAttribute("aria-label")).catch(() => null);
+  const courses = await page.$$eval("nav[aria-label=Курсы] a", (as) => as.map((a) => ({ href: a.getAttribute("href"), name: a.textContent.trim() })));
+  check(courses.length ? Boolean(trend?.includes("сейчас")) : !trend, `${tag} ${login}: график по семестрам ${trend ? `(${trend})` : "не нужен, семестр один"}`);
+  const future = await page.$$eval("nav[aria-label=Семестры] [aria-disabled=true]", (n) => n.map((x) => x.tagName));
+  check(future.every((t) => t !== "A"), `${tag} ${login}: не начавшийся семестр не открывается (${future.length ? "есть, не ссылка" : "нет"})`);
   await tabs("текущий семестр");
 
-  for (const s of sems.slice(1).concat(sems[0])) {
-    const sel = `nav[aria-label=Семестры] a[href="${s.href}"]`;
-    await page.$eval(sel, (a) => a.scrollIntoView({ block: "nearest", inline: "nearest" }));
-    await press(sel);
-    await page.waitForFunction((h) => location.pathname + location.search === h, { timeout: 8000 }, s.href).catch(() => {});
+  // Каждый курс, в нём каждый семестр. Курс открывает свой последний семестр
+  const visited = ["/study"];
+  const open = async (sel, href, what) => {
+    await page.$eval(sel, (a) => a.scrollIntoView({ block: "center" }));
     await settle().catch(() => {});
-    const st = await page.evaluate((sel) => {
-      const a = document.querySelector(sel);
-      const r = a.getBoundingClientRect();
-      return { current: a.getAttribute("aria-current") === "page", inView: r.left >= -1 && r.right <= innerWidth + 1, text: document.querySelector("main").innerText };
-    }, sel);
-    const past = !s.now;
+    await press(sel);
+    await page.waitForFunction((h) => location.pathname + location.search === h, { timeout: 8000 }, href).catch(() => {});
+    await settle().catch(() => {});
+    visited.push(href);
+    const sem = await selected();
+    const t = await main();
+    const current = href === "/study";
     check(
-      (await where()) === s.href && st.current && st.inView && st.text.includes(past ? "Рейтинг за семестр" : "Как дела"),
-      `${tag} ${login}: «${s.name}» открыт, выбран, виден целиком, ${past ? "рейтинг" : "сводка"} на месте`,
+      (await where()) === href && sem?.href === href && t.includes("средний балл") && (current ? /Долгов нет|незачёт/.test(t) : /сданы|несданные/.test(t)),
+      `${tag} ${login}: ${what} → «${sem?.name}» открыт и выбран`,
     );
-    await tabs(s.name);
+    await tabs(sem?.name ?? href);
+  };
+  for (const c of courses) {
+    await open(`nav[aria-label=Курсы] a[href="${c.href}"]`, c.href, c.name);
+    const on = await page.$eval("nav[aria-label=Курсы] a[aria-current]", (a) => a.textContent.trim()).catch(() => "");
+    check(on === c.name, `${tag} ${login}: выбран «${c.name}»`);
+    const rest = await page.$$eval("nav[aria-label=Семестры] a:not([aria-current])", (as) => as.map((a) => a.getAttribute("href")));
+    for (const href of rest) await open(`nav[aria-label=Семестры] a[href="${href}"]`, href, "семестр");
   }
 
-  // «Назад» браузера возвращает предыдущий семестр, а не уводит из раздела
-  // Вкладка, выбранная в том семестре, тоже возвращается: она хранится в адресе
-  if (sems.length < 2) return;
-  const before = sems.at(-1).href;
+  // «Назад» браузера возвращает предыдущий семестр (с вкладкой, выбранной в нём), а не уводит из раздела
+  if (visited.length < 2) return;
+  const before = visited.at(-2);
   await page.goBack({ waitUntil: "networkidle0" }).catch(() => {});
   await settle().catch(() => {});
-  const back = await page.evaluate(() => ({
-    url: location.pathname + location.search,
-    current: document.querySelector("nav[aria-label=Семестры] a[aria-current=page]")?.getAttribute("href"),
-  }));
-  check(back.url.startsWith(before) && back.current === before, `${tag} ${login}: «назад» браузера вернул «${sems.at(-1).name}» (${back.url})`);
+  const back = { url: await where(), sem: await selected() };
+  check(back.url.startsWith(before) && back.sem?.href === before, `${tag} ${login}: «назад» браузера вернул ${before} (${back.url})`);
 }
 
 const accounts = [

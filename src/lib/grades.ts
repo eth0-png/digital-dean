@@ -88,8 +88,6 @@ export function letter(score: number): { letter: string; word: string; pass: boo
 }
 
 const avg = (xs: number[]) => (xs.length ? Math.round(xs.reduce((a, b) => a + b, 0) / xs.length) : 0);
-const plural = (n: number, one: string, few: string, many: string) =>
-  n % 10 === 1 && n % 100 !== 11 ? one : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? few : many;
 /** Ближайший будний день не раньше даты: пересдачи и сроки не выпадают на выходные. */
 const weekdayFrom = (date: string) => (weekday(date) === 5 ? addDays(date, 2) : weekday(date) === 6 ? addDays(date, 1) : date);
 
@@ -119,28 +117,39 @@ export async function getStudy(sem?: unknown) {
   const d = now();
   const yearStart = d.getMonth() >= 8 ? d.getFullYear() : d.getFullYear() - 1;
   const admitted = yearStart - (user.course ?? 1) + 1;
-  const years = (n: number) => `${admitted + Math.floor((n - 1) / 2)}/${String(admitted + Math.floor((n - 1) / 2) + 1).slice(2)}`;
+  // Нечётный семестр осенью, чётный весной следующего календарного года
+  const season = (n: number) => (n % 2 ? "осень" : "весна");
+  const year = (n: number) => admitted + Math.floor(n / 2);
   const n = Number(sem);
   const selected = Number.isInteger(n) && n >= 1 && n < current ? n : current;
 
-  const pastScores = rec.past.flatMap((p) => [...p.exams, ...p.credits].map((i) => i.score));
   const debts = mid.filter((m) => !m.pass);
-  const exams = rec.session.filter((s) => s.control === "экзамен");
-  const credits = rec.session.filter((s) => s.control === "зачёт");
+  const rating = (p: { exams: Item[]; credits: Item[] }) => avg([...p.exams, ...p.credits].map((i) => i.score));
 
   const summary = {
     debts: debts.map((m) => ({ subject: m.subject, work: m.work, retake: m.retake ? dayLabel(m.retake) : "" })),
-    average: pastScores.length ? { score: avg(pastScores), ...letter(avg(pastScores)), of: "за прошлые семестры" } : { score: avg(mid.map((m) => m.score)), ...letter(avg(mid.map((m) => m.score))), of: "по текущей аттестации" },
-    session: `Зачёты с ${dayLabel(credits[0]?.date ?? exams[0].date)}, экзамены с ${dayLabel(exams[0].date)}: ${exams.length} ${plural(exams.length, "экзамен", "экзамена", "экзаменов")} и ${credits.length} ${plural(credits.length, "зачёт", "зачёта", "зачётов")}`,
+    // Средний балл семестра, который идёт сейчас: по текущей аттестации
+    average: avg(mid.map((m) => m.score)),
     deadline: deadline && { title: deadline.title, text: deadline.text, due: dayLabel(deadline.due) },
   };
 
-  const semesters = Array.from({ length: current }, (_, i) => ({ n: i + 1, years: years(i + 1), current: i + 1 === current })).reverse();
+  // Курсы и их семестры: осень и весна. Весна текущего курса ещё не началась, она видна, но не открывается
+  const courses = Array.from({ length: Math.ceil(current / 2) }, (_, i) => i + 1)
+    .reverse()
+    .map((course) => ({
+      course,
+      semesters: [2 * course - 1, 2 * course].map((n) => ({ n, season: season(n), future: n > current, current: n === current })),
+    }));
+  const semesters = Array.from({ length: current }, (_, i) => ({ n: i + 1, title: `${i + 1} семестр, ${season(i + 1)} ${year(i + 1)}`, current: i + 1 === current })).reverse();
+  // Динамика: средний балл каждого прошлого семестра и текущей аттестации сейчас
+  const trend = [...rec.past.map((p, i) => ({ n: i + 1, score: rating(p), current: false })), { n: current, score: summary.average, current: true }];
   if (selected === current) {
     return {
+      courses,
       semesters,
       selected,
       summary,
+      trend,
       current: {
         mid: mid.map((m) => ({ subject: m.subject, work: m.work, score: m.score, letter: m.letter, word: m.word, pass: m.pass, date: dayLabel(m.date), retake: m.retake ? dayLabel(m.retake) : "" })),
         session: rec.session.map((s) => ({ subject: s.subject, control: s.control, date: dayLabel(s.date), extra: s.extra })),
@@ -150,14 +159,15 @@ export async function getStudy(sem?: unknown) {
   }
   const p = rec.past[selected - 1];
   const all = [...p.exams, ...p.credits];
-  const rating = avg(all.map((i) => i.score));
   const row = (i: Item) => ({ subject: i.subject, control: i.control, score: i.score, extra: i.extra, ...letter(i.score) });
   return {
+    courses,
     semesters,
     selected,
     summary,
+    trend,
     current: null,
-    past: { rating: { score: rating, ...letter(rating) }, exams: p.exams.map(row), credits: p.credits.map(row), passed: all.every((i) => letter(i.score).pass) },
+    past: { score: rating(p), exams: p.exams.map(row), credits: p.credits.map(row), passed: all.every((i) => letter(i.score).pass) },
   };
 }
 

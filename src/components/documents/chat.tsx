@@ -63,7 +63,7 @@ export function ChatRoot({ children, ...chat }: ChatProps & { children: ReactNod
 
 // На широком экране переписка выезжает справа панелью, на телефоне снизу шторкой
 const WIDE = "(min-width: 1024px)";
-function useWide() {
+export function useWide() {
   return useSyncExternalStore(
     (onChange) => {
       const m = matchMedia(WIDE);

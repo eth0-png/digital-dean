@@ -23,7 +23,7 @@ export default function StudentLayout({ children }: { children: ReactNode }) {
         <SideNav />
       </Suspense>
       <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col lg:max-w-5xl lg:px-6">
-        <header style={{ viewTransitionName: "app-header" }} className="sticky top-0 z-10 flex items-center gap-2 bg-background px-4 py-3 lg:justify-end">
+        <header style={{ viewTransitionName: "app-header" }} className="sticky top-0 z-30 flex items-center gap-2 bg-background px-4 py-3 lg:justify-end">
           <Link href="/" transitionTypes={["nav-tab"]} className="flex min-h-11 flex-1 items-center gap-2.5 lg:hidden" aria-label="На главную">
             <Logo />
             <span className="font-display text-base font-semibold">деканат</span>

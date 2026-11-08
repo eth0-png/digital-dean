@@ -15,7 +15,7 @@ export default function StaffLayout({ children }: { children: ReactNode }) {
       <a href="#main" className="sr-only z-50 rounded-xl bg-primary px-4 py-3 font-bold text-primary-foreground focus:not-sr-only focus:fixed focus:top-3 focus:left-3">
         Перейти к содержимому
       </a>
-      <header style={{ viewTransitionName: "app-header" }} className="sticky top-0 z-10 flex items-center gap-2.5 bg-background px-4 py-3">
+      <header style={{ viewTransitionName: "app-header" }} className="sticky top-0 z-30 flex items-center gap-2.5 bg-background px-4 py-3">
         <Link href="/staff" transitionTypes={["nav-back"]} className="flex min-h-11 flex-1 items-center gap-2.5" aria-label="К очереди заявок">
           <Logo />
           <span className="leading-tight">

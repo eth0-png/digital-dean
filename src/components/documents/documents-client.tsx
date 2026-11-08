@@ -214,7 +214,7 @@ export function ApplicationTabs({ tabs }: { tabs: { value: string; label: string
 
   return (
     <Tabs value={value} onValueChange={change} className="gap-4">
-      <TabsList ref={list} className="relative flex w-full gap-0 rounded-full bg-secondary p-1 group-data-horizontal/tabs:h-[52px]">
+      <TabsList ref={list} className="relative isolate flex w-full gap-0 rounded-full bg-secondary p-1 group-data-horizontal/tabs:h-[52px]">
         {pill && (
           <span
             aria-hidden="true"

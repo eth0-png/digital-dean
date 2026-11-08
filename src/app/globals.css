@@ -245,7 +245,7 @@ html[data-input="pointer"] :focus-visible {
     opacity: 0;
   }
 }
-/* График в «Учёбе»: линия прорисовывается слева направо (pathLength=1), затем точки по одной */
+/* Статистика в «Учёбе» (шторка): линия прорисовывается слева направо (pathLength=1), затем точки по одной */
 .spark-line {
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
@@ -255,6 +255,16 @@ html[data-input="pointer"] :focus-visible {
   opacity: 0;
   animation: spark-show 0.3s ease-out forwards;
   animation-delay: calc(0.25s + var(--i, 0) * 0.15s);
+}
+.spark-bar {
+  transform-origin: left;
+  animation: spark-grow 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: calc(0.2s + var(--i, 0) * 0.08s);
+}
+@keyframes spark-grow {
+  from {
+    transform: scaleX(0);
+  }
 }
 @keyframes spark-draw {
   to {

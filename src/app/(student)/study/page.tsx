@@ -5,6 +5,7 @@ import { CalendarClock, GraduationCap } from "lucide-react";
 import { getStudy } from "@/lib/grades";
 import { EmptyState, PageTransition, Reveal, SectionTitle, stagger } from "@/components/kit";
 import { ApplicationTabs } from "@/components/documents/documents-client";
+import { StatsSheet } from "@/components/study-stats";
 
 export const metadata: Metadata = { title: "Учёба" };
 
@@ -75,12 +76,13 @@ function SemesterPicker({ s }: { s: Study }) {
       {s.courses.length > 1 && (
         <nav aria-label="Курсы" className="flex gap-5 border-b">
           {s.courses.map((c) => {
-            const last = c.semesters.filter((x) => !x.future).at(-1)!;
+            // Курс открывает свой первый семестр (левый), он всегда уже начался
+            const first = c.semesters[0];
             const on = c.course === course.course;
             return (
               <Link
                 key={c.course}
-                href={semHref(last.n, last.current)}
+                href={semHref(first.n, first.current)}
                 transitionTypes={["nav-tab"]}
                 scroll={false}
                 aria-current={on ? "true" : undefined}
@@ -124,103 +126,25 @@ function SemesterPicker({ s }: { s: Study }) {
 }
 
 /**
- * Главная карточка семестра: крупно средний балл и рядом его динамика по семестрам, под ними только то,
- * что требует внимания. График в карточке, чтобы его было видно сразу, а оценки остались на первом экране.
+ * Главная карточка семестра: крупно средний балл, под ним только то, что требует внимания,
+ * внизу кнопка статистики (разница с прошлым семестром, по нажатию шторка с графиком).
  */
-function SemesterCard({ title, score, trend, selected, children }: { title: string; score: number; trend: Study["trend"]; selected: number; children: ReactNode }) {
+function SemesterCard({ s, title, score, children }: { s: Study; title: string; score: number; children: ReactNode }) {
+  const i = s.trend.findIndex((p) => p.n === s.selected);
+  const prev = s.trend[i - 1];
+  const delta = prev ? s.trend[i].score - prev.score : null;
+  const label = delta === null ? "Успеваемость" : delta === 0 ? `Как в ${prev.n} семестре` : `${delta > 0 ? "+" : "−"}${Math.abs(delta)} к ${prev.n} семестру`;
+  const points = s.trend.map((p) => ({ ...p, title: s.semesters.find((x) => x.n === p.n)?.title ?? "", href: semHref(p.n, p.current) }));
   return (
     <section className="enter rounded-2xl bg-primary p-[18px] text-primary-foreground" style={stagger(2)}>
       <span className="rounded-full bg-black/20 px-3 py-1 text-[13px] font-bold">{title}</span>
-      <div className="mt-3 flex items-end justify-between gap-4">
-        <p className="shrink-0">
-          <span className="block font-display text-[44px] leading-none font-semibold tabular-nums">{score}</span>
-          <span className="mt-1 block text-[14px] font-bold">средний балл</span>
-        </p>
-        {trend.length > 1 && <Trend points={trend} selected={selected} />}
-      </div>
+      <p className="mt-3 flex items-baseline gap-2.5">
+        <span className="font-display text-[44px] leading-none font-semibold tabular-nums">{score}</span>
+        <span className="text-[15px] font-bold">средний балл</span>
+      </p>
       {children}
+      <StatsSheet label={label} points={points} letters={s.letters} selected={s.selected} />
     </section>
-  );
-}
-
-/**
- * Динамика среднего балла: прошлые семестры линией, текущая аттестация пунктиром. Только свои оценки.
- * Выбранный семестр выделен, рядом разница с предыдущим. Линия прорисовывается слева направо (spark-line в globals.css).
- * Рисуем SVG сами: одна линия, библиотека графиков ради неё не нужна.
- */
-function Trend({ points, selected }: { points: Study["trend"]; selected: number }) {
-  const W = 168;
-  const H = 80;
-  const pad = 8;
-  const axis = 18; // место под номера семестров
-  const scores = points.map((p) => p.score);
-  const lo = Math.min(...scores) - 1;
-  const hi = Math.max(...scores) + 1;
-  const x = (i: number) => pad + (i * (W - 2 * pad)) / (points.length - 1);
-  const y = (v: number) => pad + ((hi - v) * (H - pad - axis)) / (hi - lo);
-  const past = points.filter((p) => !p.current);
-  const now = points.at(-1)!;
-  const i = points.findIndex((p) => p.n === selected);
-  const prev = points[i - 1];
-  const delta = prev ? points[i].score - prev.score : null;
-  const sign = delta === null || delta === 0 ? "" : delta > 0 ? "+" : "−";
-  return (
-    <figure className="min-w-0 flex-1 text-right lg:max-w-60">
-      <svg
-        viewBox={`0 0 ${W} ${H}`}
-        className="ml-auto block h-auto w-full max-w-44 overflow-visible lg:max-w-60"
-        role="img"
-        aria-label={`Средний балл по семестрам: ${points.map((p) => `${p.current ? "сейчас" : `${p.n} семестр`} ${p.score}`).join(", ")}`}
-      >
-        <polyline
-          points={past.map((p, k) => `${x(k)},${y(p.score)}`).join(" ")}
-          pathLength={1}
-          fill="none"
-          className="spark-line stroke-primary-foreground"
-          strokeWidth="2.5"
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
-        {/* Текущий семестр ещё идёт: последний отрезок пунктиром */}
-        <line
-          x1={x(past.length - 1)}
-          y1={y(past.at(-1)!.score)}
-          x2={x(points.length - 1)}
-          y2={y(now.score)}
-          className="spark-in stroke-primary-foreground/70"
-          style={{ "--i": points.length } as React.CSSProperties}
-          strokeWidth="2.5"
-          strokeDasharray="3 4"
-          strokeLinecap="round"
-        />
-        {points.map((p, k) => (
-          <circle
-            key={p.n}
-            cx={x(k)}
-            cy={y(p.score)}
-            r={k === i ? 5 : 3}
-            className={`spark-in ${k === i ? "fill-primary-foreground" : "fill-primary stroke-primary-foreground"}`}
-            style={{ "--i": k } as React.CSSProperties}
-            strokeWidth="2"
-          />
-        ))}
-        {/* Номера семестров под точками, выбранный ярче */}
-        {points.map((p, k) => (
-          <text
-            key={`n${p.n}`}
-            x={x(k)}
-            y={H - 2}
-            textAnchor="middle"
-            className={`text-[11px] tabular-nums ${k === i ? "fill-primary-foreground font-extrabold" : "fill-primary-foreground/65 font-semibold"}`}
-          >
-            {p.n}
-          </text>
-        ))}
-      </svg>
-      <figcaption className="mt-1.5 text-[12.5px] font-bold text-primary-foreground/85">
-        {delta === null ? "первый семестр" : delta === 0 ? `как в ${prev.n} семестре` : `${sign}${Math.abs(delta)} к ${prev.n} семестру`}
-      </figcaption>
-    </figure>
   );
 }
 
@@ -239,7 +163,7 @@ async function Study({ searchParams }: { searchParams: Promise<Record<string, st
       {s.current ? (
         <>
           <div className="space-y-3 lg:grid lg:grid-cols-2 lg:items-start lg:gap-8 lg:space-y-0">
-            <SemesterCard title={sem.title} score={s.summary.average} trend={s.trend} selected={sem.n}>
+            <SemesterCard s={s} title={sem.title} score={s.summary.average}>
               {s.summary.debts.length ? (
                 <>
                   <p className="mt-3 font-bold">{s.summary.debts.length === 1 ? "1 незачёт" : `${s.summary.debts.length} незачёта`}</p>
@@ -308,7 +232,7 @@ async function Study({ searchParams }: { searchParams: Promise<Record<string, st
         s.past && (
           <>
             <div className="lg:max-w-md">
-              <SemesterCard title={sem.title} score={s.past.score} trend={s.trend} selected={sem.n}>
+              <SemesterCard s={s} title={sem.title} score={s.past.score}>
                 <p className="mt-3 font-bold">{s.past.passed ? "Все экзамены и зачёты сданы" : "Есть несданные дисциплины"}</p>
               </SemesterCard>
             </div>

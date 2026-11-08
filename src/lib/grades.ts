@@ -143,6 +143,10 @@ export async function getStudy(sem?: unknown) {
   const semesters = Array.from({ length: current }, (_, i) => ({ n: i + 1, title: `${season(i + 1) === "осень" ? "Осень" : "Весна"} ${year(i + 1)}`, current: i + 1 === current })).reverse();
   // Динамика: средний балл каждого прошлого семестра и текущей аттестации сейчас
   const trend = [...rec.past.map((p, i) => ({ n: i + 1, score: rating(p), current: false })), { n: current, score: summary.average, current: true }];
+  const graded = [...rec.past.flatMap((p) => [...p.exams, ...p.credits]), ...rec.mid].map((i) => letter(i.score));
+  const letters = ["A", "B", "C", "D", "E", "F"]
+    .map((l) => ({ ...graded.find((g) => g.letter === l)!, count: graded.filter((g) => g.letter === l).length }))
+    .filter((l) => l.count > 0);
   if (selected === current) {
     return {
       courses,
@@ -150,6 +154,7 @@ export async function getStudy(sem?: unknown) {
       selected,
       summary,
       trend,
+      letters,
       current: {
         mid: mid.map((m) => ({ subject: m.subject, work: m.work, score: m.score, letter: m.letter, word: m.word, pass: m.pass, date: dayLabel(m.date), retake: m.retake ? dayLabel(m.retake) : "" })),
         session: rec.session.map((s) => ({ subject: s.subject, control: s.control, date: dayLabel(s.date), extra: s.extra })),
@@ -166,6 +171,7 @@ export async function getStudy(sem?: unknown) {
     selected,
     summary,
     trend,
+    letters,
     current: null,
     past: { score: rating(p), exams: p.exams.map(row), credits: p.credits.map(row), passed: all.every((i) => letter(i.score).pass) },
   };

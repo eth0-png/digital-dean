@@ -105,15 +105,50 @@ async function run(page, size, login, password) {
   const start = await selected();
   const text = await main();
   check(start?.href === "/study" && start.name.includes("сейчас") && text.includes("средний балл"), `${tag} ${login}: открыт текущий семестр («${start?.name}»), крупно средний балл`);
-  // График только если есть прошлые семестры: с одним семестром сравнивать не с чем
-  const trend = await page.$eval("main svg[role=img]", (s) => s.getAttribute("aria-label")).catch(() => null);
   const courses = await page.$$eval("nav[aria-label=Курсы] a", (as) => as.map((a) => ({ href: a.getAttribute("href"), name: a.textContent.trim() })));
-  check(courses.length ? Boolean(trend?.includes("сейчас")) : !trend, `${tag} ${login}: график по семестрам ${trend ? `(${trend})` : "не нужен, семестр один"}`);
   const future = await page.$$eval("nav[aria-label=Семестры] [aria-disabled=true]", (n) => n.map((x) => x.tagName));
   check(future.every((t) => t !== "A"), `${tag} ${login}: не начавшийся семестр не открывается (${future.length ? "есть, не ссылка" : "нет"})`);
   await tabs("текущий семестр");
 
-  // Каждый курс, в нём каждый семестр. Курс открывает свой последний семестр
+  // Шапка поверх содержимого: прокручиваем так, чтобы вкладки ушли под неё, и смотрим, что в её середине
+  const covered = await page.evaluate(async () => {
+    const header = document.querySelector("header");
+    const list = [...document.querySelectorAll("main [role=tablist]")].find((l) => l.getClientRects().length);
+    if (!header || !list) return "нет";
+    const h = header.getBoundingClientRect();
+    scrollBy(0, list.getBoundingClientRect().top - (h.top + h.height / 2) + 10);
+    await new Promise((r) => setTimeout(r, 200));
+    const r = list.getBoundingClientRect();
+    const el = document.elementFromPoint(r.left + r.width / 2, h.top + h.height / 2);
+    scrollTo(0, 0);
+    return el?.closest("header") ? "шапка" : `${el?.textContent?.trim().slice(0, 20)}`;
+  });
+  check(covered === "шапка" || covered === "нет", `${tag} ${login}: вкладки при прокрутке уходят под шапку (сверху: ${covered})`);
+
+  // Статистика: кнопка в карточке открывает шторку с графиком, семестрами и оценками
+  await page.$eval("main section button", (b) => b.scrollIntoView({ block: "center" }));
+  await settle().catch(() => {});
+  await press("main section button");
+  const sheet = await page
+    .waitForSelector("[role=dialog]", { timeout: 8000 })
+    .then(() => settle().catch(() => {}))
+    .then(() =>
+      page.evaluate(() => {
+        const d = document.querySelector("[role=dialog]");
+        return { title: d.querySelector("h2")?.textContent, chart: Boolean(d.querySelector("svg[role=img]")), sems: d.querySelectorAll("li a").length, letters: d.querySelectorAll("section:last-child li").length };
+      }),
+    )
+    .catch(() => null);
+  check(
+    sheet?.title === "Успеваемость" && sheet.sems === (courses.length ? sheet.sems : 1) && sheet.sems > 0 && sheet.letters > 0 && sheet.chart === courses.length > 0,
+    `${tag} ${login}: статистика открыта (график ${sheet?.chart ? "есть" : "нет"}, семестров ${sheet?.sems}, строк оценок ${sheet?.letters})`,
+  );
+  await page.screenshot({ path: path.join(out, `${tag}-${login}-stats.png`) });
+  await page.keyboard.press("Escape");
+  await page.waitForSelector("[role=dialog]", { hidden: true, timeout: 8000 }).catch(() => {});
+  await settle().catch(() => {});
+
+  // Каждый курс, в нём каждый семестр. Курс открывает свой первый (левый) семестр
   const visited = ["/study"];
   const open = async (sel, href, what) => {
     await page.$eval(sel, (a) => a.scrollIntoView({ block: "center" }));
@@ -146,6 +181,20 @@ async function run(page, size, login, password) {
   await settle().catch(() => {});
   const back = { url: await where(), sem: await selected() };
   check(back.url.startsWith(before) && back.sem?.href === before, `${tag} ${login}: «назад» браузера вернул ${before} (${back.url})`);
+
+  // Семестр из шторки статистики: открывается, шторка закрывается
+  await page.goto(new URL("/study", base).href, { waitUntil: "networkidle0" });
+  await settle().catch(() => {});
+  await page.$eval("main section button", (b) => b.scrollIntoView({ block: "center" }));
+  await press("main section button");
+  await page.waitForSelector("[role=dialog] li a", { timeout: 8000 });
+  await settle().catch(() => {});
+  const target = await page.$$eval("[role=dialog] li a", (as) => as.at(-1).getAttribute("href"));
+  await page.$eval(`[role=dialog] li a[href="${target}"]`, (a) => a.scrollIntoView({ block: "center" }));
+  await press(`[role=dialog] li a[href="${target}"]`);
+  await page.waitForFunction((h) => location.pathname + location.search === h, { timeout: 8000 }, target).catch(() => {});
+  await page.waitForSelector("[role=dialog]", { hidden: true, timeout: 8000 }).catch(() => {});
+  check((await where()) === target && !(await page.$("[role=dialog]")) && (await selected())?.href === target, `${tag} ${login}: семестр из статистики открыт (${target}), шторка закрыта`);
 }
 
 const accounts = [

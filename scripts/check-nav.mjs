@@ -36,7 +36,9 @@ const backLabel = () => page.$eval("[data-back]", (a) => a.textContent.trim()).c
 await go("/login");
 await page.type("input[name=login]", process.env.SHOT_LOGIN);
 await page.type("input[name=password]", process.env.SHOT_PASSWORD);
-await Promise.all([page.waitForNavigation({ waitUntil: "networkidle0" }), page.click("button[type=submit]")]);
+// Enter, а не нажатие: в Chrome эмулятора нажатие по «Войти» иногда не доходит. Next переходит без полной перезагрузки
+await page.keyboard.press("Enter");
+await page.waitForFunction(() => location.pathname !== "/login", { timeout: 20000 });
 
 const FIX = "/documents/new?type=data_fix";
 const STUDY = "/documents/new?type=study";

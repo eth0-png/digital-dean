@@ -172,7 +172,8 @@ export function ShareButton({ title, url }: { title: string; url: string }) {
  */
 /**
  * Горизонтальный свайп пальцем: 1 влево (следующая), −1 вправо (предыдущая). Только явный жест: 60 px и вдвое больше,
- * чем по вертикали, вертикальная прокрутка как обычно. Пока жест горизонтальный, гасим его для браузера (passive: false),
+ * чем по вертикали, вертикальная прокрутка как обычно. Слушаем всю страницу (main), чтобы свайп работал и по пустому фону,
+ * кроме лент с прокруткой вбок и полей ввода. Пока жест горизонтальный, гасим его для браузера (passive: false),
  * иначе браузер принимает свайп вправо за «назад» и уходит со страницы. Мышь не трогаем.
  */
 export function useSwipe(ref: React.RefObject<HTMLElement | null>, onSwipe: (dir: 1 | -1) => void) {
@@ -181,11 +182,20 @@ export function useSwipe(ref: React.RefObject<HTMLElement | null>, onSwipe: (dir
     cb.current = onSwipe;
   });
   useEffect(() => {
-    const el = ref.current;
+    const el = ref.current?.closest("main") ?? ref.current;
     if (!el) return;
     let from: { x: number; y: number } | null = null;
+    // Свой горизонтальный жест у лент с прокруткой вбок, полей ввода и того, что помечено data-no-swipe
+    const own = (t: EventTarget | null) => {
+      for (let n = t instanceof Element ? t : null; n && n !== el; n = n.parentElement) {
+        if (n.matches("input, textarea, select, [data-no-swipe]")) return true;
+        const o = getComputedStyle(n).overflowX;
+        if ((o === "auto" || o === "scroll") && n.scrollWidth > n.clientWidth) return true;
+      }
+      return false;
+    };
     const start = (e: TouchEvent) => {
-      from = e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null;
+      from = e.touches.length === 1 && !own(e.target) ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null;
     };
     const move = (e: TouchEvent) => {
       if (!from) return;

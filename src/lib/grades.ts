@@ -1,6 +1,6 @@
 import "server-only";
 import { requireStudent } from "./auth";
-import { addDays, dayLabel, moscow, now, weekday } from "./schedule";
+import { SESSION, addDays, dayLabel, moscow, now, weekday } from "./schedule";
 
 // Успеваемость по реалиям МГИМО (research/lks-mgimo-review.md): стобалльная шкала с буквой и словом,
 // семестры, экзамены и зачёты отдельно, текущая аттестация, рейтинг за семестр.
@@ -10,8 +10,7 @@ import { addDays, dayLabel, moscow, now, weekday } from "./schedule";
 type Control = "экзамен" | "зачёт";
 type Item = { subject: string; control: Control; score: number; extra?: string };
 type Mid = { subject: string; work: string; score: number; daysAgo: number; retakeIn?: number };
-type Exam = { subject: string; control: Control; date: string; extra?: string };
-type GroupRecord = { past: { exams: Item[]; credits: Item[] }[]; mid: Mid[]; session: Exam[]; deadline?: { title: string; text: string; inDays: number } };
+type GroupRecord = { past: { exams: Item[]; credits: Item[] }[]; mid: Mid[]; deadline?: { title: string; text: string; inDays: number } };
 
 const E = (subject: string, score: number, extra?: string): Item => ({ subject, control: "экзамен", score, extra });
 const Z = (subject: string, score: number): Item => ({ subject, control: "зачёт", score });
@@ -43,16 +42,6 @@ const RECORDS: { [group: string]: GroupRecord } = {
       { subject: "Европейское право", work: "эссе", score: 90, daysAgo: 11 },
       { subject: "Уголовный процесс", work: "контрольная работа", score: 85, daysAgo: 15 },
     ],
-    session: [
-      { subject: "Международное право", control: "зачёт", date: "2026-12-22" },
-      { subject: "Гражданское и торговое право зарубежных стран", control: "зачёт", date: "2026-12-23" },
-      { subject: "Криминология", control: "зачёт", date: "2026-12-24" },
-      { subject: "Иностранный язык в сфере юриспруденции", control: "зачёт", date: "2026-12-25" },
-      { subject: "Финансовое право", control: "экзамен", date: "2027-01-12" },
-      { subject: "Гражданский процесс", control: "экзамен", date: "2027-01-16" },
-      { subject: "Уголовный процесс", control: "экзамен", date: "2027-01-20" },
-      { subject: "Европейское право", control: "экзамен", date: "2027-01-24", extra: "и курсовая работа" },
-    ],
     deadline: { title: "Срок сдачи курсовой", text: "Европейское право: сдать курсовую работу научному руководителю", inDays: 12 },
   },
   "МИЭП-12": {
@@ -63,15 +52,6 @@ const RECORDS: { [group: string]: GroupRecord } = {
       { subject: "Английский язык", work: "тест", score: 91, daysAgo: 7 },
       { subject: "История России", work: "доклад на семинаре", score: 88, daysAgo: 10 },
       { subject: "Линейная алгебра", work: "контрольная работа", score: 76, daysAgo: 13 },
-    ],
-    session: [
-      { subject: "Английский язык", control: "зачёт", date: "2026-12-22" },
-      { subject: "Философия", control: "зачёт", date: "2026-12-23" },
-      { subject: "Введение в мировую энергетику", control: "зачёт", date: "2026-12-25" },
-      { subject: "Микроэкономика", control: "экзамен", date: "2027-01-13" },
-      { subject: "Математический анализ", control: "экзамен", date: "2027-01-17" },
-      { subject: "Линейная алгебра", control: "экзамен", date: "2027-01-21" },
-      { subject: "История России", control: "экзамен", date: "2027-01-25" },
     ],
     deadline: { title: "Срок сдачи эссе", text: "История России: сдать эссе к семинару", inDays: 6 },
   },
@@ -157,7 +137,7 @@ export async function getStudy(sem?: unknown) {
       letters,
       current: {
         mid: mid.map((m) => ({ subject: m.subject, work: m.work, score: m.score, letter: m.letter, word: m.word, pass: m.pass, date: dayLabel(m.date), retake: m.retake ? dayLabel(m.retake) : "" })),
-        session: rec.session.map((s) => ({ subject: s.subject, control: s.control, date: dayLabel(s.date), extra: s.extra })),
+        session: (SESSION[user.groupName ?? ""] ?? []).map((s) => ({ subject: s.subject, control: s.control, date: dayLabel(s.date), extra: s.extra })),
       },
       past: null,
     };

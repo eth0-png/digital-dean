@@ -22,14 +22,15 @@ type Kind = "лекция" | "семинар" | "практика";
 type Base = { slot: number; subject: string; kind: Kind; room: string; teacher: string };
 type ChangeKind = "moved" | "cancelled" | "room";
 
-export type Lesson = Base & {
+export type Lesson = Omit<Base, "kind"> & {
+  kind: string; // лекция, семинар, практика, а в сессию «экзамен», «зачёт»
   start: string;
   end: string;
   place: string; // «ауд. 1024» или «спортзал»
   change?: { kind: ChangeKind; from?: string; note?: string };
   state?: "past" | "now";
 };
-export type Day = { date: string; short: string; full: string; label: string; today: boolean; lessons: Lesson[] };
+export type Day = { date: string; short: string; full: string; label: string; today: boolean; session: boolean; lessons: Lesson[] };
 
 const place = (room: string) => (/^\d/.test(room) ? `ауд. ${room}` : room);
 const L = (slot: number, subject: string, kind: Kind, room: string, teacher: string): Base => ({ slot, subject, kind, room, teacher });
@@ -53,6 +54,59 @@ const TIMETABLE: Record<string, Base[][]> = {
     [],
   ],
 };
+
+/**
+ * Сессия: зачёты и экзамены по группам. На эти недели вместо обычных пар показываем их (с первого зачёта по последний экзамен).
+ * Отсюда же список «Сессия» в «Учёбе». Даты фиксированные, только будни и суббота.
+ */
+export type SessionItem = { subject: string; control: "экзамен" | "зачёт"; date: string; extra?: string };
+export const SESSION: Record<string, SessionItem[]> = {
+  "МП-31": [
+    { subject: "Международное право", control: "зачёт", date: "2026-12-22" },
+    { subject: "Гражданское и торговое право зарубежных стран", control: "зачёт", date: "2026-12-23" },
+    { subject: "Криминология", control: "зачёт", date: "2026-12-24" },
+    { subject: "Иностранный язык в сфере юриспруденции", control: "зачёт", date: "2026-12-25" },
+    { subject: "Финансовое право", control: "экзамен", date: "2027-01-12" },
+    { subject: "Гражданский процесс", control: "экзамен", date: "2027-01-16" },
+    { subject: "Уголовный процесс", control: "экзамен", date: "2027-01-20" },
+    { subject: "Европейское право", control: "экзамен", date: "2027-01-25", extra: "и курсовая работа" },
+  ],
+  "МИЭП-12": [
+    { subject: "Английский язык", control: "зачёт", date: "2026-12-22" },
+    { subject: "Философия", control: "зачёт", date: "2026-12-23" },
+    { subject: "Введение в мировую энергетику", control: "зачёт", date: "2026-12-25" },
+    { subject: "Микроэкономика", control: "экзамен", date: "2027-01-13" },
+    { subject: "Математический анализ", control: "экзамен", date: "2027-01-18" },
+    { subject: "Линейная алгебра", control: "экзамен", date: "2027-01-21" },
+    { subject: "История России", control: "экзамен", date: "2027-01-25" },
+  ],
+};
+
+const inSession = (group: string, date: string) => {
+  const s = SESSION[group];
+  return Boolean(s?.length) && date >= s[0].date && date <= s.at(-1)!.date;
+};
+
+/** День сессии: зачёты и экзамены этого дня. Аудитория и преподаватель как у лекции по предмету. */
+function sessionDay(group: string, date: string): Lesson[] {
+  const all = TIMETABLE[group]?.flat() ?? [];
+  return (SESSION[group] ?? [])
+    .filter((x) => x.date === date)
+    .map((x) => {
+      const base = all.find((l) => l.subject === x.subject && l.kind === "лекция") ?? all.find((l) => l.subject === x.subject);
+      const room = base?.room ?? "1024";
+      return {
+        slot: 1,
+        subject: x.subject,
+        kind: x.extra ? `${x.control} ${x.extra}` : x.control,
+        room,
+        place: place(room),
+        teacher: base?.teacher ?? "",
+        start: "10:00",
+        end: x.control === "экзамен" ? "13:00" : "11:30",
+      };
+    });
+}
 
 /**
  * Изменения от ближайшего учебного дня (day 0 — сегодня или следующий учебный день).
@@ -115,7 +169,9 @@ function changes(group: string, today: string): Change[] {
 }
 
 function applyDay(group: string, date: string, chs: Change[], nowMin?: number): Lesson[] {
-  const list = baseDay(group, date)
+  const list = inSession(group, date)
+    ? sessionDay(group, date)
+    : baseDay(group, date)
     .map((l): Lesson => {
       const c = chs.find((c) => c.date === date && c.slot === l.slot);
       const slot = c?.toSlot ?? l.slot;
@@ -141,7 +197,7 @@ export async function getWeek(date?: unknown) {
   const chs = changes(group, today);
   const days: Day[] = SHORT.slice(0, 6).map((short, i) => {
     const d = addDays(monday, i);
-    return { date: d, short, full: FULL[i], label: dayLabel(d), today: d === today, lessons: applyDay(group, d, chs, d === today ? min : undefined) };
+    return { date: d, short, full: FULL[i], label: dayLabel(d), today: d === today, session: inSession(group, d), lessons: applyDay(group, d, chs, d === today ? min : undefined) };
   });
   const sat = addDays(monday, 5);
   const days2 = monday.slice(0, 7) === sat.slice(0, 7) ? `${Number(monday.slice(8))}–${dayLabel(sat)}` : `${dayLabel(monday)} – ${dayLabel(sat)}`;
@@ -156,7 +212,16 @@ export async function getWeek(date?: unknown) {
     monday,
     prev: addDays(monday, -7),
     next: addDays(monday, 7),
-    relation: monday === current ? "эта неделя" : monday === addDays(current, 7) ? "следующая неделя" : monday === addDays(current, -7) ? "прошлая неделя" : "",
+    relation:
+      monday === current
+        ? "эта неделя"
+        : monday === addDays(current, 7)
+          ? "следующая неделя"
+          : monday === addDays(current, -7)
+            ? "прошлая неделя"
+            : days.some((d) => d.session)
+              ? "сессия"
+              : "",
     isCurrent: monday === current,
   };
 }

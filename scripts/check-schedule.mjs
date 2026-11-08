@@ -47,13 +47,13 @@ async function run(page, size) {
 
   await go("/schedule");
   let t = await text();
-  check(t.includes("эта неделя") && !t.includes("На этой неделе есть изменения") && !t.includes("Перейти к текущей неделе"), `${tag}: эта неделя, без плашки об изменениях и без кнопки возврата`);
+  check(t.includes("эта неделя") && !t.includes("На этой неделе есть изменения") && !(await page.$('main a[href="/schedule"]')), `${tag}: эта неделя, без плашки об изменениях и без кнопки «Сегодня»`);
 
   await open('a[aria-label="Следующая неделя"]', "/schedule?date=");
   t = await text();
-  check(t.includes("следующая неделя") && t.includes("Перейти к текущей неделе"), `${tag}: следующая неделя, есть «Перейти к текущей неделе»`);
+  check(t.includes("следующая неделя") && Boolean(await page.$('main a[href="/schedule"]')), `${tag}: следующая неделя, есть «Сегодня»`);
   await open('main a[href="/schedule"]', "/schedule", true);
-  check((await where()) === "/schedule" && (await text()).includes("эта неделя"), `${tag}: «Перейти к текущей неделе» вернула текущую`);
+  check((await where()) === "/schedule" && (await text()).includes("эта неделя"), `${tag}: «Сегодня» вернула текущую неделю`);
 
   // Неделя другого года: год в подписи
   await go("/schedule?date=2027-01-12");
@@ -72,6 +72,27 @@ async function run(page, size) {
   await page.waitForFunction((v) => location.search.includes(v), { timeout: 8000 }, picked).catch(() => {});
   await settle();
   check((await where()).includes(picked) && (await text()).includes("декабря"), `${tag}: выбор ${picked} в календаре открыл его неделю (${await where()})`);
+
+  // Дата из календаря в той же неделе: переключается день (раньше адрес менялся, а день нет)
+  await go("/schedule");
+  const monday = await page.$eval('main input[type="date"]', (el) => el.defaultValue);
+  const wed = new Date(Date.parse(`${monday}T00:00:00Z`) + 2 * 86400000).toISOString().slice(0, 10);
+  await page.$eval('main input[type="date"]', (el, v) => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(el, v);
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+  }, wed);
+  await page.waitForFunction((v) => location.search.includes(v), { timeout: 8000 }, wed).catch(() => {});
+  await settle();
+  if (phone) {
+    const h = await page.$eval("main section[aria-label] h2", (x) => x.textContent).catch(() => "");
+    check(h.startsWith("Среда"), `${tag}: среда из календаря в той же неделе открыла среду («${h.trim()}»)`);
+  }
+
+  // Неделя сессии: вместо пар зачёты и экзамены
+  await go("/schedule?date=2027-01-12");
+  t = await page.evaluate(() => document.querySelector("main").innerText);
+  check(t.includes("сессия") && t.includes("Финансовое право") && t.includes("экзамен") && !t.includes("лекция"), `${tag}: неделя сессии показывает экзамены, а не пары`);
 
   // Свайп по парам листает дни (только пальцем, на телефоне)
   if (!size && phone) {
@@ -95,6 +116,23 @@ async function run(page, size) {
     const back = await swipe(0.15, 0.85);
     const stay = (await where()).startsWith("/schedule");
     check(next && next !== before && back === before && stay, `${tag}: свайп по парам: «${before}» → «${next}» → «${back}»${stay ? "" : ", но браузер ушёл со страницы"}`);
+
+    // Свайп по пустому фону: из субботы влево открывает следующую неделю с понедельника
+    await page.$eval('main button[aria-label^="Суббота"]', (b) => b.scrollIntoView({ block: "center" }));
+    await page.tap('main button[aria-label^="Суббота"]');
+    await new Promise((r) => setTimeout(r, 400));
+    const blank = await page.evaluate(() => {
+      const r = document.querySelector("main section[aria-label]").getBoundingClientRect();
+      return { x: innerWidth / 2, y: Math.min(r.bottom + 40, innerHeight - 140) };
+    });
+    const url = await where();
+    await page.touchscreen.touchStart(blank.x + 120, blank.y);
+    for (let k = 1; k <= 6; k++) await page.touchscreen.touchMove(blank.x + 120 - k * 45, blank.y + k);
+    await page.touchscreen.touchEnd();
+    await page.waitForFunction((u) => location.pathname + location.search !== u, { timeout: 8000 }, url).catch(() => {});
+    await settle();
+    const h = await page.$eval("main section[aria-label] h2", (x) => x.textContent).catch(() => "");
+    check((await where()).startsWith("/schedule?date=") && h.startsWith("Понедельник"), `${tag}: свайп по пустому месту из субботы открыл следующую неделю («${h.trim()}», ${await where()})`);
   }
 }
 

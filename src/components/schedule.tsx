@@ -52,7 +52,7 @@ export function DayLessons({ day }: { day: Day }) {
     return (
       <p className="enter flex items-center gap-2.5 rounded-xl bg-secondary px-3.5 py-3 text-sm text-muted-foreground">
         <Coffee size={18} aria-hidden="true" />
-        Пар нет
+        {day.session ? "Сессия, в этот день нет экзаменов и зачётов" : "Пар нет"}
       </p>
     );
   }
@@ -69,12 +69,18 @@ export function DayLessons({ day }: { day: Day }) {
  * Неделя. На телефоне дни кнопками и пары выбранного дня, переключение без перезагрузки.
  * На широком экране вся неделя сразу: по два дня в ряд, от 1280 px по три.
  */
-export function WeekView({ days, selected }: { days: Day[]; selected: number }) {
+export function WeekView({ days, selected, prev, next }: { days: Day[]; selected: number; prev: string; next: string }) {
+  const router = useRouter();
   const [sel, setSel] = useState(selected);
   const day = days[sel];
-  // Свайп по парам листает дни внутри недели: влево следующий, вправо предыдущий
+  // Свайп листает дни: влево следующий, вправо предыдущий. После субботы следующая неделя с понедельника,
+  // перед понедельником прошлая неделя с субботы
   const area = useRef<HTMLDivElement>(null);
-  useSwipe(area, (dir) => setSel((i) => Math.min(Math.max(i + dir, 0), days.length - 1)));
+  useSwipe(area, (dir) => {
+    const i = sel + dir;
+    if (i >= 0 && i < days.length) return setSel(i);
+    router.push(`/schedule?date=${dir > 0 ? next : prev}`, { scroll: false });
+  });
   return (
     <div>
       <div className="grid grid-cols-6 gap-1.5 lg:hidden">

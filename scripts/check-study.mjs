@@ -103,6 +103,7 @@ async function run(page, size, login, password) {
       await new Promise((r) => setTimeout(r, 400));
       return page.evaluate(() => [...document.querySelectorAll("main [role=tab]")].find((t) => t.getClientRects().length && t.getAttribute("aria-selected") === "true")?.id);
     };
+    if (size) return; // окно компьютера с мышью: свайпа пальцем там нет
     const back = await swipe(0.2, 0.85);
     const fwd = await swipe(0.85, 0.2);
     const stay = (await where()).startsWith("/study");

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ChevronDown, ChevronRight, X } from "lucide-react";
+import { ChartLine, ChevronDown, ChevronRight, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { useWide } from "@/components/documents/chat";
@@ -13,9 +13,9 @@ export type LetterCount = { letter: string; word: string; count: number; pass: b
 /**
  * Статистика успеваемости в шторке (на компьютере панелью справа, как переписка): график среднего балла
  * по семестрам, список семестров с переходом и сколько каких оценок. Только свои оценки, без чужих данных.
- * Кнопка открытия живёт в карточке семестра, сама карточка остаётся чистой.
+ * Кнопка открытия строкой под карточкой семестра, сама карточка остаётся чистой.
  */
-export function StatsSheet({ label, points, letters, selected }: { label: string; points: StatPoint[]; letters: LetterCount[]; selected: number }) {
+export function StatsSheet({ points, letters, selected }: { points: StatPoint[]; letters: LetterCount[]; selected: number }) {
   const wide = useWide();
   const [open, setOpen] = useState(false);
   const total = letters.reduce((a, l) => a + l.count, 0);
@@ -23,11 +23,19 @@ export function StatsSheet({ label, points, letters, selected }: { label: string
     <>
       <button
         type="button"
+        data-stats
         onClick={() => setOpen(true)}
-        className="press mt-4 inline-flex min-h-11 items-center gap-1 rounded-full bg-white/15 pr-3 pl-4 text-[14px] font-bold hover:bg-white/25"
+        className="press enter flex w-full items-center gap-3 rounded-2xl border bg-card px-3.5 py-3 text-left hover:bg-secondary"
+        style={{ "--i": 3 } as React.CSSProperties}
       >
-        {label}
-        <ChevronRight size={18} aria-hidden="true" />
+        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-accent text-primary">
+          <ChartLine size={20} aria-hidden="true" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-bold">Успеваемость</span>
+          <span className="block text-[13px] text-muted-foreground">График и все оценки</span>
+        </span>
+        <ChevronRight size={18} className="text-muted-foreground" aria-hidden="true" />
       </button>
       <Drawer open={open} onOpenChange={setOpen} direction={wide ? "right" : "bottom"}>
         <DrawerContent
@@ -86,7 +94,7 @@ export function StatsSheet({ label, points, letters, selected }: { label: string
 
             <section aria-labelledby="stats-letters">
               <h3 id="stats-letters" className="mb-2 font-display text-[15px] font-semibold">
-                Все оценки, {total}
+                Все оценки
               </h3>
               <ul className="space-y-2">
                 {letters.map((l, i) => (
@@ -166,7 +174,6 @@ function Chart({ points, selected }: { points: StatPoint[]; selected: number }) 
           );
         })}
       </svg>
-      <figcaption className="mt-1 text-[13px] text-muted-foreground">Сейчас: по текущей аттестации, семестр ещё идёт.</figcaption>
     </figure>
   );
 }

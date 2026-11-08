@@ -125,12 +125,8 @@ function SemesterPicker({ s }: { s: Study }) {
   );
 }
 
-/**
- * Главная карточка семестра: крупно средний балл, под ним только то, что требует внимания,
- * внизу кнопка «Успеваемость» (по нажатию шторка со статистикой).
- */
-function SemesterCard({ s, title, score, children }: { s: Study; title: string; score: number; children: ReactNode }) {
-  const points = s.trend.map((p) => ({ ...p, title: s.semesters.find((x) => x.n === p.n)?.title ?? "", href: semHref(p.n, p.current) }));
+/** Главная карточка семестра: крупно средний балл, под ним только то, что требует внимания. */
+function SemesterCard({ title, score, children }: { title: string; score: number; children: ReactNode }) {
   return (
     <section className="enter rounded-2xl bg-primary p-[18px] text-primary-foreground" style={stagger(2)}>
       <span className="rounded-full bg-black/20 px-3 py-1 text-[13px] font-bold">{title}</span>
@@ -139,15 +135,22 @@ function SemesterCard({ s, title, score, children }: { s: Study; title: string; 
         <span className="text-[15px] font-bold">средний балл</span>
       </p>
       {children}
-      <StatsSheet label="Успеваемость" points={points} letters={s.letters} selected={s.selected} />
     </section>
   );
+}
+
+/** Строка «Успеваемость» под карточкой: открывает шторку с графиком, семестрами и оценками. */
+function Stats({ s }: { s: Study }) {
+  const points = s.trend.map((p) => ({ ...p, title: s.semesters.find((x) => x.n === p.n)?.title ?? "", href: semHref(p.n, p.current) }));
+  return <StatsSheet points={points} letters={s.letters} selected={s.selected} />;
 }
 
 async function Study({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const s = await getStudy((await searchParams).sem);
   if (!s) {
-    return <EmptyState icon={<GraduationCap size={24} aria-hidden="true" />} title="Оценок пока нет" text="Когда появятся оценки и расписание сессии, они будут здесь." />;
+    return (
+      <EmptyState icon={<GraduationCap size={24} aria-hidden="true" />} title="Оценок пока нет" text="Когда появятся оценки и расписание сессии, они будут здесь." />
+    );
   }
   const sem = s.semesters.find((x) => x.n === s.selected)!;
 
@@ -159,30 +162,33 @@ async function Study({ searchParams }: { searchParams: Promise<Record<string, st
       {s.current ? (
         <>
           <div className="space-y-3 lg:grid lg:grid-cols-2 lg:items-start lg:gap-8 lg:space-y-0">
-            <SemesterCard s={s} title={sem.title} score={s.summary.average}>
-              {s.summary.debts.length ? (
-                <>
-                  <p className="mt-3 font-bold">{s.summary.debts.length === 1 ? "1 незачёт" : `${s.summary.debts.length} незачёта`}</p>
-                  {s.summary.debts.map((d) => (
-                    <p key={d.subject} className="mt-0.5 text-sm">
-                      {d.subject}, {d.work}. Пересдача {d.retake}
-                    </p>
-                  ))}
-                </>
-              ) : (
-                <p className="mt-3 font-bold">Долгов нет</p>
-              )}
-            </SemesterCard>
+            <div className="space-y-3">
+              <SemesterCard title={sem.title} score={s.summary.average}>
+                {s.summary.debts.length ? (
+                  <>
+                    <p className="mt-3 font-bold">{s.summary.debts.length === 1 ? "1 незачёт" : `${s.summary.debts.length} незачёта`}</p>
+                    {s.summary.debts.map((d) => (
+                      <p key={d.subject} className="mt-0.5 text-sm">
+                        {d.subject}, {d.work}. Пересдача {d.retake}
+                      </p>
+                    ))}
+                  </>
+                ) : (
+                  <p className="mt-3 font-bold">Долгов нет</p>
+                )}
+              </SemesterCard>
+              <Stats s={s} />
+            </div>
             {s.summary.deadline && (
-                <p className="enter flex items-start gap-3 rounded-xl bg-warning-soft px-3.5 py-3 text-sm text-warning" style={stagger(3)}>
-                  <CalendarClock size={20} className="mt-px shrink-0" aria-hidden="true" />
-                  <span>
-                    <b className="block">
-                      {s.summary.deadline.title} до {s.summary.deadline.due}
-                    </b>
-                    {s.summary.deadline.text}
-                  </span>
-                </p>
+              <p className="enter flex items-start gap-3 rounded-xl bg-warning-soft px-3.5 py-3 text-sm text-warning" style={stagger(3)}>
+                <CalendarClock size={20} className="mt-px shrink-0" aria-hidden="true" />
+                <span>
+                  <b className="block">
+                    {s.summary.deadline.title} до {s.summary.deadline.due}
+                  </b>
+                  {s.summary.deadline.text}
+                </span>
+              </p>
             )}
           </div>
           <Parts
@@ -227,10 +233,11 @@ async function Study({ searchParams }: { searchParams: Promise<Record<string, st
       ) : (
         s.past && (
           <>
-            <div className="lg:max-w-md">
-              <SemesterCard s={s} title={sem.title} score={s.past.score}>
+            <div className="space-y-3 lg:max-w-md">
+              <SemesterCard title={sem.title} score={s.past.score}>
                 <p className="mt-3 font-bold">{s.past.passed ? "Все экзамены и зачёты сданы" : "Есть несданные дисциплины"}</p>
               </SemesterCard>
+              <Stats s={s} />
             </div>
             <Parts
               key={sem.n}

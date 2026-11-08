@@ -170,6 +170,47 @@ export function ShareButton({ title, url }: { title: string; url: string }) {
  * у длинной «В процессе» отступы такие же, как у короткой «Все». Нажимается вся высота 44 px,
  * а видимая подложка 36 px. Список при смене вкладки въезжает с той стороны, куда переключили.
  */
+/**
+ * Горизонтальный свайп пальцем: 1 влево (следующая), −1 вправо (предыдущая). Только явный жест: 60 px и вдвое больше,
+ * чем по вертикали, вертикальная прокрутка как обычно. Пока жест горизонтальный, гасим его для браузера (passive: false),
+ * иначе браузер принимает свайп вправо за «назад» и уходит со страницы. Мышь не трогаем.
+ */
+function useSwipe(ref: React.RefObject<HTMLElement | null>, onSwipe: (dir: 1 | -1) => void) {
+  const cb = useRef(onSwipe);
+  useLayoutEffect(() => {
+    cb.current = onSwipe;
+  });
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    let from: { x: number; y: number } | null = null;
+    const start = (e: TouchEvent) => {
+      from = e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null;
+    };
+    const move = (e: TouchEvent) => {
+      if (!from) return;
+      const dx = e.touches[0].clientX - from.x;
+      const dy = e.touches[0].clientY - from.y;
+      if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy) && e.cancelable) e.preventDefault();
+    };
+    const end = (e: TouchEvent) => {
+      if (!from) return;
+      const dx = e.changedTouches[0].clientX - from.x;
+      const dy = e.changedTouches[0].clientY - from.y;
+      from = null;
+      if (Math.abs(dx) >= 60 && Math.abs(dx) >= 2 * Math.abs(dy)) cb.current(dx < 0 ? 1 : -1);
+    };
+    el.addEventListener("touchstart", start, { passive: true });
+    el.addEventListener("touchmove", move, { passive: false });
+    el.addEventListener("touchend", end);
+    return () => {
+      el.removeEventListener("touchstart", start);
+      el.removeEventListener("touchmove", move);
+      el.removeEventListener("touchend", end);
+    };
+  }, [ref]);
+}
+
 export function ApplicationTabs({ tabs }: { tabs: { value: string; label: string; count: number; content: React.ReactNode }[] }) {
   // Выбранная вкладка в адресе (?tab=): после «назад» из заявки открывается та же вкладка, а не первая
   const search = useSearchParams();
@@ -189,6 +230,17 @@ export function ApplicationTabs({ tabs }: { tabs: { value: string; label: string
   const [dir, setDir] = useState<"left" | "right">("right");
   const [pill, setPill] = useState<{ left: number; width: number } | null>(null);
   const list = useRef<HTMLDivElement>(null);
+  const area = useRef<HTMLDivElement>(null);
+  // Свежие значения для обработчиков жеста, которые вешаются один раз
+  const latest = useRef({ value, tabs, change });
+  useLayoutEffect(() => {
+    latest.current = { value, tabs, change };
+  });
+  useSwipe(area, (dir) => {
+    const { value, tabs, change } = latest.current;
+    const i = tabs.findIndex((x) => x.value === value) + dir;
+    if (i >= 0 && i < tabs.length) change(tabs[i].value);
+  });
 
   useLayoutEffect(() => {
     const measure = () => {
@@ -235,11 +287,14 @@ export function ApplicationTabs({ tabs }: { tabs: { value: string; label: string
           </TabsTrigger>
         ))}
       </TabsList>
-      {tabs.map((t) => (
-        <TabsContent key={t.value} value={t.value}>
-          <div className={`animate-in fade-in duration-200 ${dir === "right" ? "slide-in-from-right-4" : "slide-in-from-left-4"}`}>{t.content}</div>
-        </TabsContent>
-      ))}
+      {/* Свайп по содержимому листает вкладки: влево следующая, вправо предыдущая (useSwipe ниже) */}
+      <div ref={area} className="touch-pan-y">
+        {tabs.map((t) => (
+          <TabsContent key={t.value} value={t.value}>
+            <div className={`animate-in fade-in duration-200 ${dir === "right" ? "slide-in-from-right-4" : "slide-in-from-left-4"}`}>{t.content}</div>
+          </TabsContent>
+        ))}
+      </div>
     </Tabs>
   );
 }

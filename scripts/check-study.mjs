@@ -89,6 +89,24 @@ async function run(page, size, login, password) {
       check(info.selected && info.rows > 0 && (i === 0 ? !inUrl : inUrl), `${tag} ${login} ${step}: вкладка «${info.name}» открыта, строк ${info.rows}, адрес ${info.url || "без вкладки"}`);
       await inspect(`${step}, ${info.name}`);
     }
+    // Свайп по списку: вправо предыдущая вкладка, влево следующая (сейчас открыта последняя)
+    const swipe = async (from, to) => {
+      const box = await page.evaluate(() => {
+        const p = [...document.querySelectorAll("main [role=tabpanel]")].find((x) => x.getClientRects().length);
+        p.scrollIntoView({ block: "center" });
+        const r = p.getBoundingClientRect();
+        return { x: r.left, w: r.width, y: Math.min(r.top + 60, innerHeight - 150) };
+      });
+      await page.touchscreen.touchStart(box.x + box.w * from, box.y);
+      for (let k = 1; k <= 6; k++) await page.touchscreen.touchMove(box.x + box.w * (from + ((to - from) * k) / 6), box.y + k);
+      await page.touchscreen.touchEnd();
+      await new Promise((r) => setTimeout(r, 400));
+      return page.evaluate(() => [...document.querySelectorAll("main [role=tab]")].find((t) => t.getClientRects().length && t.getAttribute("aria-selected") === "true")?.id);
+    };
+    const back = await swipe(0.2, 0.85);
+    const fwd = await swipe(0.85, 0.2);
+    const stay = (await where()).startsWith("/study");
+    check(back === ids[0] && fwd === ids[1] && stay, `${tag} ${login} ${step}: свайп вправо открыл первую вкладку, влево вторую${stay ? "" : ", но браузер ушёл со страницы"}`);
   };
 
   await page.goto(new URL("/login", base).href, { waitUntil: "networkidle0" });
@@ -126,9 +144,9 @@ async function run(page, size, login, password) {
   check(covered === "шапка" || covered === "нет", `${tag} ${login}: вкладки при прокрутке уходят под шапку (сверху: ${covered})`);
 
   // Статистика: кнопка в карточке открывает шторку с графиком, семестрами и оценками
-  await page.$eval("main section button", (b) => b.scrollIntoView({ block: "center" }));
+  await page.$eval("button[data-stats]", (b) => b.scrollIntoView({ block: "center" }));
   await settle().catch(() => {});
-  await press("main section button");
+  await press("button[data-stats]");
   const sheet = await page
     .waitForSelector("[role=dialog]", { timeout: 8000 })
     .then(() => settle().catch(() => {}))
@@ -138,7 +156,7 @@ async function run(page, size, login, password) {
         return { title: d.querySelector("h2")?.textContent, chart: Boolean(d.querySelector("svg[role=img]")), sems: d.querySelectorAll("li a").length, letters: d.querySelectorAll("section:last-child li").length };
       }),
     )
-    .catch(() => null);
+    .catch((e) => (console.log("stats:", e.message.slice(0, 200)), null));
   check(
     sheet?.title === "Успеваемость" && sheet.sems === (courses.length ? sheet.sems : 1) && sheet.sems > 0 && sheet.letters > 0 && sheet.chart === courses.length > 0,
     `${tag} ${login}: статистика открыта (график ${sheet?.chart ? "есть" : "нет"}, семестров ${sheet?.sems}, строк оценок ${sheet?.letters})`,
@@ -185,8 +203,8 @@ async function run(page, size, login, password) {
   // Семестр из шторки статистики: открывается, шторка закрывается
   await page.goto(new URL("/study", base).href, { waitUntil: "networkidle0" });
   await settle().catch(() => {});
-  await page.$eval("main section button", (b) => b.scrollIntoView({ block: "center" }));
-  await press("main section button");
+  await page.$eval("button[data-stats]", (b) => b.scrollIntoView({ block: "center" }));
+  await press("button[data-stats]");
   await page.waitForSelector("[role=dialog] li a", { timeout: 8000 });
   await settle().catch(() => {});
   const target = await page.$$eval("[role=dialog] li a", (as) => as.at(-1).getAttribute("href"));

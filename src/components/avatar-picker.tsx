@@ -2,7 +2,6 @@
 
 import { useState, useTransition, type ReactNode } from "react";
 import { toast } from "sonner";
-import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { UserAvatar } from "@/components/avatar";
@@ -48,14 +47,9 @@ export function AvatarPicker({ current, initials, trigger }: { current: string |
                 aria-label={label}
                 disabled={pending}
                 onClick={() => choose(key)}
-                className={`press relative grid place-items-center rounded-2xl p-2 ${selected ? "bg-secondary ring-2 ring-primary" : "hover:bg-secondary"}`}
+                className={`press grid place-items-center justify-self-center rounded-full p-1.5 transition-shadow ${selected ? "bg-primary/15 ring-2 ring-primary" : "hover:bg-secondary"}`}
               >
                 <UserAvatar avatar={key} initials={initials} size="size-14" icon={26} />
-                {selected && (
-                  <span className="absolute top-1 right-1 grid size-5 place-items-center rounded-full bg-primary text-primary-foreground">
-                    <Check size={13} strokeWidth={3} aria-hidden="true" />
-                  </span>
-                )}
               </button>
             );
           })}

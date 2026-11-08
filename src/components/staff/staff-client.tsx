@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useId, useState, useTransition, type FormEvent, type ReactNode } from "react";
 import { toast } from "sonner";
-import { CircleCheck, LoaderCircle, Play, X } from "lucide-react";
+import { CalendarCheck, CircleCheck, LoaderCircle, MessageCircleQuestion, PencilLine, Play, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { stagger, withOffline } from "@/components/kit";
 import { Label } from "@/components/ui/label";
@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import type { Names } from "@/lib/staff";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { isCertificate, isClosed, type AppStatus, type ChatMessage, type DocType, type Format } from "@/lib/documents";
-import { issue, reject, sendReply, takeInWork } from "@/app/staff/actions";
+import { askStudent, issue, reject, sendReply, takeInWork } from "@/app/staff/actions";
 import { ChatRoot } from "@/components/documents/chat";
 
 type Result = { error?: string };
@@ -119,11 +119,45 @@ function TextAction({
   );
 }
 
-const ISSUE_HINT: Record<DocType, string> = {
-  study: "Например: справка подписана, бумажная копия в каб. 2105",
-  military: "Например: забрать в каб. 2105, пн–пт 10:00–17:00",
-  retake: "Например: пересдача 18 ноября в 10:00, ауд. 305",
-  data_fix: "Например: отчество исправлено по паспорту",
+/** Главное действие для каждого вида заявки: своя кнопка и окно, все закрывают заявку через issue(). */
+const DONE: Record<DocType, { button: string; icon: typeof CircleCheck; title: string; label: string; placeholder: string; submit: string; done: string; required?: string }> = {
+  study: {
+    button: "Выдать справку",
+    icon: CircleCheck,
+    title: "Выдать справку?",
+    label: "Комментарий для студента, если нужен",
+    placeholder: "Например: справка подписана, бумажная копия в каб. 2105",
+    submit: "Выдать",
+    done: "Справка выдана",
+  },
+  military: {
+    button: "Выдать справку",
+    icon: CircleCheck,
+    title: "Выдать справку?",
+    label: "Комментарий для студента, если нужен",
+    placeholder: "Например: забрать в каб. 2105, пн–пт 10:00–17:00",
+    submit: "Выдать",
+    done: "Справка выдана",
+  },
+  retake: {
+    button: "Согласовать пересдачу",
+    icon: CalendarCheck,
+    title: "Согласовать пересдачу?",
+    label: "Дата, время и аудитория",
+    placeholder: "Например: 18 ноября в 10:00, ауд. 305",
+    submit: "Согласовать",
+    done: "Пересдача согласована",
+    required: "Напишите дату, время и аудиторию.",
+  },
+  data_fix: {
+    button: "Исправить данные",
+    icon: PencilLine,
+    title: "Исправить данные студента",
+    label: "Комментарий для студента, если нужен",
+    placeholder: "Например: отчество исправлено по паспорту",
+    submit: "Исправить",
+    done: "Данные исправлены",
+  },
 };
 
 /** Переписка со студентом на странице заявки: та же шторка, что у студента, свои сообщения справа. */
@@ -151,16 +185,7 @@ export function StaffChat({
         about: `${student.group}, заявка № ${number}`,
       }}
       messages={messages}
-      compose={
-        !isClosed(status)
-          ? {
-              label: "Сообщение студенту",
-              placeholder: "Сообщение студенту",
-              canAsk: status !== "need_info",
-              onSend: (t, ask) => sendReply(id, t, ask),
-            }
-          : undefined
-      }
+      compose={!isClosed(status) ? { label: "Сообщение студенту", placeholder: "Сообщение студенту", onSend: (t) => sendReply(id, t) } : undefined}
       closedText="Заявка закрыта, переписка завершена."
     >
       {children}
@@ -168,11 +193,7 @@ export function StaffChat({
   );
 }
 
-/**
- * Панель действий по статусу заявки. Вопрос студенту задаётся в переписке отметкой «Ответ на сообщение обязателен».
- * Сервер ещё раз проверяет роль и допустимый переход.
- */
-/** ФИО студента для заявки на исправление данных: сотрудник правит прямо в окне «Заявка выполнена». */
+/** ФИО студента для заявки на исправление данных: сотрудник правит прямо в окне «Исправить данные». */
 function NameFields({ names }: { names: Names }) {
   const rows: [keyof Names, string][] = [
     ["last", "Фамилия"],
@@ -194,10 +215,13 @@ function NameFields({ names }: { names: Names }) {
   );
 }
 
+/**
+ * Панель действий по статусу заявки: главное действие своё для каждого вида, «Запросить уточнение» ставит заявку на паузу
+ * до ответа студента. Сообщения в переписке статус не меняют. Сервер ещё раз проверяет роль и допустимый переход.
+ */
 export function StaffActions({ id, status, type, format, names, chat }: { id: string; status: AppStatus; type: DocType; format: Format; names: Names; chat: ReactNode }) {
   const router = useRouter();
   const [pending, start] = useTransition();
-  const certificate = isCertificate(type);
 
   // Закрытую заявку не изменить, но переписку можно перечитать
   if (isClosed(status))
@@ -236,29 +260,51 @@ export function StaffActions({ id, status, type, format, names, chat }: { id: st
     />
   );
 
-  const ready = (
+  const ask = (
+    <TextAction
+      trigger={
+        <Button variant="outline" size="lg">
+          <MessageCircleQuestion aria-hidden="true" />
+          Запросить уточнение
+        </Button>
+      }
+      title="Запросить уточнение"
+      text="Студент увидит вопрос и кнопку «Ответить». Пока он не ответит, заявка на паузе и срок готовности стоит."
+      label="Что нужно от студента"
+      placeholder="Например: подтвердите ФИО при личном визите в деканат, каб. 2105"
+      submit="Отправить"
+      done="Вопрос отправлен"
+      required="Напишите, что нужно от студента."
+      onSubmit={(t) => askStudent(id, t)}
+    />
+  );
+
+  const d = DONE[type];
+  const Icon = d.icon;
+  const done = (
     <TextAction
       trigger={
         <Button size="lg">
-          <CircleCheck aria-hidden="true" />
-          {certificate ? "Справка готова" : "Заявка выполнена"}
+          <Icon aria-hidden="true" />
+          {d.button}
         </Button>
       }
-      title={certificate ? "Выдать справку?" : "Отметить выполненной?"}
+      title={d.title}
       text={
-        certificate
+        isCertificate(type)
           ? format === "electronic"
             ? "Студент сразу увидит справку с QR-кодом для проверки. Переписка закроется."
             : "Студент увидит, что справка готова, и копию с QR-кодом. Переписка закроется."
           : type === "data_fix"
-            ? "Исправьте ФИО, если нужно. Студент сразу увидит новые данные в профиле. Переписка закроется."
-            : "Студент увидит, что заявка выполнена, и ваш комментарий. Переписка закроется."
+            ? "Студент сразу увидит новые данные в профиле. Заявка будет выполнена, переписка закроется."
+            : "Студент увидит дату и место в заявке и в уведомлениях. Заявка будет выполнена, переписка закроется."
       }
       fields={type === "data_fix" ? <NameFields names={names} /> : undefined}
-      label="Комментарий для студента, если нужен"
-      placeholder={ISSUE_HINT[type]}
-      submit={certificate ? "Выдать" : "Готово"}
-      done={certificate ? "Справка выдана" : "Заявка выполнена"}
+      label={d.label}
+      placeholder={d.placeholder}
+      submit={d.submit}
+      done={d.done}
+      required={d.required}
       onSubmit={(t, f) =>
         type === "data_fix" ? issue(id, t, { last: String(f.get("last")), first: String(f.get("first")), middle: String(f.get("middle") ?? "") }) : issue(id, t)
       }
@@ -272,13 +318,11 @@ export function StaffActions({ id, status, type, format, names, chat }: { id: st
           {pending ? <LoaderCircle className="animate-spin" aria-hidden="true" /> : <Play aria-hidden="true" />}
           Взять в работу
         </Button>
-      ) : status === "need_info" ? (
-        <>
-          <p className="rounded-xl bg-warning-soft px-3.5 py-3 text-sm font-semibold text-warning">Ждём ответа студента. Когда он придёт, заявка вернётся в работу.</p>
-          {ready}
-        </>
       ) : (
-        ready
+        <>
+          {done}
+          {status === "in_progress" && ask}
+        </>
       )}
       <div className="flex gap-2">
         {chat}

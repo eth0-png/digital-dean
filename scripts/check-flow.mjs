@@ -93,19 +93,17 @@ check(Boolean(await staff.$(`[role=tabpanel] a[href="/staff/${id}"]`)), "зая�
 await go(staff, `/staff/${id}`);
 check((await text(staff)).includes("Соколова Анна"), "в карточке видно, чья заявка");
 await press(staff, "Взять в работу");
-check(await waitText(staff, "Справка готова"), "после «Взять в работу» появилась кнопка выдачи");
+check(await waitText(staff, "Выдать справку"), "после «Взять в работу» появилась кнопка «Выдать справку»");
 
-// 3. Сотрудник спрашивает в переписке с отметкой «Ответ на сообщение обязателен»
+// 3. Сотрудник запрашивает уточнение: заявка на паузе, у сотрудника «На уточнении» и «Вы спрашиваете»
 const QUESTION = "Справка нужна с указанием срока обучения?";
-await press(staff, "Переписка");
-await staff.waitForSelector("[role=log]");
+await press(staff, "Запросить уточнение");
+await staff.waitForSelector("[role=dialog] textarea");
 await settle(staff);
-await staff.click("button[aria-pressed]");
-await staff.type("#chat-message", QUESTION);
-await staff.click('button[aria-label="Отправить"]');
-await staff.waitForFunction((m) => document.querySelector("[role=log]").innerText.includes(m), { timeout: 10000 }, QUESTION);
-await closeChat(staff);
-check(await waitText(staff, "Ждём ответа студента"), "сообщение с отметкой «Ответ на сообщение обязателен» ждёт студента");
+await staff.type("[role=dialog] textarea", QUESTION);
+await staff.click("[role=dialog] button[type=submit]");
+check(await waitText(staff, "На уточнении"), "после «Запросить уточнение» заявка «На уточнении»");
+check((await text(staff)).includes("Вы спрашиваете") && !(await text(staff)).includes("Запросить уточнение"), "у сотрудника «Вы спрашиваете», повторно запросить нельзя");
 
 // 3б. Студент видит счётчик на колокольчике и уведомление о вопросе, после открытия счётчик гаснет
 await go(student, "/documents");
@@ -123,6 +121,7 @@ check(cleared === "Уведомления", `после открытия уве�
 // 4. Студент отвечает, переписка не закрывается, можно написать ещё
 await go(student, `/documents/${id}`);
 check((await text(student)).includes(QUESTION), "студент видит вопрос деканата в карточке заявки");
+check((await text(student)).includes("Открыть переписку"), "в истории есть «Открыть переписку», пока деканат ждёт ответа");
 await chat(student, "Ответить", "Да, со сроком");
 const log = await student.$eval("[role=log]", (l) => l.innerText);
 check(!log.includes("Ответ отправлен") && !/сейчас/.test(log), "в переписке нет служебной строки «сейчас. Ответ отправлен»");
@@ -152,11 +151,12 @@ check((await text(staff)).includes("2 новых сообщения"), "в ис�
 await chat(staff, "Переписка", "Да, сделаем на английском");
 check((await staff.$eval("[role=log]", (l) => l.innerText)).includes("Да, со сроком"), "сотрудник видит ответ студента в той же переписке");
 await closeChat(staff);
-check(!(await text(staff)).includes("Ждём ответа студента"), "обычное сообщение сотрудника не ставит заявку на паузу");
-await press(staff, "Справка готова");
+check(!(await text(staff)).includes("На уточнении"), "сообщение сотрудника в переписке не ставит заявку на паузу");
+await press(staff, "Выдать справку");
 await staff.waitForSelector("[role=dialog] textarea");
+await settle(staff);
 await staff.type("[role=dialog] textarea", "Справка подписана, на английском");
-await press(staff, "Выдать");
+await staff.click("[role=dialog] button[type=submit]");
 check(await waitText(staff, "Справка выдана"), "справка выдана");
 
 // 5б. Уведомление «Справка готова» с комментарием
@@ -194,7 +194,7 @@ check(!(await student.$("button::-p-text(Отменить заявку)")), "у 
 await go(staff, `/staff/${second.id}`);
 check((await text(staff)).includes("Отменена") && !(await text(staff)).includes("Взять в работу"), "сотрудник видит отменённую заявку без действий");
 
-// 8. Исправление личных данных: сотрудник правит ФИО в окне «Заявка выполнена», студент видит его в профиле.
+// 8. Исправление личных данных: сотрудник правит ФИО в окне «Исправить данные», студент видит его в профиле.
 // Отчество меняется на «Дмитревна» и обратно, чтобы не оставлять в базе изменённое ФИО
 async function fixName(middle) {
   await go(student, "/documents/new?type=data_fix");
@@ -204,9 +204,9 @@ async function fixName(middle) {
   const fix = new URL(student.url()).pathname.split("/").pop();
   await go(staff, `/staff/${fix}`);
   await press(staff, "Взять в работу");
-  await waitText(staff, "Заявка выполнена");
+  await waitText(staff, "Исправить данные");
   await settle(staff);
-  await press(staff, "Заявка выполнена");
+  await press(staff, "Исправить данные");
   await staff.waitForSelector("#name-middle");
   await settle(staff);
   await staff.$eval("#name-middle", (i) => i.select());

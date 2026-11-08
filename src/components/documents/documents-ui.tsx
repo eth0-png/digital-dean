@@ -155,7 +155,7 @@ export function ApplicationList({ apps, hrefFor }: { apps: Application[]; hrefFo
  * Карточка статуса на странице заявки (вариант 2): этапы точками, текущий с ореолом.
  * Если деканат задал вопрос, он и кнопка ответа внутри карточки: одна точка связи на экране.
  */
-export function StatusCard({ app, action }: { app: Application; action?: ReactNode }) {
+export function StatusCard({ app, action, viewer = "student" }: { app: Application; action?: ReactNode; viewer?: Viewer }) {
   const s = STATUS[app.status];
   const ready = app.status === "ready";
   const need = app.status === "need_info";
@@ -166,10 +166,12 @@ export function StatusCard({ app, action }: { app: Application; action?: ReactNo
         <span className={chip}>{DOC_TYPES[app.type].title}</span>
         <span className={chip}>№ {app.number}</span>
       </div>
-      <p className="mt-3 font-display text-[21px] font-semibold">{ready ? (app.verifyCode ? "Справка готова" : "Готово") : s.title}</p>
+      <p className="mt-3 font-display text-[21px] font-semibold">
+        {ready ? (app.verifyCode ? "Справка готова" : "Готово") : need && viewer === "staff" ? "На уточнении" : s.title}
+      </p>
       {need && app.question ? (
         <div className="mt-3 rounded-xl bg-black/20 px-3.5 py-3">
-          <p className="text-[13px] font-bold">Деканат спрашивает</p>
+          <p className="text-[13px] font-bold">{viewer === "staff" ? "Вы спрашиваете" : "Деканат спрашивает"}</p>
           <p className="mt-1 text-[15px] leading-snug">{app.question}</p>
           {action}
         </div>

@@ -34,7 +34,7 @@ async function StaffApplication({ params }: { params: Promise<{ id: string }> })
         {/* На широком экране две колонки: слева статус, действия и сведения, справа история */}
         <div className="space-y-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-8 lg:space-y-0">
           <div className="space-y-4">
-            <StatusCard app={app} />
+            <StatusCard app={app} viewer="staff" />
             {overdue && (
               <p role="status" className="enter flex items-center gap-2 rounded-xl bg-destructive-soft px-3.5 py-3 text-sm font-bold text-destructive">
                 <TriangleAlert size={18} aria-hidden="true" />

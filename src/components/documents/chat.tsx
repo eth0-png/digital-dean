@@ -2,7 +2,7 @@
 
 import { createContext, use, useEffect, useOptimistic, useRef, useState, useSyncExternalStore, useTransition, type FormEvent, type ReactNode } from "react";
 import { toast } from "sonner";
-import { Check, ChevronDown, LoaderCircle, MessageCircle, Phone, SendHorizontal, X } from "lucide-react";
+import { ChevronDown, LoaderCircle, MessageCircle, Phone, SendHorizontal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -25,9 +25,7 @@ export type Peer = {
 export type Compose = {
   label: string;
   placeholder: string;
-  /** Сотрудник может отметить, что ждёт ответа: заявка встанет на паузу */
-  canAsk?: boolean;
-  onSend: (text: string, ask: boolean) => Promise<{ error?: string }>;
+  onSend: (text: string) => Promise<{ error?: string }>;
 };
 
 /**
@@ -77,7 +75,6 @@ function useWide() {
 function Conversation({ peer, messages, compose, closedText, open, onOpenChange }: ChatProps & { open: boolean; onOpenChange: (v: boolean) => void }) {
   const wide = useWide();
   const [text, setText] = useState("");
-  const [ask, setAsk] = useState(false);
   const [pending, start] = useTransition();
   const [list, addSending] = useOptimistic(messages, (l, m: ChatMessage) => [...l, m]);
   const end = useRef<HTMLDivElement>(null);
@@ -93,13 +90,12 @@ function Conversation({ peer, messages, compose, closedText, open, onOpenChange 
     setText("");
     start(async () => {
       addSending({ id: "sending", from: "me", text: t, at: "отправляется" });
-      const { error } = await withOffline(compose.onSend(t, ask));
+      const { error } = await withOffline(compose.onSend(t));
       if (error) {
         setText(t);
         toast.error("Не отправилось", { description: error });
         return;
       }
-      setAsk(false);
     });
   }
 
@@ -159,19 +155,6 @@ function Conversation({ peer, messages, compose, closedText, open, onOpenChange 
 
         {compose ? (
           <form onSubmit={send} className="border-t px-3 pt-1.5 pb-[max(12px,env(safe-area-inset-bottom))]">
-            {compose.canAsk && (
-              <button
-                type="button"
-                aria-pressed={ask}
-                onClick={() => setAsk((v) => !v)}
-                className={`press inline-flex min-h-11 items-center gap-2 px-1 text-[13px] font-bold ${ask ? "text-warning" : "text-muted-foreground"}`}
-              >
-                <span className={`grid size-5 place-items-center rounded-md border-2 ${ask ? "border-warning bg-warning text-white" : "border-muted-foreground/50"}`}>
-                  {ask && <Check size={14} strokeWidth={3} aria-hidden="true" />}
-                </span>
-                Ответ на сообщение обязателен
-              </button>
-            )}
             <div className="flex items-end gap-2 pt-1">
               <Label htmlFor="chat-message" className="sr-only">
                 {compose.label}

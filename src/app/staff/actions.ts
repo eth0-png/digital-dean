@@ -46,10 +46,10 @@ export async function takeInWork(id: string) {
 }
 
 /**
- * Сообщение студенту в переписке. ask: нужен ответ, заявка встаёт на паузу («Нужно уточнение»).
+ * Сообщение студенту в переписке. Статус не меняет: пауза только через «Запросить уточнение».
  * Писать можно, пока заявка не закрыта. refresh() возвращает новую переписку вместе с ответом сервера.
  */
-export async function sendReply(id: string, text: string, ask: boolean): Promise<Result> {
+export async function sendReply(id: string, text: string): Promise<Result> {
   const staff = await requireStaff();
   const t = clean(text, "сообщение студенту");
   if (isError(t)) return t;
@@ -58,8 +58,7 @@ export async function sendReply(id: string, text: string, ask: boolean): Promise
     const [app] = await tx<{ status: string }[]>`
       select status from applications where id = ${id} and status in ('submitted', 'in_progress', 'need_info') for update`;
     if (!app) return false;
-    if (ask && app.status !== "need_info") await tx`update applications set status = 'need_info', updated_at = now() where id = ${id}`;
-    await tx`insert into application_events (application_id, kind, text, author_id) values (${id}, ${ask ? "question" : "reply"}, ${t}, ${staff.id})`;
+    await tx`insert into application_events (application_id, kind, text, author_id) values (${id}, 'reply', ${t}, ${staff.id})`;
     return true;
   });
   if (!sent) return { error: "Заявка уже закрыта, переписка завершена." };
@@ -74,6 +73,12 @@ const NAME = /^\p{L}[\p{L} '-]{0,39}$/u;
  * Заявка выполнена. У заявки на исправление данных сотрудник может сразу поправить ФИО в профиле:
  * в той же транзакции и только у владельца этой заявки (type = 'data_fix').
  */
+/** Запросить уточнение: вопрос студенту, заявка на паузе («На уточнении»), пока он не ответит. */
+export async function askStudent(id: string, question: string) {
+  const q = clean(question, "что нужно от студента");
+  return isError(q) ? q : move(id, ["submitted", "in_progress"], "need_info", "question", q);
+}
+
 export async function issue(id: string, comment: string, names?: { last: string; first: string; middle: string }) {
   const c = clean(comment, null);
   if (isError(c)) return c;

@@ -39,7 +39,7 @@ async function ApplicationView({ params, searchParams }: { params: Promise<{ id:
         {sent && <SentToast />}
         {unseen && <MarkRead run={markDeanRead.bind(null, app.id)} />}
         <BackLink fallbackHref="/documents" fallbackLabel="Документы" />
-        {/* Одна точка входа в переписку: пока ждут ответа, «Ответить» в карточке, иначе пункт истории.
+        {/* Переписка открывается из истории, а пока деканат ждёт ответа, ещё и кнопкой «Ответить» в карточке.
             На широком экране две колонки: слева статус и документ, справа история. На телефоне левая колонка
             растворяется (contents), и «Отменить заявку» встаёт в самый низ, под историю. */}
         <div className="flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-8">
@@ -62,7 +62,7 @@ async function ApplicationView({ params, searchParams }: { params: Promise<{ id:
           </div>
           <section className="pt-2 lg:pt-0">
             <SectionTitle>История</SectionTitle>
-            <Timeline app={app} conversation={!need && (open || talk.length > 0) ? <ConversationLink empty={talk.length === 0} /> : undefined} />
+            <Timeline app={app} conversation={open || talk.length > 0 ? <ConversationLink empty={talk.length === 0} /> : undefined} />
           </section>
         </div>
       </div>

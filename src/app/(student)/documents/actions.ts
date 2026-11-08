@@ -54,7 +54,12 @@ export async function sendMessage(appId: string, text: string): Promise<{ error?
       select status from applications where id = ${appId} and user_id = ${user.id} and status in ${tx(OPEN)} for update`;
     if (!app) return false;
     const answer = app.status === "need_info";
-    if (answer) await tx`update applications set status = 'in_progress', updated_at = now() where id = ${appId}`;
+    // Пока ждали ответа, срок стоял: сдвигаем его на дни паузы
+    if (answer)
+      await tx`update applications set status = 'in_progress', updated_at = now(),
+        due_date = due_date + greatest(0, current_date - coalesce(
+          (select max(created_at)::date from application_events where application_id = ${appId} and kind = 'question'), current_date))
+        where id = ${appId}`;
     await tx`insert into application_events (application_id, kind, text, author_id) values (${appId}, ${answer ? "answer" : "message"}, ${t}, ${user.id})`;
     return true;
   });

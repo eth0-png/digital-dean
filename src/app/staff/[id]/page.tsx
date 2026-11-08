@@ -41,7 +41,7 @@ async function StaffApplication({ params }: { params: Promise<{ id: string }> })
                 Срок прошёл {app.due}. Студент ждёт.
               </p>
             )}
-            <StaffActions id={app.id} status={app.status} type={app.type} format={app.format} chat={<ChatButton unread={unread} />} />
+            <StaffActions id={app.id} status={app.status} type={app.type} format={app.format} names={student.names} chat={<ChatButton unread={unread} />} />
             <Facts
               title="Студент"
               rows={[

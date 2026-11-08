@@ -1,6 +1,6 @@
 // Сквозной сценарий: студент заказывает справку, сотрудник берёт в работу и спрашивает в переписке,
 // студент отвечает и пишет ещё, сотрудник видит новые сообщения, отвечает и выдаёт справку с комментарием,
-// переписка закрывается, проверка по QR открывается без входа. Плюс отмена заявки студентом.
+// переписка закрывается, проверка по QR открывается без входа. Плюс отмена заявки студентом и исправление ФИО сотрудником.
 // Создаёт заявки в базе, поэтому только локально.
 // Запуск: set -a && . ./.env && set +a && node scripts/check-flow.mjs http://localhost:3000
 // В окне компьютера: FLOW_SIZE=1366x768 node scripts/check-flow.mjs <адрес>
@@ -193,6 +193,39 @@ check(await waitText(student, "Заявку отменили"), "студент 
 check(!(await student.$("button::-p-text(Отменить заявку)")), "у отменённой заявки нет кнопки отмены");
 await go(staff, `/staff/${second.id}`);
 check((await text(staff)).includes("Отменена") && !(await text(staff)).includes("Взять в работу"), "сотрудник видит отменённую заявку без действий");
+
+// 8. Исправление личных данных: сотрудник правит ФИО в окне «Заявка выполнена», студент видит его в профиле.
+// Отчество меняется на «Дмитревна» и обратно, чтобы не оставлять в базе изменённое ФИО
+async function fixName(middle) {
+  await go(student, "/documents/new?type=data_fix");
+  await student.type("textarea", "В отчестве ошибка");
+  await student.click("button[type=submit]");
+  await student.waitForFunction(() => /^\/documents\/[0-9a-f-]{36}$/.test(location.pathname), { timeout: 10000 });
+  const fix = new URL(student.url()).pathname.split("/").pop();
+  await go(staff, `/staff/${fix}`);
+  await press(staff, "Взять в работу");
+  await waitText(staff, "Заявка выполнена");
+  await settle(staff);
+  await press(staff, "Заявка выполнена");
+  await staff.waitForSelector("#name-middle");
+  await settle(staff);
+  await staff.$eval("#name-middle", (i) => i.select());
+  await staff.type("#name-middle", middle);
+  await staff.locator("[role=dialog] button[type=submit]").click();
+  return fix;
+}
+await fixName("Дмитревна1");
+check(await waitText(staff, "только буквы", "[role=dialog]"), "сервер не принимает отчество с цифрой");
+await staff.$eval("#name-middle", (i) => i.select());
+await staff.type("#name-middle", "Дмитревна");
+await staff.locator("[role=dialog] button[type=submit]").click();
+await staff.waitForSelector("[role=dialog]", { hidden: true, timeout: 10000 });
+await go(student, "/profile");
+check((await text(student)).includes("Дмитревна"), "студент видит исправленное ФИО в профиле");
+await fixName("Дмитриевна");
+await staff.waitForSelector("[role=dialog]", { hidden: true, timeout: 10000 });
+await go(student, "/profile");
+check((await text(student)).includes("Дмитриевна"), "ФИО вернули как было");
 
 await browser.close();
 console.log(failures ? `\nПровалено проверок: ${failures}` : "\nСквозной сценарий пройден");

@@ -2,7 +2,7 @@
 
 import { createContext, use, useEffect, useOptimistic, useRef, useState, useSyncExternalStore, useTransition, type FormEvent, type ReactNode } from "react";
 import { toast } from "sonner";
-import { Check, ChevronDown, LoaderCircle, MessageCircle, Phone, Send, X } from "lucide-react";
+import { Check, ChevronDown, LoaderCircle, MessageCircle, Phone, SendHorizontal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -186,7 +186,7 @@ function Conversation({ peer, messages, compose, closedText, open, onOpenChange 
                 className="max-h-32 min-h-11 flex-1 resize-none rounded-2xl border-0 bg-muted px-4 py-2.5 text-base"
               />
               <Button type="submit" size="icon" className="shrink-0" disabled={!text.trim() || pending} aria-label="Отправить">
-                {pending ? <LoaderCircle className="animate-spin" aria-hidden="true" /> : <Send aria-hidden="true" />}
+                {pending ? <LoaderCircle className="animate-spin" aria-hidden="true" /> : <SendHorizontal aria-hidden="true" />}
               </Button>
             </div>
           </form>

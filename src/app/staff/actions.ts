@@ -2,6 +2,7 @@
 
 import { randomBytes } from "node:crypto";
 import { refresh } from "next/cache";
+import type postgres from "postgres";
 import { sql } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
 import { UUID } from "@/lib/applications";
@@ -11,7 +12,9 @@ import { UUID } from "@/lib/applications";
 
 type Result = { error?: string };
 
-async function move(id: string, from: string[], to: string, kind: string, text: string | null = null): Promise<Result> {
+type Tx = postgres.TransactionSql;
+
+async function move(id: string, from: string[], to: string, kind: string, text: string | null = null, also?: (tx: Tx, id: string) => Promise<unknown>): Promise<Result> {
   const staff = await requireStaff();
   if (!UUID.test(String(id))) return { error: "Заявка не найдена." };
   // Код проверки по QR только у справок: у заявлений на пересдачу и исправление данных документа нет
@@ -24,6 +27,7 @@ async function move(id: string, from: string[], to: string, kind: string, text: 
       returning id`;
     if (!app) return false;
     await tx`insert into application_events (application_id, kind, text, author_id) values (${app.id}, ${kind}, ${text}, ${staff.id})`;
+    if (also) await also(tx, app.id);
     return true;
   });
   return done ? {} : { error: "Статус заявки уже изменился. Обновите страницу." };
@@ -63,9 +67,28 @@ export async function sendReply(id: string, text: string, ask: boolean): Promise
   return {};
 }
 
-export async function issue(id: string, comment: string) {
+// Буквы, пробел, дефис, апостроф. До 40 знаков
+const NAME = /^\p{L}[\p{L} '-]{0,39}$/u;
+
+/**
+ * Заявка выполнена. У заявки на исправление данных сотрудник может сразу поправить ФИО в профиле:
+ * в той же транзакции и только у владельца этой заявки (type = 'data_fix').
+ */
+export async function issue(id: string, comment: string, names?: { last: string; first: string; middle: string }) {
   const c = clean(comment, null);
-  return isError(c) ? c : move(id, ["submitted", "in_progress", "need_info"], "ready", "ready", c);
+  if (isError(c)) return c;
+  if (!names) return move(id, ["submitted", "in_progress", "need_info"], "ready", "ready", c);
+  const [last, first, middle] = [names.last, names.first, names.middle].map((v) => String(v ?? "").trim());
+  if (!NAME.test(last)) return { error: "Проверьте фамилию: только буквы, до 40 знаков." };
+  if (!NAME.test(first)) return { error: "Проверьте имя: только буквы, до 40 знаков." };
+  if (middle && !NAME.test(middle)) return { error: "Проверьте отчество: только буквы, до 40 знаков." };
+  const text = c ?? `Исправили ФИО в профиле: ${last} ${first} ${middle}`.trim();
+  return move(id, ["submitted", "in_progress", "need_info"], "ready", "ready", text, async (tx, appId) => {
+    const fixed = await tx`
+      update users u set last_name = ${last}, first_name = ${first}, middle_name = ${middle || null}
+      from applications a where a.id = ${appId} and a.type = 'data_fix' and u.id = a.user_id and u.role = 'student'`;
+    if (fixed.count !== 1) throw new Error("Заявка не на исправление данных");
+  });
 }
 
 export async function reject(id: string, reason: string) {

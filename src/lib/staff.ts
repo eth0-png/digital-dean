@@ -21,9 +21,11 @@ type StaffRow = AppRow & {
   avatar: string | null;
 };
 
+export type Names = { last: string; first: string; middle: string };
+
 export type QueueItem = {
   app: Application;
-  student: { short: string; full: string; name: string; initials: string; avatar: string | null; group: string; faculty: string; course: number | null; card: string };
+  student: { short: string; full: string; name: string; initials: string; avatar: string | null; names: Names; group: string; faculty: string; course: number | null; card: string };
   createdAt: string;
   copies: number;
   overdue: boolean;
@@ -43,6 +45,7 @@ function toItem(r: StaffRow, app: Application): QueueItem {
       name: `${r.last_name} ${r.first_name}`,
       initials: `${r.last_name[0]}${r.first_name[0]}`,
       avatar: r.avatar,
+      names: { last: r.last_name, first: r.first_name, middle: r.middle_name ?? "" },
       group: r.group_name ?? "",
       faculty: r.faculty ?? "",
       course: r.course,

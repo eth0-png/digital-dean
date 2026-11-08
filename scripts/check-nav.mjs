@@ -115,7 +115,7 @@ check(await tap('a[aria-label="Закрыть профиль"]', "/"), "закр
 
 // 8в. Заявка → справка → «назад» → «назад»: подписи и адреса не залипают после возврата
 await go("/documents/all");
-const ready = await page.$$eval('[role=tabpanel] li a', (as) => as.find((a) => /, готово /.test(a.textContent))?.getAttribute("href"));
+const ready = await page.$$eval('[role=tabpanel] li a', (as) => as.find((a) => /, готово /.test(a.textContent) && /Справка/.test(a.textContent))?.getAttribute("href"));
 if (ready) {
   await tap(`[role=tabpanel] a[href="${ready}"]`, ready);
   check(await tap(`a[href="${ready}/document"]`, `${ready}/document`), "заявка → «Открыть справку»");

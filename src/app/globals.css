@@ -93,6 +93,17 @@
        На телефоне полоса поверх страницы, там ничего не меняется */
     scrollbar-gutter: stable;
   }
+  /* Окна и шторки (Radix, react-remove-scroll) прячут полосу прокрутки и добавляют отступ справа на её ширину.
+     У нас место под полосу и так занято (scrollbar-gutter), поэтому страница уезжала влево, а полоса пропадала.
+     Полосу оставляем, прокрутку под окном по-прежнему блокирует react-remove-scroll (колесо и касания) */
+  html body[data-scroll-locked] {
+    overflow: visible !important;
+    margin-right: 0 !important;
+  }
+  /* На короткой странице место под полосу пустое, затемнение окна (bg-black/10) его не накрывает */
+  html:has(body[data-scroll-locked]) {
+    background: color-mix(in oklab, var(--background) 90%, black);
+  }
   body {
     @apply bg-background text-foreground;
     -webkit-tap-highlight-color: transparent;

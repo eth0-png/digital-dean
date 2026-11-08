@@ -3,6 +3,7 @@
 // переписка закрывается, проверка по QR открывается без входа. Плюс отмена заявки студентом.
 // Создаёт заявки в базе, поэтому только локально.
 // Запуск: set -a && . ./.env && set +a && node scripts/check-flow.mjs http://localhost:3000
+// В окне компьютера: FLOW_SIZE=1366x768 node scripts/check-flow.mjs <адрес>
 import puppeteer from "puppeteer-core";
 import path from "node:path";
 
@@ -55,13 +56,9 @@ const closeChat = async (page) => {
 async function session(login, password) {
   const ctx = await browser.createBrowserContext();
   const page = await ctx.newPage();
-  await page.setViewport({
-    width: 360,
-    height: 780,
-    deviceScaleFactor: 1,
-    isMobile: true,
-    hasTouch: true,
-  });
+  // FLOW_SIZE=1366x768: тот же сценарий в окне компьютера (меню слева, переписка панелью справа)
+  const [width, height] = (process.env.FLOW_SIZE ?? "360x780").split("x").map(Number);
+  await page.setViewport({ width, height, deviceScaleFactor: 1, isMobile: width < 1024, hasTouch: width < 1024 });
   await page.goto(new URL("/login", base).href, { waitUntil: "networkidle0" });
   if (login) {
     await page.type("input[name=login]", login);

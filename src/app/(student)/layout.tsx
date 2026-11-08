@@ -13,7 +13,7 @@ const bell = `${round} relative bg-secondary`;
 
 export default function StudentLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="lg:flex">
+    <div className="lg:mx-auto lg:flex lg:max-w-[1360px]">
       {/* На широком экране меню слева, на телефоне внизу */}
       <Suspense fallback={null}>
         <SideNav />

@@ -121,6 +121,7 @@ async function Study({ searchParams }: { searchParams: Promise<Record<string, st
             )}
           </div>
           <Parts
+            key={sem.n}
             parts={[
               {
                 value: "mid",
@@ -172,6 +173,7 @@ async function Study({ searchParams }: { searchParams: Promise<Record<string, st
               <p className="mt-1 text-sm">{s.past.passed ? "Все экзамены и зачёты сданы" : "Есть несданные дисциплины"}</p>
             </section>
             <Parts
+              key={sem.n}
               parts={[
                 {
                   value: "exams",

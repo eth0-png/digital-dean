@@ -173,7 +173,19 @@ export function ShareButton({ title, url }: { title: string; url: string }) {
 export function ApplicationTabs({ tabs }: { tabs: { value: string; label: string; count: number; content: React.ReactNode }[] }) {
   // Выбранная вкладка в адресе (?tab=): после «назад» из заявки открывается та же вкладка, а не первая
   const search = useSearchParams();
-  const [value, setValue] = useState(() => tabs.find((t) => t.value === search.get("tab"))?.value ?? tabs[0].value);
+  const fromUrl = search.get("tab");
+  const pick = (v: string | null) => tabs.find((t) => t.value === v)?.value ?? tabs[0].value;
+  const [chosen, setValue] = useState(() => pick(fromUrl));
+  // Адрес сменился снаружи (ссылка на тот же раздел без ?tab=, «назад»): вкладка следует за адресом
+  const [seen, setSeen] = useState(fromUrl);
+  if (fromUrl !== seen) {
+    setSeen(fromUrl);
+    setValue(pick(fromUrl));
+  }
+  // Набор вкладок мог смениться (другой семестр в «Учёбе»): выбора нет среди вкладок, значит, открыта первая
+  const value = tabs.some((t) => t.value === chosen) ? chosen : tabs[0].value;
+  // Подписи и числа могут смениться без смены вкладки (очередь обновляется сама): подложку меряем заново
+  const labels = tabs.map((t) => `${t.label} ${t.count}`).join("|");
   const [dir, setDir] = useState<"left" | "right">("right");
   const [pill, setPill] = useState<{ left: number; width: number } | null>(null);
   const list = useRef<HTMLDivElement>(null);
@@ -186,7 +198,7 @@ export function ApplicationTabs({ tabs }: { tabs: { value: string; label: string
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
-  }, [value]);
+  }, [value, labels]);
 
   function change(next: string) {
     const from = tabs.findIndex((t) => t.value === value);

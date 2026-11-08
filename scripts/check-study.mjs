@@ -57,6 +57,23 @@ async function run(page, size, login, password) {
     }
     const ids = await page.$$eval("main [role=tab]", (ts) => ts.filter((t) => t.getClientRects().length).map((t) => t.id));
     check(ids.length === 2, `${tag} ${login} ${step}: две вкладки`);
+    // Сразу после смены семестра, до нажатий: выбрана вкладка из адреса или первая, в ней строки, подложка под ней
+    const st = await page.evaluate(() => {
+      const list = [...document.querySelectorAll("main [role=tablist]")].find((l) => l.getClientRects().length);
+      const tabs = [...list.querySelectorAll("[role=tab]")];
+      const active = tabs.find((t) => t.getAttribute("aria-selected") === "true");
+      const panel = active && document.getElementById(active.getAttribute("aria-controls"));
+      const pill = list.querySelector(":scope > span[aria-hidden=true]")?.getBoundingClientRect();
+      const r = active?.getBoundingClientRect();
+      const want = new URLSearchParams(location.search).get("tab");
+      return {
+        name: active?.textContent.trim() ?? "нет",
+        fromUrl: want ? active?.id.endsWith(`-trigger-${want}`) : active === tabs[0],
+        rows: panel?.querySelectorAll("li").length ?? 0,
+        pill: Boolean(pill && r && Math.abs(pill.left - r.left) < 3 && Math.abs(pill.width - r.width) < 3),
+      };
+    });
+    check(st.fromUrl && st.rows > 0 && st.pill, `${tag} ${login} ${step}: сразу открыта «${st.name}», строк ${st.rows}, подложка ${st.pill ? "на месте" : "не под ней"}`);
     for (const [i, id] of ids.entries()) {
       await press(`[id="${id}"]`);
       await page.waitForFunction((id) => document.getElementById(id)?.getAttribute("aria-selected") === "true", { timeout: 5000 }, id).catch(() => {});

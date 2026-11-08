@@ -67,6 +67,22 @@ check(await tap(`[role=tabpanel] a[href="${first}"]`, first), "«Мои заяв
 check((await backLabel()) === "Мои заявки", `«назад» на заявке подписан «Мои заявки» (сейчас «${await backLabel()}»)`);
 check(await tap("[data-back]", "/documents/all"), "«назад» с заявки возвращает в «Мои заявки»");
 
+// 5б. Вкладка в «Моих заявках» запоминается: «Готовые» → заявка → «назад» возвращает на «Готовые»
+await go("/documents/all");
+const tabs = await page.$$("button[role=tab]");
+for (const t of tabs) if ((await t.evaluate((b) => b.textContent)).includes("Готовые")) await t.tap();
+await settle();
+const doneTab = await url();
+const doneApp = await page.$eval('[role=tabpanel] a[href^="/documents/"]', (a) => a.getAttribute("href")).catch(() => null);
+check(doneTab === "/documents/all?tab=done", `вкладка «Готовые» в адресе (сейчас ${doneTab})`);
+if (doneApp) {
+  await tap(`[role=tabpanel] a[href="${doneApp}"]`, doneApp);
+  check(await tap("[data-back]", "/documents/all?tab=done"), "«назад» с заявки возвращает на вкладку «Готовые»");
+  const selected = await page.$eval('button[role=tab][aria-selected=true]', (b) => b.textContent).catch(() => "");
+  check(selected.includes("Готовые"), `после «назад» выбрана вкладка «Готовые» (сейчас «${selected}»)`);
+  check((await backLabel()) === "Документы", `«назад» на «Моих заявках» по-прежнему ведёт в «Документы» (сейчас «${await backLabel()}»)`);
+}
+
 // 6. Профиль и уведомления с заявки и обратно
 await go(first);
 check(await tap('a[aria-label="Профиль"]', "/profile"), "заявка → профиль");

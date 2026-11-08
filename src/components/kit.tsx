@@ -57,7 +57,7 @@ export function EmptyState({ icon, title, text, action }: { icon: ReactNode; tit
 
 export function PageSkeleton() {
   return (
-    <div className="space-y-4" aria-busy="true" aria-label="Загрузка">
+    <div className="min-h-dvh space-y-4" aria-busy="true" aria-label="Загрузка">
       <Skeleton className="h-8 w-2/3 rounded-xl bg-secondary" />
       <Skeleton className="h-4 w-1/2 rounded-xl bg-secondary" />
       <Skeleton className="h-44 rounded-2xl bg-secondary" />

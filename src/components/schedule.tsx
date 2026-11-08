@@ -20,10 +20,10 @@ export function LessonCard({ lesson: l, i = 0 }: { lesson: Lesson; i?: number })
   const c = l.change ? CHANGE[l.change.kind] : null;
   return (
     <li
-      className={`enter flex gap-3 rounded-xl border px-3.5 py-3 ${l.state === "now" ? "border-primary/40 bg-accent/60" : "bg-card"} ${l.state === "past" || cancelled ? "opacity-60" : ""}`}
+      className={`enter flex gap-3 rounded-xl border px-3.5 py-3 ${l.state === "now" ? "border-primary/40 bg-accent/60" : l.state === "past" || cancelled ? "border-transparent bg-muted" : "bg-card"}`}
       style={stagger(i)}
     >
-      <div className="w-12 shrink-0 text-right">
+      <div className="w-12 shrink-0 text-right tabular-nums">
         <p className={`font-bold ${cancelled ? "line-through" : ""}`}>{l.start}</p>
         <p className="text-[13px] text-muted-foreground">{l.end}</p>
       </div>

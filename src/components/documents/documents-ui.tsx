@@ -31,7 +31,15 @@ const progressText = (app: Application) => `${STATUS[app.status].title}, эта�
 function StepBar({ app, onPrimary }: { app: Application; onPrimary?: boolean }) {
   const step = STATUS[app.status].step;
   return (
-    <div role="progressbar" aria-valuemin={1} aria-valuemax={3} aria-valuenow={step + 1} aria-valuetext={progressText(app)} className="mt-4 grid grid-cols-3 gap-1.5">
+    <div
+      role="progressbar"
+      aria-label="Этапы заявки"
+      aria-valuemin={1}
+      aria-valuemax={3}
+      aria-valuenow={step + 1}
+      aria-valuetext={progressText(app)}
+      className="mt-4 grid grid-cols-3 gap-1.5"
+    >
       {STEPS.map((s, i) => (
         <span key={s} className={`h-1.5 overflow-hidden rounded-full ${onPrimary ? "bg-white/30" : "bg-border"}`}>
           {i <= step && <span className={`grow block h-full rounded-full ${onPrimary ? "bg-white" : "bg-primary"}`} style={stagger(i)} />}
@@ -178,7 +186,15 @@ export function StatusCard({ app, action }: { app: Application; action?: ReactNo
       {/* У отклонённой и отменённой заявки этапов дальше нет, полосу не показываем */}
       {!stopped && (
         <>
-          <div role="progressbar" aria-valuemin={1} aria-valuemax={3} aria-valuenow={s.step + 1} aria-valuetext={progressText(app)} className="mt-4 flex items-center">
+          <div
+            role="progressbar"
+            aria-label="Этапы заявки"
+            aria-valuemin={1}
+            aria-valuemax={3}
+            aria-valuenow={s.step + 1}
+            aria-valuetext={progressText(app)}
+            className="mt-4 flex items-center"
+          >
             {STEPS.map((label, i) => {
               const done = i < s.step || ready;
               const now = i === s.step && !ready;

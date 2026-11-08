@@ -130,7 +130,7 @@ function Conversation({ peer, messages, compose, closedText, open, onOpenChange 
           )}
         </DrawerHeader>
 
-        <div role="log" aria-live="polite" className="flex-1 space-y-2.5 overflow-y-auto px-4 py-4">
+        <div role="log" aria-live="polite" className="flex-1 space-y-2.5 overflow-y-auto overscroll-contain px-4 py-4">
           {list.map((m) =>
             m.from === "system" ? (
               <p key={m.id} className="py-1 text-center text-xs font-semibold text-muted-foreground">

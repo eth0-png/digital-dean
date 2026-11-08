@@ -14,6 +14,9 @@ const bell = `${round} relative bg-secondary`;
 export default function StudentLayout({ children }: { children: ReactNode }) {
   return (
     <div className="lg:mx-auto lg:flex lg:max-w-[1360px]">
+      <a href="#main" className="sr-only z-50 rounded-xl bg-primary px-4 py-3 font-bold text-primary-foreground focus:not-sr-only focus:fixed focus:top-3 focus:left-3">
+        Перейти к содержимому
+      </a>
       {/* На широком экране меню слева, на телефоне внизу */}
       <Suspense fallback={null}>
         <SideNav />
@@ -38,7 +41,9 @@ export default function StudentLayout({ children }: { children: ReactNode }) {
             <Avatar />
           </Suspense>
         </header>
-        <main className="flex-1 px-4 pt-2 pb-6">{children}</main>
+        <main id="main" tabIndex={-1} className="flex-1 px-4 pt-2 pb-6 outline-none">
+          {children}
+        </main>
         <footer className="px-4 pb-28 text-center text-xs text-muted-foreground lg:pb-8">{CONCEPT_NOTE}</footer>
         {/* Путь по кабинету для «назад» и закрытия профиля и уведомлений */}
         <Suspense fallback={null}>

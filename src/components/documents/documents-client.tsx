@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useActionState, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { LoaderCircle, Minus, Plus, Share2, TriangleAlert } from "lucide-react";
@@ -126,7 +126,7 @@ export function OrderForm({ type, student }: { type: DocType; student: { fio: st
         )}
         <Button type="submit" size="lg" disabled={pending}>
           {pending && <LoaderCircle className="animate-spin" aria-hidden="true" />}
-          {pending ? "Отправляем" : "Отправить заявку"}
+          {pending ? "Отправляем…" : "Отправить заявку"}
         </Button>
         <p className="mt-2 text-center text-[13px] text-muted-foreground">
           Обычно {cfg.days === 1 ? "1 рабочий день" : `${cfg.days} рабочих дня`}
@@ -171,7 +171,9 @@ export function ShareButton({ title, url }: { title: string; url: string }) {
  * а видимая подложка 36 px. Список при смене вкладки въезжает с той стороны, куда переключили.
  */
 export function ApplicationTabs({ tabs }: { tabs: { value: string; label: string; count: number; content: React.ReactNode }[] }) {
-  const [value, setValue] = useState(tabs[0].value);
+  // Выбранная вкладка в адресе (?tab=): после «назад» из заявки открывается та же вкладка, а не первая
+  const search = useSearchParams();
+  const [value, setValue] = useState(() => tabs.find((t) => t.value === search.get("tab"))?.value ?? tabs[0].value);
   const [dir, setDir] = useState<"left" | "right">("right");
   const [pill, setPill] = useState<{ left: number; width: number } | null>(null);
   const list = useRef<HTMLDivElement>(null);
@@ -191,6 +193,11 @@ export function ApplicationTabs({ tabs }: { tabs: { value: string; label: string
     const to = tabs.findIndex((t) => t.value === next);
     setDir(to > from ? "right" : "left");
     setValue(next);
+    const params = new URLSearchParams(window.location.search);
+    if (next === tabs[0].value) params.delete("tab");
+    else params.set("tab", next);
+    const q = params.toString();
+    window.history.replaceState(null, "", q ? `${window.location.pathname}?${q}` : window.location.pathname);
   }
 
   return (
@@ -212,7 +219,7 @@ export function ApplicationTabs({ tabs }: { tabs: { value: string; label: string
             }`}
           >
             {t.label}
-            <span className="ml-1.5 text-[12.5px] font-semibold opacity-70">{t.count}</span>
+            <span className="ml-1.5 text-[12.5px] font-semibold">{t.count}</span>
           </TabsTrigger>
         ))}
       </TabsList>

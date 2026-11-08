@@ -81,7 +81,7 @@ export function LoginForm() {
 
       <Button type="submit" size="lg" disabled={pending}>
         {pending && <LoaderCircle className="animate-spin" aria-hidden="true" />}
-        {pending ? "Входим" : "Войти"}
+        {pending ? "Входим…" : "Войти"}
       </Button>
     </form>
   );

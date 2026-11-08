@@ -95,7 +95,7 @@ async function Today() {
                   <Clock size={18} aria-hidden="true" />
                   <span>
                     {t.when}
-                    {n.state !== "now" && <span className="font-semibold opacity-80">{`, ${n.start}–${n.end}`}</span>}
+                    {n.state !== "now" && <span className="font-semibold">{`, ${n.start}–${n.end}`}</span>}
                   </span>
                 </p>
               </>

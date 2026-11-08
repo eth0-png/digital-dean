@@ -52,12 +52,28 @@ export function recordVisit(url: string) {
     return;
   }
   if (trail[trail.length - 1] === url) return;
+  // Сменили вкладку на той же странице (?tab=): это та же страница, запись заменяем, а не добавляем.
+  // Иначе «назад» вёл бы на эту же страницу с другой вкладкой
+  const last = trail[trail.length - 1];
+  if (last && withoutTab(last) === withoutTab(url)) {
+    trail[trail.length - 1] = url;
+    changed();
+    return;
+  }
   trail.push(url);
   if (trail.length > 30) trail.shift();
   changed();
 }
 
 const isForm = (url: string) => url.startsWith("/documents/new");
+
+function withoutTab(url: string) {
+  const [path, query = ""] = url.split("?");
+  const params = new URLSearchParams(query);
+  params.delete("tab");
+  const q = params.toString();
+  return q ? `${path}?${q}` : path;
+}
 
 /**
  * Предыдущая страница перед текущей. Работает и до, и после того, как текущая записана в путь.

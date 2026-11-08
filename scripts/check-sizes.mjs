@@ -51,6 +51,11 @@ async function inspect(page, who, route, size) {
     for (const el of document.querySelectorAll("body *")) {
       const r = el.getBoundingClientRect();
       if (!r.width || !r.height || getComputedStyle(el).visibility === "hidden" || el.closest("[aria-hidden=true]")) continue;
+      // Скрытое для глаз намеренно (ссылка «Перейти к содержимому» до нажатия Tab) и содержимое прокручиваемых лент (карусель)
+      if (el.closest(".sr-only")) continue;
+      let scroller = el.parentElement;
+      while (scroller && !["auto", "scroll"].includes(getComputedStyle(scroller).overflowX)) scroller = scroller.parentElement;
+      if (scroller) continue;
       // Видимый элемент вылезает за правый край окна
       if (r.right > innerWidth + 1 && getComputedStyle(el).position !== "fixed") issues.push(`за краем окна: ${el.tagName.toLowerCase()} «${(el.textContent ?? "").trim().slice(0, 30)}»`);
       // Текст обрезан: содержимое шире блока, а прокрутки у блока нет (кроме намеренной прокрутки и line-clamp)

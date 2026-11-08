@@ -101,6 +101,15 @@
   [role="button"]:not(:disabled) {
     cursor: pointer;
   }
+  a,
+  button,
+  [role="button"] {
+    touch-action: manipulation;
+  }
+  h1,
+  h2 {
+    text-wrap: balance;
+  }
   :focus-visible {
     outline: 3px solid var(--ring);
     outline-offset: 2px;

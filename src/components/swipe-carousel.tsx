@@ -36,7 +36,7 @@ export function SwipeCarousel({ children, label }: { children: ReactNode; label:
       </div>
       <div className="mt-2.5 flex justify-center gap-1.5 lg:hidden" aria-hidden="true">
         {slides.map((_, i) => (
-          <span key={i} className={`h-1.5 rounded-full transition-all duration-300 ${i === active ? "w-5 bg-primary" : "w-1.5 bg-border"}`} />
+          <span key={i} className={`h-1.5 rounded-full transition-[width,background-color] duration-300 ${i === active ? "w-5 bg-primary" : "w-1.5 bg-border"}`} />
         ))}
       </div>
     </section>

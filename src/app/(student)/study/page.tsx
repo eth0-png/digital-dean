@@ -29,7 +29,7 @@ function GradeRow({ g, i }: { g: Grade; i: number }) {
         <span className="block text-[13px] text-muted-foreground">{g.sub}</span>
         {g.note && <span className="mt-1 inline-block rounded-md bg-destructive-soft px-2 py-0.5 text-[12px] font-bold text-destructive">{g.note}</span>}
       </span>
-      <span className="shrink-0 text-right">
+      <span className="shrink-0 text-right tabular-nums">
         <span className={`block font-display text-xl font-semibold ${g.pass ? "" : "text-destructive"}`}>{g.score}</span>
         <span className={`block text-[12px] font-bold ${g.pass ? "text-muted-foreground" : "text-destructive"}`}>
           {g.letter}, {g.word}

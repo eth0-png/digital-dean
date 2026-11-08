@@ -17,6 +17,9 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  // Экранная клавиатура сжимает страницу, а не накрывает её: закреплённая внизу кнопка «Отправить заявку»
+  // и поле переписки остаются над клавиатурой (Chrome на Android). Safari на iPhone этот режим не знает
+  interactiveWidget: "resizes-content",
   themeColor: "#ffffff",
 };
 

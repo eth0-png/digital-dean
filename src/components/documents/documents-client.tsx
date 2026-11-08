@@ -31,6 +31,17 @@ export function OrderForm({ type, student }: { type: DocType; student: { fio: st
   const [format, setFormat] = useState<Format>(cfg.formats[0] ?? "electronic");
   const [copies, setCopies] = useState(1);
 
+  // Клавиатура открылась (страница сжалась) при активном поле текста: ставим поле в середину видимой части,
+  // иначе его закрывает закреплённая внизу кнопка «Отправить заявку». На компьютере кнопка не закреплена
+  useEffect(() => {
+    const keep = () => {
+      const el = document.activeElement;
+      if (el instanceof HTMLTextAreaElement && el.id === "details" && innerWidth < 1024) el.scrollIntoView({ block: "center" });
+    };
+    window.addEventListener("resize", keep);
+    return () => window.removeEventListener("resize", keep);
+  }, []);
+
   return (
     <form action={action} className="space-y-6 pb-28 lg:pb-0" noValidate>
       <input type="hidden" name="type" value={type} />
@@ -100,7 +111,14 @@ export function OrderForm({ type, student }: { type: DocType; student: { fio: st
           <Label htmlFor="details" className="text-sm font-bold">
             {cfg.details.label}
           </Label>
-          <Textarea id="details" name="details" rows={3} maxLength={1000} placeholder={cfg.details.placeholder} className="min-h-24 rounded-xl border-0 bg-muted px-4 py-3 text-base" />
+          <Textarea
+              id="details"
+              name="details"
+              rows={3}
+              maxLength={1000}
+              placeholder={cfg.details.placeholder}
+              className="min-h-24 rounded-xl border-0 bg-muted px-4 py-3 text-base"
+            />
         </div>
       )}
 

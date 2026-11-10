@@ -5,9 +5,12 @@ import { cookies, headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { sql } from "./db";
 
-export const SESSION_COOKIE = "session";
+import { SESSION_COOKIE } from "./session-cookie";
+
 const SESSION_DAYS = 30;
-const MAX_FAILS = 10; // за 15 минут с одного адреса
+const MAX_SESSIONS = 50; // на один аккаунт: тестовые аккаунты общие, но таблица не должна расти без предела
+const MAX_FAILS = 10; // неудач за 15 минут на один логин с одного адреса
+const MAX_PER_IP = 50; // попыток за 15 минут с одного адреса на все логины
 
 export type CurrentUser = {
   id: string;
@@ -66,6 +69,9 @@ export async function createSession(userId: string) {
   const token = randomBytes(32).toString("base64url");
   await sql`insert into sessions (id, user_id, expires_at)
             values (${sha256(token)}, ${userId}, now() + make_interval(days => ${SESSION_DAYS}))`;
+  // Просроченные сессии и лишние сверх предела убираем при входе, а не только при старте сервера
+  await sql`delete from sessions where expires_at < now() or (user_id = ${userId} and id not in (
+    select id from sessions where user_id = ${userId} order by expires_at desc limit ${MAX_SESSIONS}))`;
   (await cookies()).set(SESSION_COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -88,15 +94,26 @@ async function clientIp() {
   return xff?.split(",").pop()?.trim() || "local";
 }
 
-// ponytail: лимит попыток по IP в таблице, без Redis. Хватает на несколько копий приложения с общей базой.
-export async function isRateLimited() {
+// ponytail: лимит попыток в таблице, без Redis. Хватает на несколько копий приложения с общей базой.
+/**
+ * Занять попытку входа до проверки пароля. Запись появляется раньше сравнения, поэтому одновременные
+ * запросы видят друг друга и не проходят сверх лимита. Считаем по паре «адрес, логин»: чужие ошибки
+ * с того же адреса (общий Wi-Fi, одна сеть у жюри) не закрывают вход в другой аккаунт.
+ * Возвращает номер попытки или null, если лимит исчерпан.
+ */
+export async function reserveLoginAttempt(login: string) {
   const ip = await clientIp();
-  const [{ n }] = await sql<{ n: number }[]>`
-    select count(*)::int as n from login_attempts
-    where ip = ${ip} and created_at > now() - interval '15 minutes'`;
-  return n >= MAX_FAILS;
+  const [{ id }] = await sql<{ id: string }[]>`insert into login_attempts (ip, login) values (${ip}, ${login}) returning id::text`;
+  // Отдельным запросом после вставки: так видны попытки, записанные другими запросами в тот же момент
+  const [n] = await sql<{ by_login: number; by_ip: number }[]>`
+    select count(*) filter (where login = ${login})::int as by_login, count(*)::int as by_ip
+    from login_attempts where ip = ${ip} and created_at > now() - interval '15 minutes'`;
+  if (n.by_login <= MAX_FAILS && n.by_ip <= MAX_PER_IP) return id;
+  await releaseLoginAttempt(id); // отказ не продлевает блокировку
+  return null;
 }
 
-export async function recordFailedLogin() {
-  await sql`insert into login_attempts (ip) values (${await clientIp()})`;
+/** Попытка не была неудачей (верный пароль или отказ до проверки): убираем её из счёта. */
+export async function releaseLoginAttempt(id: string) {
+  await sql`delete from login_attempts where id = ${id}`;
 }

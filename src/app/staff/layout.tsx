@@ -16,22 +16,19 @@ export default function StaffLayout({ children }: { children: ReactNode }) {
         Перейти к содержимому
       </a>
       <header style={{ viewTransitionName: "app-header" }} className="sticky top-0 z-30 flex items-center gap-2.5 bg-background px-4 py-3">
-        <Link href="/staff" transitionTypes={["nav-back"]} className="flex min-h-11 flex-1 items-center gap-2.5" aria-label="К очереди заявок">
-          <Logo />
-          <span className="leading-tight">
-            <span className="block font-display text-base font-semibold">деканат</span>
-            <span className="block text-xs text-muted-foreground">кабинет сотрудника</span>
-          </span>
-        </Link>
-        <Suspense fallback={<span className="size-11 animate-pulse rounded-full bg-secondary" />}>
-          <StaffAvatar />
+        {/* До проверки роли в шапке только логотип: студент на /staff не узнаёт, что это кабинет сотрудника */}
+        <Suspense
+          fallback={
+            <>
+              <span className="flex min-h-11 flex-1 items-center">
+                <Logo />
+              </span>
+              <span className="size-11 animate-pulse rounded-full bg-secondary" />
+            </>
+          }
+        >
+          <StaffHeader />
         </Suspense>
-        <form action={logout}>
-          <Button type="submit" variant="secondary" className="rounded-full">
-            <LogOut aria-hidden="true" />
-            Выйти
-          </Button>
-        </form>
       </header>
       <main id="main" tabIndex={-1} className="flex-1 px-4 pt-2 pb-6 outline-none">
         {children}
@@ -44,19 +41,37 @@ export default function StaffLayout({ children }: { children: ReactNode }) {
   );
 }
 
-/** Аватарка сотрудника: её видят студенты в переписке. Нажатие открывает выбор. */
-async function StaffAvatar() {
+/**
+ * Содержимое шапки появляется только после проверки роли. Аватарку сотрудника видят студенты в переписке,
+ * нажатие открывает выбор.
+ */
+async function StaffHeader() {
   const user = await requireStaff();
   const initials = `${user.firstName[0]}${user.lastName[0]}`;
   return (
-    <AvatarPicker
-      current={user.avatar}
-      initials={initials}
-      trigger={
-        <button type="button" aria-label="Сменить аватарку" className="press shrink-0 rounded-full">
-          <UserAvatar avatar={user.avatar} initials={initials} size="size-11 text-sm" />
-        </button>
-      }
-    />
+    <>
+      <Link href="/staff" transitionTypes={["nav-back"]} className="flex min-h-11 flex-1 items-center gap-2.5" aria-label="К очереди заявок">
+        <Logo />
+        <span className="leading-tight">
+          <span className="block font-display text-base font-semibold">деканат</span>
+          <span className="block text-xs text-muted-foreground">кабинет сотрудника</span>
+        </span>
+      </Link>
+      <AvatarPicker
+        current={user.avatar}
+        initials={initials}
+        trigger={
+          <button type="button" aria-label="Сменить аватарку" className="press shrink-0 rounded-full">
+            <UserAvatar avatar={user.avatar} initials={initials} size="size-11 text-sm" />
+          </button>
+        }
+      />
+      <form action={logout}>
+        <Button type="submit" variant="secondary" className="rounded-full">
+          <LogOut aria-hidden="true" />
+          Выйти
+        </Button>
+      </form>
+    </>
   );
 }

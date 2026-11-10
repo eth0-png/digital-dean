@@ -78,7 +78,7 @@ export const DOC_TYPES: Record<DocType, DocConfig> = {
   },
 };
 
-export const isDocType = (t: unknown): t is DocType => typeof t === "string" && t in DOC_TYPES;
+export const isDocType = (t: unknown): t is DocType => typeof t === "string" && Object.hasOwn(DOC_TYPES, t);
 
 /** Справка выдаётся документом с QR. Заявления (пересдача, исправление данных) просто выполняются. */
 export const isCertificate = (t: DocType) => t === "study" || t === "military";
@@ -105,6 +105,7 @@ export type Application = {
   closedAt?: string; // когда отклонили или отменили
   question?: string;
   verifyCode?: string;
+  holder?: string; // ФИО владельца на момент выдачи справки
   details?: string;
   events: AppEvent[];
 };

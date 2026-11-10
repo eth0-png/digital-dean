@@ -10,7 +10,7 @@ import postgres from "postgres";
 import { openPage, remote } from "./browser.mjs";
 
 const base = process.argv[2];
-if (!/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?/.test(base ?? "")) {
+if (!/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/?$/.test(base ?? "")) {
   console.error("Только локальный сервер: проверка создаёт заявки и упирается в лимит попыток входа");
   process.exit(2);
 }
@@ -106,6 +106,16 @@ check(Boolean(fix.id), `${tag}: заявка на исправление дан�
 
 await go(student, "/documents/new?type=chto-to");
 check((await text(student)).includes("Страница не найдена"), `${tag}: несуществующий вид документа даёт «не найдено»`);
+// Служебные имена объекта («constructor», «toString») раньше проходили проверку вида и роняли страницу
+await go(student, "/documents/new?type=constructor");
+check((await text(student)).includes("Страница не найдена"), `${tag}: вид документа «constructor» даёт «не найдено», а не ошибку сервера`);
+
+// Предел открытых заявок на студента: 20 открытых заявок добавляем прямо в базу, следующая через форму не проходит
+await db`insert into applications (user_id, type, due_date, details)
+         select (select id from users where login = 'student1'), 'retake', current_date, 'проверка-предела' from generate_series(1, 20)`;
+const overCap = await order("military");
+check(!overCap.id && overCap.alert.includes("открытых заявок"), `${tag}: сверх 20 открытых заявок новая не создаётся («${overCap.alert.trim()}»)`);
+await db`delete from applications where details = 'проверка-предела'`;
 
 // У сотрудника видно, что выбрал студент
 await go(staff, `/staff/${study.id}`);
@@ -250,7 +260,34 @@ await guest.type("input[name=login]", "student1");
 await guest.type("input[name=password]", process.env.SEED_PASSWORD_STUDENT1);
 await guest.keyboard.press("Enter");
 await guest.waitForSelector("[role=alert]", { timeout: 10000 }).catch(() => {});
-check((await guest.$eval("[role=alert]", (a) => a.innerText).catch(() => "")).includes("Слишком много"), "во время блокировки не пускает и с верным паролем");
+check((await guest.$eval("[role=alert]", (a) => a.innerText).catch(() => "")).includes("Слишком много"), "во время блокировки не пускает в тот же аккаунт и с верным паролем");
+// Лимит по паре «адрес, логин»: чужие ошибки с того же адреса не закрывают вход в другой аккаунт
+await login(guest, "student2", process.env.SEED_PASSWORD_STUDENT2);
+check(new URL(guest.url()).pathname === "/", "во время блокировки одного логина в другой аккаунт с того же адреса войти можно");
+const [{ leftover }] = await db`select count(*)::int as leftover from login_attempts where login = 'student2'`;
+check(leftover === 0, `верный пароль не оставляет записи о попытке (осталось ${leftover})`);
+await db`delete from login_attempts`;
+
+// Залп одновременных входов: попытка записывается до проверки пароля, сверх лимита не проходит ни одна
+const burst = [];
+for (let i = 0; i < 20; i++) {
+  const p = await browser.newPage();
+  await p.goto(new URL("/login", base).href, { waitUntil: "networkidle0" });
+  await p.type("input[name=login]", "nobody");
+  await p.type("input[name=password]", `залп-${i}`);
+  burst.push(p);
+}
+await Promise.all(burst.map((p) => p.keyboard.press("Enter")));
+// Ждём, пока число записей перестанет меняться: фоновые вкладки не всегда показывают ответ, смотрим в базу
+let recorded = -1;
+for (let same = 0, i = 0; same < 3 && i < 40; i++) {
+  await wait(500);
+  const [{ n }] = await db`select count(*)::int as n from login_attempts where login = 'nobody'`;
+  same = n === recorded ? same + 1 : 0;
+  recorded = n;
+}
+check(recorded > 0 && recorded <= 10, `залп из 20 одновременных неверных входов: записано ${recorded} попыток, не больше лимита 10`);
+await Promise.all(burst.map((p) => p.close()));
 await db`delete from login_attempts`; // снимаем блокировку, чтобы не мешать другим проверкам
 
 await closeStudent();

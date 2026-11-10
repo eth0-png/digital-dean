@@ -37,6 +37,10 @@ create table if not exists login_attempts (
   created_at timestamptz not null default now()
 );
 create index if not exists login_attempts_ip_idx on login_attempts (ip, created_at);
+-- Попытка записывается до проверки пароля. Номер нужен, чтобы убрать её из счёта после верного пароля,
+-- логин для счёта по паре «адрес, логин»: чужие ошибки с того же адреса не закрывают вход в другой аккаунт.
+alter table login_attempts add column if not exists id bigserial;
+alter table login_attempts add column if not exists login text not null default '';
 
 -- Заявки студентов. Номер для людей, id (uuid) для адресов, чтобы номера нельзя было перебрать.
 create table if not exists applications (
@@ -95,6 +99,12 @@ alter table applications add constraint applications_status_check
 alter table application_events drop constraint if exists application_events_kind_check;
 alter table application_events add constraint application_events_kind_check
   check (kind in ('submitted', 'in_progress', 'question', 'answer', 'message', 'reply', 'ready', 'rejected', 'cancelled'));
+
+-- ФИО владельца на момент выдачи справки: [фамилия, имя, отчество]. Проверка по QR и сама справка показывают его,
+-- а не текущий профиль: после исправления ФИО уже выданные справки и ссылки на них не меняются.
+alter table applications add column if not exists holder text[];
+update applications a set holder = array[u.last_name, u.first_name, coalesce(u.middle_name, '')]
+  from users u where u.id = a.user_id and a.verify_code is not null and a.holder is null;
 `;
 
 // Демо-заявки, чтобы жюри сразу увидело все состояния. Создаются один раз, если у студента заявок нет,
@@ -154,13 +164,16 @@ async function seedApplications(userId: string, login: string, staffId: string |
   const [{ n }] = await sql<{ n: number }[]>`select count(*)::int as n from applications where user_id = ${userId}`;
   if (n > 0) return;
   for (const a of apps) {
-    const code = a.status === "ready" ? randomBytes(16).toString("hex") : null;
+    // Код проверки и ФИО на момент выдачи только у готовых справок, как в действии сотрудника
+    const code = a.status === "ready" && (a.type === "study" || a.type === "military") ? randomBytes(16).toString("hex") : null;
     // Демо-события в рабочие часы деканата: день «ago» назад с 10:00 по Москве, но не позже текущего момента
     const base = sql`((date_trunc('day', (now() - ${a.ago}::interval) at time zone 'Europe/Moscow') + interval '10 hours') at time zone 'Europe/Moscow')`;
     const [app] = await sql<{ id: string }[]>`
-      insert into applications (user_id, type, purpose, format, details, status, due_date, verify_code, created_at, updated_at)
+      insert into applications (user_id, type, purpose, format, details, status, due_date, verify_code, holder, created_at, updated_at)
       values (${userId}, ${a.type}, ${a.purpose ?? null}, ${a.format}, ${a.details ?? null}, ${a.status},
-              (now() - ${a.ago}::interval + ${a.due}::interval)::date, ${code}, least(${base}, now()), now())
+              (now() - ${a.ago}::interval + ${a.due}::interval)::date, ${code},
+              ${code ? sql`(select array[last_name, first_name, coalesce(middle_name, '')] from users where id = ${userId})` : null},
+              least(${base}, now()), now())
       returning id`;
     for (const e of a.events) {
       const author = e.kind === "question" ? (staffId ?? null) : e.kind === "answer" ? userId : null;
@@ -233,7 +246,11 @@ export async function initDb() {
       console.warn(`[init-db] ${d.env} не задан, аккаунт ${d.login} не обновлён`);
       continue;
     }
-    const hash = await bcrypt.hash(password, 12);
+    // Пароль меняют так: новое значение в .env и перезапуск. Если он действительно изменился,
+    // завершаем сессии аккаунта: иначе вошедшие со старым паролем оставались бы в кабинете до 30 дней.
+    const [old] = await sql<{ password_hash: string }[]>`select password_hash from users where login = ${d.login}`;
+    const changed = old ? !(await bcrypt.compare(password, old.password_hash)) : false;
+    const hash = old && !changed ? old.password_hash : await bcrypt.hash(password, 12);
     const [last, first, middle] = d.name;
     const [user] = await sql<{ id: string }[]>`
       insert into users (login, password_hash, role, last_name, first_name, middle_name)
@@ -243,6 +260,10 @@ export async function initDb() {
         last_name = excluded.last_name, first_name = excluded.first_name, middle_name = excluded.middle_name
       returning id`;
     ids[d.login] = user.id;
+    if (changed) {
+      await sql`delete from sessions where user_id = ${user.id}`;
+      console.log(`[init-db] пароль ${d.login} изменён, сессии аккаунта завершены`);
+    }
     if (d.student) {
       const s = d.student;
       await sql`

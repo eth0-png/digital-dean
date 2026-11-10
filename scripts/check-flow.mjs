@@ -224,6 +224,10 @@ await staff.locator("[role=dialog] button[type=submit]").click();
 await staff.waitForSelector("[role=dialog]", { hidden: true, timeout: 10000 });
 await go(student, "/profile");
 check((await text(student)).includes("Дмитревна"), "студент видит исправленное ФИО в профиле");
+// Справка, выданная до исправления, хранит ФИО на момент выдачи и не меняется вместе с профилем
+await go(student, `/documents/${id}/document`);
+const sheet = await text(student);
+check(sheet.includes("Дмитриевна") && !sheet.includes("Дмитревна"), "в уже выданной справке осталось ФИО на момент выдачи");
 await fixName("Дмитриевна");
 await staff.waitForSelector("[role=dialog]", { hidden: true, timeout: 10000 });
 await go(student, "/profile");

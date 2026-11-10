@@ -2,7 +2,7 @@ import "server-only";
 import { notFound } from "next/navigation";
 import { sql } from "./db";
 import { requireStaff } from "./auth";
-import { UUID, eventsFor, fmtAt, toApplication, type AppRow } from "./applications";
+import { UUID, eventsFor, fmtAt, groupEvents, toApplication, type AppRow } from "./applications";
 import { isClosed, type Application } from "./documents";
 
 // Данные кабинета сотрудника. Каждая функция сначала проверяет роль: студент получает «не найдено».
@@ -67,18 +67,29 @@ const SELECT = sql`
   join users u on u.id = a.user_id
   left join students st on st.user_id = u.id`;
 
-/** Очередь: все заявки всех студентов, сначала с ближайшим сроком. */
+const CLOSED_SHOWN = 200;
+
+/**
+ * Очередь: открытые заявки всех студентов и последние закрытые, сначала с ближайшим сроком.
+ * Открытых не больше предела на студента (createApplication), закрытых показываем последние 200:
+ * очередь не растёт вместе с архивом.
+ */
 export async function listQueue() {
   await requireStaff();
-  const rows = await sql<StaffRow[]>`${SELECT} order by a.due_date, a.created_at`;
-  const events = await eventsFor(rows.map((r) => r.id));
-  return rows.map((r) => toItem(r, toApplication(r, events)));
+  const rows = await sql<StaffRow[]>`
+    ${SELECT}
+    where a.status in ('submitted', 'in_progress', 'need_info')
+       or a.id in (select id from applications where status not in ('submitted', 'in_progress', 'need_info')
+                   order by updated_at desc limit ${CLOSED_SHOWN})
+    order by a.due_date, a.created_at`;
+  const events = groupEvents(await eventsFor(rows.map((r) => r.id)));
+  return rows.map((r) => toItem(r, toApplication(r, events.get(r.id) ?? [])));
 }
 
 /** Одна заявка для сотрудника, со сведениями о студенте. */
 export async function getForStaff(id: string) {
-  if (!UUID.test(id)) notFound();
   await requireStaff();
+  if (!UUID.test(id)) notFound();
   const [row] = await sql<StaffRow[]>`${SELECT} where a.id = ${id}`;
   if (!row) notFound();
   return toItem(row, toApplication(row, await eventsFor([row.id])));

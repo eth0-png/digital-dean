@@ -78,6 +78,13 @@ check((await headerAvatar(s1)) === "АС", "student1 вернул инициал
 // 4. Студент не открывает кабинет сотрудника
 const st = await open(s1, "/staff");
 check(st.text.includes("Страница не найдена") && !st.text.includes("Очередь заявок"), "student1 на /staff видит «Страница не найдена»");
+// Шапка кабинета сотрудника не должна доходить до студента даже в исходном HTML, до проверки роли
+const staffHtml = await s1.evaluate(() => fetch("/staff").then((r) => r.text()));
+check(!staffHtml.includes("кабинет сотрудника"), "в ответе на /staff для студента нет шапки кабинета сотрудника");
+// Cookie сессии недоступна скриптам страницы и привязана к хосту (__Host-): соседний сайт на общем домене не подложит свою
+const cookie = (await s1.cookies()).find((c) => c.name.endsWith("session"));
+const bound = cookie?.name === "__Host-session" || (!base.startsWith("https") && cookie?.name === "session");
+check(Boolean(cookie?.httpOnly) && bound, `cookie сессии: ${cookie?.name}, httpOnly ${cookie?.httpOnly}`);
 
 // 5. Сотрудник попадает в свой кабинет, а не в студенческий
 const staff = await session("dekanat", process.env.SEED_PASSWORD_STAFF);

@@ -18,9 +18,9 @@ async function cookie(login, password) {
   await page.type("input[name=login]", login);
   await page.type("input[name=password]", password);
   await Promise.all([page.waitForNavigation({ waitUntil: "networkidle0" }), page.click("button[type=submit]")]);
-  const c = (await page.cookies()).find((c) => c.name === "session");
+  const c = (await page.cookies()).find((c) => c.name.endsWith("session"));
   const appHref = await page.goto(new URL("/documents/all", base).href, { waitUntil: "networkidle0" }).then(() => page.evaluate(() => [...document.querySelectorAll("a")].map((a) => a.getAttribute("href")).find((h) => /^\/(documents|staff)\/[0-9a-f-]{36}$/.test(h ?? ""))));
-  return { header: `session=${c.value}`, appHref };
+  return { header: `${c.name}=${c.value}`, appHref };
 }
 const s = await cookie("student1", process.env.SEED_PASSWORD_STUDENT1);
 const st = await cookie("dekanat", process.env.SEED_PASSWORD_STAFF);

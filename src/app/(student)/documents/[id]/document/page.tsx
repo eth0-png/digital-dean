@@ -31,7 +31,8 @@ async function DocumentView({ params }: { params: Promise<{ id: string }> }) {
         <BackLink fallbackHref={`/documents/${app.id}`} fallbackLabel={`Заявка № ${app.number}`} />
         <ShareButton title={`${DOC_TYPES[app.type].title} № ${app.number}`} url={verifyUrl} />
       </div>
-      <DocumentPaper app={app} fio={`${user.lastName} ${user.firstName} ${user.middleName ?? ""}`.trim()} course={user.course ?? 1} faculty={user.faculty ?? ""} verifyUrl={verifyUrl} />
+      {/* ФИО на момент выдачи: после исправления данных уже выданная справка не меняется */}
+      <DocumentPaper app={app} fio={app.holder ?? `${user.lastName} ${user.firstName} ${user.middleName ?? ""}`.trim()} course={user.course ?? 1} faculty={user.faculty ?? ""} verifyUrl={verifyUrl} />
     </div>
   );
 }

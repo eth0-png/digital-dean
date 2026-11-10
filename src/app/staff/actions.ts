@@ -5,7 +5,7 @@ import { refresh } from "next/cache";
 import type postgres from "postgres";
 import { sql } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
-import { UUID, fingerprint } from "@/lib/applications";
+import { fingerprint, isUuid } from "@/lib/applications";
 
 // Действия сотрудника. Каждое само проверяет роль и допустимый переход статуса в WHERE:
 // заявку нельзя выдать дважды, а закрытую нельзя снова взять в работу.
@@ -16,13 +16,17 @@ type Tx = postgres.TransactionSql;
 
 async function move(id: string, from: string[], to: string, kind: string, text: string | null = null, also?: (tx: Tx, id: string) => Promise<unknown>): Promise<Result> {
   const staff = await requireStaff();
-  if (!UUID.test(String(id))) return { error: "Заявка не найдена." };
-  // Код проверки по QR только у справок: у заявлений на пересдачу и исправление данных документа нет
+  if (!isUuid(id)) return { error: "Заявка не найдена." };
+  // Код проверки по QR только у справок: у заявлений на пересдачу и исправление данных документа нет.
+  // Вместе с кодом запоминаем ФИО владельца на момент выдачи: справка и проверка по QR показывают его, а не текущий профиль.
   const code = to === "ready" ? randomBytes(16).toString("hex") : null;
   const done = await sql.begin(async (tx) => {
     const [app] = await tx<{ id: string }[]>`
       update applications set status = ${to}, updated_at = now(),
-        verify_code = case when type in ('study', 'military') and ${code}::text is not null then ${code}::text else verify_code end
+        verify_code = case when type in ('study', 'military') and ${code}::text is not null then ${code}::text else verify_code end,
+        holder = case when type in ('study', 'military') and ${code}::text is not null
+          then (select array[u.last_name, u.first_name, coalesce(u.middle_name, '')] from users u where u.id = applications.user_id)
+          else holder end
       where id = ${id} and status in ${tx(from)}
       returning id`;
     if (!app) return false;
@@ -53,7 +57,7 @@ export async function sendReply(id: string, text: string): Promise<Result> {
   const staff = await requireStaff();
   const t = clean(text, "сообщение студенту");
   if (isError(t)) return t;
-  if (!UUID.test(String(id))) return { error: "Заявка не найдена." };
+  if (!isUuid(id)) return { error: "Заявка не найдена." };
   const sent = await sql.begin(async (tx) => {
     const [app] = await tx<{ status: string }[]>`
       select status from applications where id = ${id} and status in ('submitted', 'in_progress', 'need_info') for update`;
@@ -69,17 +73,19 @@ export async function sendReply(id: string, text: string): Promise<Result> {
 // Буквы, пробел, дефис, апостроф. До 40 знаков
 const NAME = /^\p{L}[\p{L} '-]{0,39}$/u;
 
-/**
- * Заявка выполнена. У заявки на исправление данных сотрудник может сразу поправить ФИО в профиле:
- * в той же транзакции и только у владельца этой заявки (type = 'data_fix').
- */
 /** Запросить уточнение: вопрос студенту, заявка на паузе («На уточнении»), пока он не ответит. */
 export async function askStudent(id: string, question: string) {
+  await requireStaff(); // роль первой строкой, до разбора текста
   const q = clean(question, "что нужно от студента");
   return isError(q) ? q : move(id, ["submitted", "in_progress"], "need_info", "question", q);
 }
 
+/**
+ * Заявка выполнена. У заявки на исправление данных сотрудник может сразу поправить ФИО в профиле:
+ * в той же транзакции и только у владельца этой заявки (type = 'data_fix').
+ */
 export async function issue(id: string, comment: string, names?: { last: string; first: string; middle: string }) {
+  await requireStaff();
   const c = clean(comment, null);
   if (isError(c)) return c;
   if (!names) return move(id, ["submitted", "in_progress", "need_info"], "ready", "ready", c);
@@ -97,6 +103,7 @@ export async function issue(id: string, comment: string, names?: { last: string;
 }
 
 export async function reject(id: string, reason: string) {
+  await requireStaff();
   const r = clean(reason, "причину отказа");
   return isError(r) ? r : move(id, ["submitted", "in_progress", "need_info"], "rejected", "rejected", r);
 }
@@ -104,7 +111,7 @@ export async function reject(id: string, reason: string) {
 /** Сотрудник видит переписку (шторка открыта, вкладка на экране): сообщения студента прочитаны, студент видит «прочитано». */
 export async function markRead(id: string) {
   await requireStaff();
-  if (!UUID.test(String(id))) return;
+  if (!isUuid(id)) return;
   await sql`update application_events set seen_at = now(), read_at = coalesce(read_at, now())
             where application_id = ${id} and kind in ('answer', 'message') and seen_at is null`;
   refresh();
@@ -125,5 +132,5 @@ export async function queueVersion() {
 /** Отпечаток заявки для живого обновления карточки сотрудника. */
 export async function staffVersion(id: string) {
   await requireStaff();
-  return fingerprint(id, null);
+  return fingerprint(id, "staff");
 }

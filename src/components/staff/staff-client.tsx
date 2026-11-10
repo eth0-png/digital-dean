@@ -144,7 +144,7 @@ const DONE: Record<DocType, { button: string; icon: typeof CircleCheck; title: s
     icon: CalendarCheck,
     title: "Согласовать пересдачу?",
     label: "Дата, время и аудитория",
-    placeholder: "Например: 18 ноября в 10:00, ауд. 305",
+    placeholder: "Например: в четверг в 10:00, ауд. 305",
     submit: "Согласовать",
     done: "Пересдача согласована",
     required: "Напишите дату, время и аудиторию.",

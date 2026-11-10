@@ -99,7 +99,17 @@ alter table application_events add constraint application_events_kind_check
 
 // Демо-заявки, чтобы жюри сразу увидело все состояния. Создаются один раз, если у студента заявок нет,
 // и дальше не трогаются: заявки, которые создаст жюри, сохраняются.
-type DemoEvent = { kind: string; after: string; text?: string; read?: boolean };
+type DemoEvent = { kind: string; after: string; text?: string | (() => string); read?: boolean };
+
+// Дата через n дней по Москве («18 ноября»), воскресенье сдвигаем на понедельник.
+// Даты в демо-текстах считаем от момента создания, иначе к показу жюри они окажутся в прошлом.
+const MSK = "Europe/Moscow";
+const dayMonth = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long", timeZone: MSK });
+const isSunday = (d: Date) => new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: MSK }).format(d) === "Sun";
+function inDays(n: number) {
+  const d = new Date(Date.now() + n * 86_400_000);
+  return dayMonth.format(isSunday(d) ? new Date(d.getTime() + 86_400_000) : d);
+}
 type DemoApp = { type: string; purpose?: string; format: string; details?: string; status: string; ago: string; due: string; events: DemoEvent[] };
 
 const DEMO_APPS: Record<string, DemoApp[]> = {
@@ -112,7 +122,7 @@ const DEMO_APPS: Record<string, DemoApp[]> = {
       type: "retake", format: "electronic", status: "need_info", ago: "1 day", due: "3 days", details: "Макроэкономика, удобно на следующей неделе",
       events: [
         { kind: "submitted", after: "0" },
-        { kind: "question", after: "2 hours", text: "Пересдача по макроэкономике возможна 18 или 20 ноября. Какая дата вам удобнее?" },
+        { kind: "question", after: "2 hours", text: () => `Пересдача по макроэкономике возможна ${inDays(6)} или ${inDays(8)}. Какая дата вам удобнее?` },
       ],
     },
     {
@@ -154,9 +164,10 @@ async function seedApplications(userId: string, login: string, staffId: string |
       returning id`;
     for (const e of a.events) {
       const author = e.kind === "question" ? (staffId ?? null) : e.kind === "answer" ? userId : null;
+      const text = typeof e.text === "function" ? e.text() : (e.text ?? null);
       await sql`
         insert into application_events (application_id, kind, text, author_id, read_at, seen_at, created_at)
-        values (${app.id}, ${e.kind}, ${e.text ?? null}, ${author},
+        values (${app.id}, ${e.kind}, ${text}, ${author},
                 ${e.read ? sql`least(${base} + ${e.after}::interval, now())` : null},
                 ${e.read ? sql`least(${base} + ${e.after}::interval, now())` : null},
                 least(${base} + ${e.after}::interval, now()))`;
@@ -176,7 +187,7 @@ const DEMO = [
       program: "Юриспруденция (международное право)",
       course: 3,
       group: "МП-31",
-      card: "21-0457",
+      card: "24-0457",
     },
   },
   {
@@ -189,7 +200,7 @@ const DEMO = [
       program: "Экономика (международный энергетический бизнес)",
       course: 1,
       group: "МИЭП-12",
-      card: "25-1182",
+      card: "26-1182",
     },
   },
   {
@@ -205,6 +216,15 @@ export async function initDb() {
   await sql.unsafe(SCHEMA);
   await sql`delete from sessions where expires_at < now()`;
   await sql`delete from login_attempts where created_at < now() - interval '1 day'`;
+
+  // DEMO_RESET=1: при каждом старте демо-данные возвращаются к исходным (заявки, переписка, прочитанное, аватарки).
+  // На сервере приложение перезапускается каждую ночь, чтобы каждый эксперт жюри видел свежий кабинет с актуальными датами.
+  // Сессии не трогаем: вошедшие остаются в кабинете.
+  if (process.env.DEMO_RESET === "1") {
+    await sql`truncate applications, notice_reads restart identity cascade`;
+    await sql`update users set avatar = null`;
+    console.log("[init-db] демо-данные сброшены (DEMO_RESET=1)");
+  }
 
   const ids: Record<string, string> = {};
   for (const d of DEMO) {

@@ -114,7 +114,8 @@ await go(student, "/notifications");
 const notice = await student.$eval(`main a[href="/documents/${id}"]`, (a) => a.innerText).catch(() => "");
 check(notice.includes("Деканат задал вопрос") && notice.includes("Нужен ответ") && notice.includes(QUESTION), "в уведомлениях вопрос деканата с меткой «Нужен ответ»");
 // Отметка «прочитано» уходит на сервер после показа ленты, ждём её и открываем другую страницу
-await student.waitForNetworkIdle({ idleTime: 500 });
+// Иногда puppeteer не замечает отменённый запрос и ждёт до таймаута. Итог всё равно проверяет следующий шаг
+await student.waitForNetworkIdle({ idleTime: 500, timeout: 5000 }).catch(() => {});
 await go(student, "/documents");
 const cleared = await student.$eval('header a[href="/notifications"]', (a) => a.getAttribute("aria-label"));
 check(cleared === "Уведомления", `после открытия уведомлений счётчик погас («${cleared}»)`);
@@ -284,7 +285,8 @@ await staff.type("#chat-message", "Можно забрать в каб. 2105");
 await staff.click('button[aria-label="Отправить"]');
 await staff.waitForFunction(() => document.querySelector("[role=log]").innerText.includes("каб. 2105"), { timeout: LIVE });
 await go(student, "/notifications");
-await student.waitForNetworkIdle({ idleTime: 500 });
+// Иногда puppeteer не замечает отменённый запрос и ждёт до таймаута. Итог всё равно проверяет следующий шаг
+await student.waitForNetworkIdle({ idleTime: 500, timeout: 5000 }).catch(() => {});
 await new Promise((r) => setTimeout(r, 4000));
 check(
   /каб\. 2105\s+[^\n]*доставлено/.test(await logText(staff)) && !/каб\. 2105[\s\S]*прочитано/.test(await logText(staff)),

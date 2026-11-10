@@ -63,7 +63,7 @@ export const DOC_TYPES: Record<DocType, DocConfig> = {
     days: 3,
     purpose: false,
     formats: [],
-    details: { label: "Дисциплина и удобные даты", placeholder: "Например: макроэкономика, удобно 18 или 20 ноября", error: "Напишите дисциплину и удобные даты." },
+    details: { label: "Дисциплина и удобные даты", placeholder: "Например: макроэкономика, удобно в среду или пятницу", error: "Напишите дисциплину и удобные даты." },
   },
   data_fix: {
     title: "Исправление личных данных",

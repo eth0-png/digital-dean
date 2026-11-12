@@ -40,9 +40,12 @@ export function BottomNav() {
     <nav
       aria-label="Разделы"
       style={{ viewTransitionName: "app-nav" }}
-      className="fixed inset-x-3 bottom-[max(12px,env(safe-area-inset-bottom))] z-20 mx-auto max-w-[420px] rounded-3xl bg-nav p-2 lg:hidden"
+      className="fixed inset-x-3 bottom-[max(12px,env(safe-area-inset-bottom))] z-20 mx-auto max-w-[420px] lg:hidden"
     >
-      <div className="relative grid" style={{ gridTemplateColumns: COLS.map((c) => `${c}fr`).join(" ") }}>
+      {/* Ниже середины меню страница закрыта фоном: иначе её текст виден в щели под меню,
+          а на iPhone ещё и сквозь прозрачную панель браузера. Полоса уходит за край экрана с запасом */}
+      <span aria-hidden="true" className="pointer-events-none absolute top-1/2 -bottom-40 left-1/2 w-screen -translate-x-1/2 bg-background" />
+      <div className="relative grid rounded-3xl bg-nav p-2" style={{ gridTemplateColumns: COLS.map((c) => `${c}fr`).join(" ") }}>
         {/* Подсветка скользит между вкладками, а к профилю и уведомлениям просто гаснет */}
         <span
           aria-hidden="true"

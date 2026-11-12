@@ -226,22 +226,27 @@ export function WeekView({ days, selected, prev, next }: { days: Day[]; selected
   return (
     <div>
       <div className="grid grid-cols-6 gap-1.5 lg:hidden">
-        {days.map((d, i) => (
-          <button
-            key={d.date}
-            type="button"
-            onClick={() => setSel(i)}
-            aria-pressed={i === sel}
-            aria-label={`${d.full}, ${d.label}${d.today ? ", сегодня" : ""}`}
-            className={`press relative flex min-h-14 flex-col items-center justify-center rounded-xl text-[12.5px] font-bold transition-colors duration-200 ${
-              i === sel ? "bg-primary text-primary-foreground" : d.today ? "bg-accent text-accent-foreground" : "bg-secondary text-muted-foreground"
-            }`}
-          >
-            {d.short}
-            <span className="text-base">{Number(d.date.slice(8))}</span>
-            {d.lessons.some((l) => l.change) && <span aria-hidden="true" className="absolute top-1.5 right-1.5 size-1.5 rounded-full bg-warning" />}
-          </button>
-        ))}
+        {days.map((d, i) => {
+          // В сессию день с экзаменом или зачётом подписан: видно, в какой день идти, не открывая каждый
+          const control = d.session && d.lessons.length > 0 ? (d.lessons.some((l) => l.kind.startsWith("экзамен")) ? "экзамен" : "зачёт") : null;
+          return (
+            <button
+              key={d.date}
+              type="button"
+              onClick={() => setSel(i)}
+              aria-pressed={i === sel}
+              aria-label={`${d.full}, ${d.label}${d.today ? ", сегодня" : ""}${control ? `, ${control}` : ""}`}
+              className={`press relative flex min-h-14 flex-col items-center justify-center rounded-xl text-[12.5px] font-bold transition-colors duration-200 ${
+                i === sel ? "bg-primary text-primary-foreground" : d.today ? "bg-accent text-accent-foreground" : "bg-secondary text-muted-foreground"
+              }`}
+            >
+              {d.short}
+              <span className={`text-base ${control ? "leading-none" : ""}`}>{Number(d.date.slice(8))}</span>
+              {control && <span className={`mt-0.5 text-[10.5px] leading-none ${i === sel ? "" : "text-primary"}`}>{control.slice(0, 3)}</span>}
+              {d.lessons.some((l) => l.change) && <span aria-hidden="true" className="absolute top-1.5 right-1.5 size-1.5 rounded-full bg-warning" />}
+            </button>
+          );
+        })}
       </div>
       <div ref={area} className="touch-pan-y lg:hidden">
         <section key={day.date} className="mt-4 animate-in duration-200 fade-in" aria-label={`${day.full}, ${day.label}`}>

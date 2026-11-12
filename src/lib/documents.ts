@@ -69,7 +69,7 @@ export const DOC_TYPES: Record<DocType, DocConfig> = {
     title: "Исправление личных данных",
     short: "Нашли ошибку в данных",
     hint: "Исправим в профиле",
-    about: "Деканат проверит и исправит данные в профиле.",
+    about: "Деканат проверит и исправит ФИО в профиле. По другим данным ответит в заявке.",
     icon: PencilLine,
     days: 2,
     purpose: false,

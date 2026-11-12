@@ -187,10 +187,19 @@ await student.evaluate(() => {
   Object.defineProperty(navigator, "share", { value: undefined, configurable: true });
   Object.defineProperty(navigator, "clipboard", { value: { writeText: async (s) => (window.__copied = s) }, configurable: true });
 });
-await click(student, 'button[aria-label="Поделиться справкой"]');
+const SHARE = 'button[aria-label="Поделиться ссылкой для проверки"]';
+await click(student, SHARE);
 const copied = await until(student, () => window.__copied).then(() => student.evaluate(() => window.__copied));
 const toast = await until(student, () => document.body.innerText.includes("Ссылка скопирована"));
 check(/\/verify\/[0-9a-f]{32}$/.test(copied ?? "") && toast, `${tag}: «Поделиться» копирует ссылку проверки и сообщает об этом`);
+// Браузер не дал скопировать: ссылка показана в окне, её можно скопировать вручную
+await student.evaluate(() => {
+  Object.defineProperty(navigator, "clipboard", { value: { writeText: async () => Promise.reject(new Error("denied")) }, configurable: true });
+});
+const shown = new Promise((resolve) => student.once("dialog", (d) => d.dismiss().then(() => resolve(d.defaultValue()))));
+await click(student, SHARE);
+const manual = await Promise.race([shown, new Promise((r) => setTimeout(() => r(null), 5000))]);
+check(manual === copied, `${tag}: если скопировать не удалось, ссылка показана для копирования вручную`);
 
 await click(student, `a[href="/documents/${study.id}/document"]`);
 await until(student, (id) => location.pathname === `/documents/${id}/document`, study.id);

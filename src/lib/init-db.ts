@@ -152,7 +152,7 @@ const DEMO_APPS: Record<string, DemoApp[]> = {
       ],
     },
     {
-      type: "data_fix", format: "electronic", status: "submitted", ago: "30 minutes", due: "2 days", details: "В профиле неверная группа: я в МИЭП-12, а не МИЭП-11",
+      type: "data_fix", format: "electronic", status: "submitted", ago: "30 minutes", due: "2 days", details: "В отчестве опечатка: написано Сергеевч, правильно Сергеевич",
       events: [{ kind: "submitted", after: "0" }],
     },
   ],
@@ -207,7 +207,8 @@ const DEMO = [
     login: "student2",
     env: "SEED_PASSWORD_STUDENT2",
     role: "student",
-    name: ["Петров", "Илья", "Сергеевич"],
+    // Опечатка в отчестве намеренная: о ней демо-заявка на исправление данных, сотрудник может её выполнить
+    name: ["Петров", "Илья", "Сергеевч"],
     student: {
       faculty: "Международный институт энергетической политики и дипломатии",
       program: "Экономика (международный энергетический бизнес)",

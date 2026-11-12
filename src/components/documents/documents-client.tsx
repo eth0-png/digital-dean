@@ -17,7 +17,7 @@ import { createApplication, type OrderState } from "@/app/(student)/documents/ac
 // Клиентские части раздела «Документы»: форма заказа, «Поделиться», вкладки. Переписка в chat.tsx.
 
 const FORMATS: Record<Format, { title: string; text: string }> = {
-  electronic: { title: "Электронная с QR", text: "Готова в кабинете, можно показать с телефона или отправить ссылкой" },
+  electronic: { title: "Электронная с QR", text: "Готова в кабинете, можно показать с телефона или отправить ссылку для проверки" },
   paper: { title: "Бумажная", text: `Забрать в деканате, ${DEAN_OFFICE.room.toLowerCase()}` },
 };
 
@@ -159,24 +159,33 @@ export function SentToast() {
   const router = useRouter();
   const path = usePathname();
   useEffect(() => {
-    toast.success("Заявка отправлена", { description: "Мы напишем, когда документ будет готов." });
+    // Текст общий для справок и заявлений: у пересдачи и исправления данных документа нет
+    toast.success("Заявка отправлена", { description: "О результате сообщим в уведомлениях." });
     router.replace(path, { scroll: false });
   }, [router, path]);
   return null;
 }
 
-/** «Поделиться»: системное меню телефона, а где его нет, ссылка копируется. */
+/**
+ * «Поделиться»: уходит ссылка на страницу проверки, а не сам лист справки.
+ * Системное меню телефона, а где его нет, ссылка копируется. Не скопировалась: показываем её, чтобы скопировать вручную.
+ */
 export function ShareButton({ title, url }: { title: string; url: string }) {
   async function share() {
     if (navigator.share) {
       await navigator.share({ title, url }).catch(() => {});
       return;
     }
-    await navigator.clipboard.writeText(url);
-    toast.success("Ссылка скопирована", { description: "По ней можно проверить подлинность справки." });
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Ссылка скопирована", { description: "По ней можно проверить подлинность справки." });
+    } catch {
+      window.prompt("Не удалось скопировать. Скопируйте ссылку для проверки вручную", url);
+    }
   }
+  const label = "Поделиться ссылкой для проверки";
   return (
-    <Button type="button" variant="secondary" size="icon" className="size-13 rounded-xl" onClick={share} aria-label="Поделиться справкой">
+    <Button type="button" variant="secondary" size="icon" className="size-13 rounded-xl" onClick={share} aria-label={label} title={label}>
       <Share2 aria-hidden="true" />
     </Button>
   );

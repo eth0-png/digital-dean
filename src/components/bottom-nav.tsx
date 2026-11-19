@@ -46,14 +46,17 @@ export function BottomNav() {
           а на iPhone ещё и сквозь прозрачную панель браузера. Полоса уходит за край экрана с запасом */}
       <span aria-hidden="true" className="pointer-events-none absolute top-1/2 -bottom-40 left-1/2 w-screen -translate-x-1/2 bg-background" />
       <div className="relative grid rounded-3xl bg-nav p-2" style={{ gridTemplateColumns: COLS.map((c) => `${c}fr`).join(" ") }}>
-        {/* Подсветка скользит между вкладками, а к профилю и уведомлениям просто гаснет */}
-        <span
-          aria-hidden="true"
-          className={`absolute inset-y-0 rounded-2xl bg-primary duration-[260ms] ease-[cubic-bezier(.2,.8,.2,1)] ${
-            pill.jump ? "transition-opacity" : "transition-[left,width,opacity]"
-          }`}
-          style={{ left: `${left(pill.pos)}%`, width: `${(COLS[pill.pos] / SUM) * 100}%`, opacity: active < 0 ? 0 : 1 }}
-        />
+        {/* Подсветка скользит между вкладками, а к профилю и уведомлениям просто гаснет.
+            Она внутри полей меню (inset-2): отступ до края со всех сторон одинаковый, а её скругление 16 px
+            повторяет скругление меню 24 px за вычетом поля 8 px. Раньше у крайних вкладок она вставала вплотную к краю */}
+        <span aria-hidden="true" className="pointer-events-none absolute inset-2">
+          <span
+            className={`absolute inset-y-0 rounded-2xl bg-primary duration-[260ms] ease-[cubic-bezier(.2,.8,.2,1)] ${
+              pill.jump ? "transition-opacity" : "transition-[left,width,opacity]"
+            }`}
+            style={{ left: `${left(pill.pos)}%`, width: `${(COLS[pill.pos] / SUM) * 100}%`, opacity: active < 0 ? 0 : 1 }}
+          />
+        </span>
         {TABS.map(({ href, label, Icon }, i) => (
           <Link
             key={href}

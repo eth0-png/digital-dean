@@ -36,6 +36,7 @@
 - Разбор настоящего кабинета МГИМО, обезличенный: [research/lks-mgimo-review.md](research/lks-mgimo-review.md)
 - План, идея и этапы: [PLAN.md](PLAN.md)
 - Текущее состояние: [STATUS.md](STATUS.md)
+- Описание процесса создания: [docs/process.pdf](docs/process.pdf)
 - Журнал работы с ИИ: [docs/ai-log.md](docs/ai-log.md)
 - Тестирование и карта действий: [docs/test-report.md](docs/test-report.md)
 - Аудит безопасности: [docs/security-audit.md](docs/security-audit.md)

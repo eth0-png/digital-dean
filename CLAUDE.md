@@ -15,6 +15,7 @@
 - `PLAN.md` идея, разделы, стек, этапы по дням, что режем, чек-лист сдачи.
 - `STATUS.md` текущее состояние и следующий шаг.
 - `research/survey.csv` опрос студентов, `research/survey-summary.md` цифры и цитаты, `research/lks-mgimo-review.md` обезличенный разбор настоящего кабинета МГИМО: что берём, что нет, «было и стало» для описания.
+- `docs/process.html` описание процесса для жюри, из него `node scripts/process-pdf.mjs` собирает `docs/process.pdf` и перечисляет незаполненные места (жёлтые пометки `class="todo"`). Править только html, pdf пересобирать.
 - `docs/ai-log.md` журнал работы с ИИ, `docs/screenshots/` скриншоты, `docs/design/` макеты вариантов дизайна.
 - `src/app/` приложение Next.js 16 (App Router, TypeScript, Tailwind 4). Студенческие страницы в `src/app/(student)/`, кабинет сотрудника в `src/app/staff/`, вход в `src/app/login/`.
 - `src/lib/auth.ts` слой доступа: `requireStudent()`, `requireStaff()`, `requireUser()` (любая роль), сессии, лимит попыток входа. Имя cookie сессии в `src/lib/session-cookie.ts` (на сервере `__Host-session`, общее с `proxy.ts`). Лимит входа: `reserveLoginAttempt(login)` записывает попытку до проверки пароля и считает по паре «адрес, логин» (10 за 15 минут, 50 на адрес), верный пароль убирает запись (`releaseLoginAttempt`). На аккаунт не больше 50 сессий.

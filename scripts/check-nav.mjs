@@ -115,6 +115,20 @@ check(await tap(`a[href="${FIX}"]`, FIX), "профиль → «Нашли ош�
 check(await tap("[data-back]", "/profile"), "«назад» с формы в профиль");
 check(await tap('a[aria-label="Закрыть профиль"]', "/"), "закрытие профиля после «назад» ведёт на «Сегодня», а не в форму");
 
+// 8б2. «Сегодня»: в «Требует внимания» не больше трёх пунктов, остальные по «Ещё N» в уведомлениях
+await go("/");
+const attention = await page.evaluate(() => {
+  const section = [...document.querySelectorAll("main h2")].find((h) => h.textContent === "Требует внимания")?.closest("section");
+  return section ? { items: section.querySelectorAll("li").length, more: section.querySelector('a[href="/notifications"]')?.textContent.trim() ?? "" } : null;
+});
+if (attention) {
+  check(attention.items <= 3, `в «Требует внимания» не больше трёх пунктов (сейчас ${attention.items}, ссылка «${attention.more || "нет"}»)`);
+  if (attention.more) {
+    check(await tap('main section a[href="/notifications"]', "/notifications"), "«Ещё N» ведёт в уведомления");
+    check(await tap('a[aria-label="Закрыть уведомления"]', "/"), "уведомления после «Ещё N» закрываются на «Сегодня»");
+  }
+}
+
 // 8в. Заявка → справка → «назад» → «назад»: подписи и адреса не залипают после возврата
 await go("/documents/all");
 const ready = await page.$$eval('[role=tabpanel] li a', (as) => as.find((a) => /, готово /.test(a.textContent) && /Справка/.test(a.textContent))?.getAttribute("href"));

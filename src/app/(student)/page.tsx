@@ -21,6 +21,8 @@ export default function TodayPage() {
   );
 }
 
+const ATTENTION_MAX = 3;
+
 type Attention = { href: string; icon: LucideIcon; tone: string; title: string; text: string; kind?: string };
 
 /**
@@ -64,6 +66,9 @@ async function Today() {
     })),
     ...study.filter((s) => s.kind !== "debt"),
   ];
+  // На экране три самых важных, остальные в уведомлениях: иначе длинный список уводит пары дня за первый экран
+  const shown = attention.slice(0, ATTENTION_MAX);
+  const more = attention.length - shown.length;
   const n = t.next;
 
   return (
@@ -110,9 +115,22 @@ async function Today() {
           {/* Требует внимания: только если есть что показать */}
           {attention.length > 0 && (
             <section className="enter" style={stagger(2)}>
-              <SectionTitle>Требует внимания</SectionTitle>
+              <div className="flex items-center justify-between">
+                <SectionTitle>Требует внимания</SectionTitle>
+                {more > 0 && (
+                  <Link
+                    href="/notifications"
+                    transitionTypes={["nav-forward"]}
+                    aria-label={`Ещё ${more} в уведомлениях`}
+                    className="-mt-2.5 -mr-1 inline-flex min-h-11 items-center gap-0.5 text-sm font-bold text-primary"
+                  >
+                    Ещё {more}
+                    <ChevronRight size={18} aria-hidden="true" />
+                  </Link>
+                )}
+              </div>
               <ul className="space-y-2">
-                {attention.map((a, i) => (
+                {shown.map((a, i) => (
                   <li key={`${a.href}-${a.title}`} className="enter" style={stagger(i + 3)}>
                     <Link href={a.href} transitionTypes={["nav-forward"]} className="press flex items-center gap-3 rounded-xl border bg-card px-3.5 py-3">
                       <span className={`grid size-10 shrink-0 place-items-center rounded-full ${a.tone}`}>
